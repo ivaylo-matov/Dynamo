@@ -484,6 +484,8 @@ namespace Dynamo.Graph.Workspaces
             } while (!done);
         }
 
+
+        // ip comment: might be important ???
         /// <summary>
         /// This method pushes changes from the GraphLayout.Graph objects
         /// back to the workspace models.

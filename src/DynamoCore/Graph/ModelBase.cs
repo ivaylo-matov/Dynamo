@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Xml;
 using Dynamo.Core;
@@ -263,7 +263,7 @@ namespace Dynamo.Graph
         ///  Notifies listeners that the position of the object has changed,
         ///  then all dependant objects will also redraw themselves.
         /// </summary>
-        public void ReportPosition()
+        public void ReportPosition()     // could that be it???
         {
             RaisePropertyChanged("Position");
         }

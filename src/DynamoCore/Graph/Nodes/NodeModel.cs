@@ -2497,7 +2497,7 @@ namespace Dynamo.Graph.Nodes
             var portInfoProcessed = new HashSet<int>();
 
             //read port information
-            foreach (XmlNode subNode in nodeElement.ChildNodes)
+            foreach (XmlNode subNode in nodeElement.ChildNodes)    // maybe the connectors are stored here?
             {
                 if (subNode.Name == "PortInfo")
                 {
@@ -2566,7 +2566,7 @@ namespace Dynamo.Graph.Nodes
 
                 // Notify listeners that the position of the node has changed,
                 // then all connected connectors will also redraw themselves.
-                ReportPosition();
+                ReportPosition();                                                                       // could it be it????
 
             }
         }

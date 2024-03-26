@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
@@ -365,7 +365,7 @@ namespace Dynamo.Core
             // 
             for (int index = actions.Count - 1; index >= 0; index--)
             {
-                var element = actions[index] as XmlElement;
+                var element = actions[index] as XmlElement; // check if the connector is here? A: only the nodes a re in the action group!
 
                 XmlAttribute actionAttribute = element.Attributes[UserActionAttrib];
                 var modelActionType = (UserAction)Enum.Parse(typeof(UserAction), actionAttribute.Value);
@@ -386,11 +386,11 @@ namespace Dynamo.Core
                         break;
 
                     case UserAction.Modification:
-                        ModelBase toBeUpdated = undoClient.GetModelForElement(element);
+                        ModelBase toBeUpdated = undoClient.GetModelForElement(element);  // assuming this runs when undo move? A: true!
                         if (toBeUpdated != null)
                         {
                             RecordActionInternal(newGroup, toBeUpdated, modelActionType);
-                            undoClient.ReloadModel(element);
+                            undoClient.ReloadModel(element);                            // this is the next step
                         }
                         break;
 

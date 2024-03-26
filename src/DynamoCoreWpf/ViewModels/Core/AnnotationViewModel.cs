@@ -973,6 +973,8 @@ namespace Dynamo.ViewModels
             }
         }
 
+
+        // could this be connected?
         private void RedrawConnectors()
         {
             var allNodes = this.Nodes
@@ -1031,7 +1033,7 @@ namespace Dynamo.ViewModels
 
             Analytics.TrackEvent(Actions.Expanded, Categories.GroupOperations);
         }
-
+        // ip comment : how to select connectorViewModes from a given annotationViewModel
         private void UpdateConnectorsAndPortsOnShowContents(IEnumerable<ModelBase> nodes)
         {
             foreach (var nodeModel in nodes.OfType<NodeModel>())

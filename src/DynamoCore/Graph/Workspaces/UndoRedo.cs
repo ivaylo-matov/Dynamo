@@ -596,6 +596,9 @@ namespace Dynamo.Graph.Workspaces
                 ?? Annotations.FirstOrDefault(annotation => annotation.GUID == modelGuid) as ModelBase
                 ?? Presets.FirstOrDefault(preset => preset.GUID == modelGuid) as ModelBase);
 
+            var test = foundModel as ModelBase;
+            var guid = foundModel.GUID;
+
             if(foundModel is null)
             {
                 foreach(var connector in Connectors)

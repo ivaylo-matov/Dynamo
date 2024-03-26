@@ -1426,8 +1426,20 @@ namespace Dynamo.ViewModels
                 this.Redraw(this.ConnectorModel.End.Center);
             }
 
+            this.SetVisibilityByNodeModel();
             RaisePropertyChanged(nameof(ZIndex));
         }
+
+        // ip code:
+        public void SetVisibilityByNodeModel()
+        {
+            if (this.Nodevm.IsCollapsed || this.NodeEnd.IsCollapsed)
+            {
+                this.IsCollapsed = true;
+                this.IsHidden = true;
+            }
+        }
+
 
         /// <summary>
         /// Recalculate the connector's points given the end point
