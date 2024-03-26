@@ -241,6 +241,9 @@ namespace Dynamo.Tests
             //ConnectorModel connector = ConnectorModel.Make(numberNode, multiplyNode, 0, 0);
             //ConnectorPinModel pin = new ConnectorPinModel(1, 1, new Guid(), connector.GUID);
 
+            // Check if connectors are in the model?
+            var allConnectors = CurrentDynamoModel.CurrentWorkspace.Connectors;
+
             //Select the node with neighbors
             NodeModel node = CurrentDynamoModel.CurrentWorkspace.NodeFromWorkspace("53e0ccb5-60c0-4843-8f90-0ff5ac15ad2b");
 
