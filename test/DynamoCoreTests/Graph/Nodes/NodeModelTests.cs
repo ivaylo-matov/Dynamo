@@ -3,7 +3,9 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Xml;
+using CoreNodeModels;
 using Dynamo.Graph;
+using Dynamo.Graph.Connectors;
 using Dynamo.Graph.Nodes;
 using Dynamo.Migration;
 using Dynamo.Selection;
@@ -215,6 +217,46 @@ namespace Dynamo.Tests
             // Range node selected
             for (int i = 0; i < shouldBeSelected.Length; i++)
                 Assert.That(nodesSelected.Any(x => String.Equals(x.GUID.ToString(), shouldBeSelected[i])));
+        }
+
+        // IP test :
+        [Test]
+        [Category("UnitTests")]
+        public void SelectNeighborPinsTest()
+        {
+            //Open and run the workspace
+            string listTestFolder = Path.Combine(TestDirectory, "core");
+            string testFilePath = Path.Combine(listTestFolder, "ConnectorPinSelection_Test.dyn");
+
+            RunModel(testFilePath);
+
+            // Clear the selection to ensure a clean state
+            DynamoSelection.Instance.ClearSelection();
+
+            //// IP comment : code works fine and adds the connectorPins to the selection when debugging
+            //// Tried to build connectors and pins here but same result  
+            //NodeModel numberNode = CurrentDynamoModel.CurrentWorkspace.NodeFromWorkspace("00ef97f4-cfa9-4fa8-ad4d-8682aa97d0a5");
+            //NodeModel multiplyNode = CurrentDynamoModel.CurrentWorkspace.NodeFromWorkspace("53e0ccb5-60c0-4843-8f90-0ff5ac15ad2b");
+            //// connect the two nodes
+            //ConnectorModel connector = ConnectorModel.Make(numberNode, multiplyNode, 0, 0);
+            //ConnectorPinModel pin = new ConnectorPinModel(1, 1, new Guid(), connector.GUID);
+
+            //Select the node with neighbors
+            NodeModel node = CurrentDynamoModel.CurrentWorkspace.NodeFromWorkspace("53e0ccb5-60c0-4843-8f90-0ff5ac15ad2b");
+
+            DynamoSelection.Instance.Selection.Add(node);
+
+            var countBefore = DynamoSelection.Instance.Selection.Count;
+            Assert.AreEqual(1, countBefore);
+
+            //Run the method and assert whether more nodes were selected
+            node.SelectNeighbors();
+
+            var modelsSelected = DynamoSelection.Instance.Selection.Select(s => s as ModelBase);
+            var guids = modelsSelected.Select(n => n.GUID.ToString()).ToArray();
+            var countAfter = modelsSelected.Count();            
+
+            Assert.AreEqual(5, countAfter);
         }
 
         [Test]
