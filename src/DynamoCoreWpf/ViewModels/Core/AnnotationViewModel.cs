@@ -1046,6 +1046,15 @@ namespace Dynamo.ViewModels
                     .ToList();
 
                 connectorViewModels.ForEach(x => x.IsCollapsed = false);
+                // ip code :
+                foreach (var connectVM in connectorViewModels)
+                {
+                    var connect = connectVM.ConnectorModel;
+                    var guid = connect.GUID;
+                    var isH = connect.IsHidden;
+                    var isVMH = connectVM.IsHidden;
+                    var isVMC = connectVM.IsCollapsed;
+                }
 
                 // Set IsProxyPort back to false when the group is expanded.
                 nodeModel.InPorts.ToList().ForEach(x => x.IsProxyPort = false);

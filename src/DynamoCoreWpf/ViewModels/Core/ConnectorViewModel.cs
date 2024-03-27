@@ -1436,7 +1436,7 @@ namespace Dynamo.ViewModels
             if (this.Nodevm.IsCollapsed || this.NodeEnd.IsCollapsed)
             {
                 this.IsCollapsed = true;
-                this.IsHidden = true;
+                //this.IsHidden = true;
             }
         }
 
