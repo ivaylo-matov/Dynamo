@@ -7,7 +7,7 @@ using System.Threading;
 using System.Windows.Input;
 using System.Windows.Media;
 using Dynamo.Controls;
-using Dynamo.Graph.Nodes;
+using Dynamo.Graph;
 using Dynamo.Graph.Workspaces;
 using Dynamo.Models;
 using Dynamo.Selection;
@@ -637,6 +637,44 @@ namespace DynamoCoreWpfTests
 
             Assert.AreEqual(outPort_With_Function.ValueMarkerWidth, outPort_With_Function.ValueMarkerWidthWithFunction);
             Assert.AreEqual(outPort_Without_Function.ValueMarkerWidth, outPort_Without_Function.ValueMarkerWidthWithoutFunction);
+        }
+
+        // IP test :
+        // DN comment (Remove): funny enough, the Pins are part of the DynamoViewModel stuff, and are initialized after the NodeModels
+        // Or more precisely, you need to create the DynamoViewModel in order to desrialize the information about the Pins.
+        // By placing the test under a DynamoTestUIBase derived test class, we get the UI initialization 'for free' and the rest of the test logic works!
+        // I just rearranged your code to use methods specific to this class
+        [Test]
+        public void TestSelectNeighborPins()
+        {
+            //Open and run the workspace
+            Open(@"core\ConnectorPinSelection_Test.dyn");
+
+            // Clear the selection to ensure a clean state
+            DynamoSelection.Instance.ClearSelection();
+
+            //Select the node 
+            var nodeView = NodeViewWithGuid("53e0ccb5-60c0-4843-8f90-0ff5ac15ad2b"); 
+
+            NodeViewModel nodeViewModel = (nodeView.DataContext as NodeViewModel);
+            WorkspaceModel ws = nodeViewModel.DynamoViewModel.CurrentSpace;
+
+            // Check if connectors are in the model
+            var allConnectors = ws.Connectors;
+
+            DynamoSelection.Instance.Selection.Add(nodeViewModel.NodeModel);
+
+            var countBefore = DynamoSelection.Instance.Selection.Count;
+            Assert.AreEqual(1, countBefore);
+
+            //Run the method and assert whether more nodes were selected
+            nodeViewModel.NodeModel.SelectNeighbors();
+
+            var modelsSelected = DynamoSelection.Instance.Selection.Select(s => s as ModelBase);
+            var guids = modelsSelected.Select(n => n.GUID.ToString()).ToArray();
+            var countAfter = modelsSelected.Count();
+
+            Assert.AreEqual(5, countAfter);
         }
     }
 }

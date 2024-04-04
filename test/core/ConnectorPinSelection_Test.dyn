@@ -1,0 +1,217 @@
+{
+  "Uuid": "f0b8352d-d69b-4a1d-ae59-a9f4448761f4",
+  "IsCustomNode": false,
+  "Description": "",
+  "Name": "ConnectorPinSelection_Test",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Input.DoubleInput, CoreNodeModels",
+      "NumberType": "Double",
+      "Id": "00ef97f4cfa94fa8ad4d8682aa97d0a5",
+      "NodeType": "NumberInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "9c1f7599f72a4f9ca0b4dbd3a7fdb2ef",
+          "Name": "",
+          "Description": "Double",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Creates a number",
+      "InputValue": 5.0
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "Id": "53e0ccb560c048438f900ff5ac15ad2b",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {
+          "Id": "8845992ee136407fac94baa421d8b881",
+          "Name": "x",
+          "Description": "Integer or double value\n\nvar[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "dde655b4a1bc4f1ca35a34391c65d5ed",
+          "Name": "y",
+          "Description": "Integer or double value\n\nvar[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "e1939c61d0e74d1abe33f2b83c85dc8e",
+          "Name": "number",
+          "Description": "The product of the two input numbers",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "FunctionSignature": "*@var[]..[],var[]..[]",
+      "Replication": "Auto",
+      "Description": "Returns multiplication of x times y\n\n* (x: var[]..[], y: var[]..[]): var[]..[]"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 35.0,
+      "WatchHeight": 38.0,
+      "Id": "ca0062c81c09411bbbce3b13cb0065fd",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "cb412a7d3b1542b6b2d5d7734e39918a",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "dca436c1795540cd9adbf94f673edbea",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualizes a node's output"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "9c1f7599f72a4f9ca0b4dbd3a7fdb2ef",
+      "End": "8845992ee136407fac94baa421d8b881",
+      "Id": "5311ef57b2bf4d1383d00cf2f2b62046",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "9c1f7599f72a4f9ca0b4dbd3a7fdb2ef",
+      "End": "dde655b4a1bc4f1ca35a34391c65d5ed",
+      "Id": "2a1cb76244e94774b4d2918a1dc4dfcb",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "e1939c61d0e74d1abe33f2b83c85dc8e",
+      "End": "cb412a7d3b1542b6b2d5d7734e39918a",
+      "Id": "9cfb67a37c1f40c6ac6bacd1fe69924a",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "EnableLegacyPolyCurveBehavior": true,
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "3.1",
+      "Data": {}
+    }
+  ],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "3.1.0.4503",
+      "RunType": "Automatic",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "_Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [
+      {
+        "Left": 359.77634788250856,
+        "Top": 357.01481959018975,
+        "IsHidden": false,
+        "ConnectorGuid": "5311ef57-b2bf-4d13-83d0-0cf2f2b62046"
+      },
+      {
+        "Left": 619.5458897721048,
+        "Top": 311.3967536973826,
+        "IsHidden": false,
+        "ConnectorGuid": "9cfb67a3-7c1f-40c6-ac6b-acd1fe69924a"
+      }
+    ],
+    "NodeViews": [
+      {
+        "Id": "00ef97f4cfa94fa8ad4d8682aa97d0a5",
+        "Name": "Number",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 210.23771336683,
+        "Y": 481.1086348966164
+      },
+      {
+        "Id": "53e0ccb560c048438f900ff5ac15ad2b",
+        "Name": "*",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 436.29112285129827,
+        "Y": 470.7927968038372
+      },
+      {
+        "Id": "ca0062c81c09411bbbce3b13cb0065fd",
+        "Name": "Watch",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 741.3240878570762,
+        "Y": 438.48824537196407
+      }
+    ],
+    "Annotations": [],
+    "X": -95.596305304623,
+    "Y": -136.20007761129528,
+    "Zoom": 0.7891610329248161
+  }
+}
