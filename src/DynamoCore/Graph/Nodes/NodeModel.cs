@@ -1766,10 +1766,22 @@ namespace Dynamo.Graph.Nodes
             IEnumerable<ConnectorModel> inConnectors = inPorts.SelectMany(x => x.Connectors);
 
             foreach (var c in outConnectors.Where(c => !DynamoSelection.Instance.Selection.Contains(c.End.Owner)))
+            {
                 DynamoSelection.Instance.Selection.Add(c.End.Owner);
+                foreach (var p in c.ConnectorPinModels)
+                {
+                    DynamoSelection.Instance.Selection.Add(p);
+                }
+            }
 
             foreach (var c in inConnectors.Where(c => !DynamoSelection.Instance.Selection.Contains(c.Start.Owner)))
+            {
                 DynamoSelection.Instance.Selection.Add(c.Start.Owner);
+                foreach (var p in c.ConnectorPinModels)
+                {
+                    DynamoSelection.Instance.Selection.Add(p);
+                }
+            }
         }
 
         /// <summary>

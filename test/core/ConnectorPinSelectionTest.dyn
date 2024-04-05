@@ -1,39 +1,217 @@
-<Workspace Version="1.0.1.1743" X="11.3333333333333" Y="5.94133333333332" zoom="1" Name="" Description="" RunType="Manual" RunPeriod="1000" HasRunWithoutCrash="False">
-  <NamespaceResolutionMap />
-  <Elements>
-    <CoreNodeModels.Range guid="f617749c-cee7-4c0a-823b-17c6fce1d977" type="CoreNodeModels.Range" nickname="Range" x="154.951064011525" y="134.800278527308" isVisible="true" isUpstreamVisible="true" lacing="Longest" isSelectedInput="False" IsFrozen="false" isPinned="false" />
-    <CoreNodeModels.Input.DoubleInput guid="7a840602-87d2-421b-9377-c3f4c4af143c" type="CoreNodeModels.Input.DoubleInput" nickname="Number" x="0" y="208.575219632599" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="True" IsFrozen="false" isPinned="false">
-      <System.Double value="10" />
-    </CoreNodeModels.Input.DoubleInput>
-    <CoreNodeModels.Input.DoubleInput guid="4831c3e1-6d21-4949-9592-03ee6e73c1e5" type="CoreNodeModels.Input.DoubleInput" nickname="Number" x="0" y="135.369728504591" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="True" IsFrozen="false" isPinned="false">
-      <System.Double value="0" />
-    </CoreNodeModels.Input.DoubleInput>
-    <CoreNodeModels.Input.DoubleInput guid="83685125-12bf-4c61-aa9d-6dcb97fd280d" type="CoreNodeModels.Input.DoubleInput" nickname="Number" x="0" y="325.630588627919" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="True" IsFrozen="false" isPinned="false">
-      <System.Double value="1" />
-    </CoreNodeModels.Input.DoubleInput>
-    <CoreNodeModels.Watch guid="d528700d-73df-4ee8-a6b5-a24749ece16b" type="CoreNodeModels.Watch" nickname="Watch" x="622.986287081957" y="399.431825264763" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" isPinned="false" />
-    <CoreNodeModels.Range guid="750720f0-a263-431d-86a5-52d622346eac" type="CoreNodeModels.Range" nickname="Range" x="507.611343979189" y="228.872086160496" isVisible="true" isUpstreamVisible="true" lacing="Longest" isSelectedInput="False" IsFrozen="false" isPinned="false" />
-    <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="a4761902-905d-4466-a515-d52dadb1a0e7" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="+" x="295.275700874755" y="226.503427721999" isVisible="true" isUpstreamVisible="true" lacing="Longest" isSelectedInput="False" IsFrozen="false" isPinned="false" assembly="Operators" function="+@var[]..[],var[]..[]" />
-    <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="31867b34-5da8-4a50-903e-e8a7f352fa5d" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="List.Transpose" x="778.66821109294" y="254.763728221612" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" isPinned="false" assembly="DSCoreNodes.dll" function="DSCore.List.Transpose@var[]..[]" />
-    <CoreNodeModels.Watch guid="41d8a597-35c5-4056-857f-804790571e4c" type="CoreNodeModels.Watch" nickname="Watch" x="818.084371542869" y="400.937631351105" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" isPinned="false" />
-    <CoreNodeModels.Input.DoubleInput guid="6f88b044-5447-4586-a53f-fd36dce6e06b" type="CoreNodeModels.Input.DoubleInput" nickname="Number" x="364.238320557667" y="336.697169573796" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="True" IsFrozen="false" isPinned="false">
-      <System.Double value="2" />
-    </CoreNodeModels.Input.DoubleInput>
-  </Elements>
-  <Connectors>
-    <Dynamo.Graph.Connectors.ConnectorModel start="f617749c-cee7-4c0a-823b-17c6fce1d977" start_index="0" end="750720f0-a263-431d-86a5-52d622346eac" end_index="0" portType="0" />
-    <Dynamo.Graph.Connectors.ConnectorModel start="f617749c-cee7-4c0a-823b-17c6fce1d977" start_index="0" end="a4761902-905d-4466-a515-d52dadb1a0e7" end_index="0" portType="0" />
-    <Dynamo.Graph.Connectors.ConnectorModel start="7a840602-87d2-421b-9377-c3f4c4af143c" start_index="0" end="f617749c-cee7-4c0a-823b-17c6fce1d977" end_index="1" portType="0" />
-    <Dynamo.Graph.Connectors.ConnectorModel start="7a840602-87d2-421b-9377-c3f4c4af143c" start_index="0" end="a4761902-905d-4466-a515-d52dadb1a0e7" end_index="1" portType="0" />
-    <Dynamo.Graph.Connectors.ConnectorModel start="4831c3e1-6d21-4949-9592-03ee6e73c1e5" start_index="0" end="f617749c-cee7-4c0a-823b-17c6fce1d977" end_index="0" portType="0" />
-    <Dynamo.Graph.Connectors.ConnectorModel start="83685125-12bf-4c61-aa9d-6dcb97fd280d" start_index="0" end="f617749c-cee7-4c0a-823b-17c6fce1d977" end_index="2" portType="0" />
-    <Dynamo.Graph.Connectors.ConnectorModel start="750720f0-a263-431d-86a5-52d622346eac" start_index="0" end="d528700d-73df-4ee8-a6b5-a24749ece16b" end_index="0" portType="0" />
-    <Dynamo.Graph.Connectors.ConnectorModel start="750720f0-a263-431d-86a5-52d622346eac" start_index="0" end="31867b34-5da8-4a50-903e-e8a7f352fa5d" end_index="0" portType="0" />
-    <Dynamo.Graph.Connectors.ConnectorModel start="a4761902-905d-4466-a515-d52dadb1a0e7" start_index="0" end="750720f0-a263-431d-86a5-52d622346eac" end_index="1" portType="0" />
-    <Dynamo.Graph.Connectors.ConnectorModel start="31867b34-5da8-4a50-903e-e8a7f352fa5d" start_index="0" end="41d8a597-35c5-4056-857f-804790571e4c" end_index="0" portType="0" />
-    <Dynamo.Graph.Connectors.ConnectorModel start="6f88b044-5447-4586-a53f-fd36dce6e06b" start_index="0" end="750720f0-a263-431d-86a5-52d622346eac" end_index="2" portType="0" />
-  </Connectors>
-  <Notes />
-  <Annotations />
-  <Presets />
-</Workspace>
+{
+  "Uuid": "1b4db7eb-4057-5ddf-91e0-36dec72071f5",
+  "IsCustomNode": false,
+  "Description": "",
+  "Name": "ConnectorPinSelectionTest",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "Id": "082dc6688d114c34a2bdd1d867ecc0fd",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {
+          "Id": "3c9d231dc82c443eb605dadf5e0d3f11",
+          "Name": "x",
+          "Description": "Integer or double value\n\nvar[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "8aca30f745f940ea9674db37d3c97177",
+          "Name": "y",
+          "Description": "Integer or double value\n\nvar[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "d71fa717d1b648b8af329a4cdd97d6b1",
+          "Name": "number",
+          "Description": "The product of the two input numbers",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "FunctionSignature": "*@var[]..[],var[]..[]",
+      "Replication": "Auto",
+      "Description": "Returns multiplication of x times y\n\n* (x: var[]..[], y: var[]..[]): var[]..[]"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.DoubleInput, CoreNodeModels",
+      "NumberType": "Double",
+      "Id": "e5ad7c1d6fb54a3b84a43bac7c0942d0",
+      "NodeType": "NumberInputNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "b4fe7ba640184460a4cafbcc1f02f9c7",
+          "Name": "",
+          "Description": "Double",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Creates a number",
+      "InputValue": 10.0
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 200.0,
+      "WatchHeight": 200.0,
+      "Id": "37de98bb73094334bcc789e287016cfc",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "bb6ef50828774af0b8ae66227d39b7a5",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "1dce2db433a34fe685927354385e1f47",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualizes a node's output"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "d71fa717d1b648b8af329a4cdd97d6b1",
+      "End": "bb6ef50828774af0b8ae66227d39b7a5",
+      "Id": "e35ef600209b4acc9d1746bb4da51990",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b4fe7ba640184460a4cafbcc1f02f9c7",
+      "End": "3c9d231dc82c443eb605dadf5e0d3f11",
+      "Id": "d05349e316404f2388c478feb5e36be1",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b4fe7ba640184460a4cafbcc1f02f9c7",
+      "End": "8aca30f745f940ea9674db37d3c97177",
+      "Id": "719c1cf9c53c43289626cbf99b81dc09",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "EnableLegacyPolyCurveBehavior": null,
+  "Thumbnail": null,
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "3.1",
+      "Data": {}
+    }
+  ],
+  "Author": "None provided",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "3.1.0.3411",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "_Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [
+      {
+        "Left": 1316.347062661545,
+        "Top": 123.28362048938058,
+        "IsHidden": false,
+        "ConnectorGuid": "e35ef600-209b-4acc-9d17-46bb4da51990"
+      },
+      {
+        "Left": 1015.1971378005006,
+        "Top": 133.25649992483054,
+        "IsHidden": false,
+        "ConnectorGuid": "d05349e3-1640-4f23-88c4-78feb5e36be1"
+      }
+    ],
+    "NodeViews": [
+      {
+        "Id": "082dc6688d114c34a2bdd1d867ecc0fd",
+        "Name": "*",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 1104.238200626583,
+        "Y": 237.8081301794316
+      },
+      {
+        "Id": "e5ad7c1d6fb54a3b84a43bac7c0942d0",
+        "Name": "Number",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 840.5920151275385,
+        "Y": 274.38774623042696
+      },
+      {
+        "Id": "37de98bb73094334bcc789e287016cfc",
+        "Name": "Watch",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 1368.2404315261733,
+        "Y": 238.00605755832567
+      }
+    ],
+    "Annotations": [],
+    "X": -552.7189084001983,
+    "Y": 43.36101806665792,
+    "Zoom": 0.7705168482022453
+  }
+}
