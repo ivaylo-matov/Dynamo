@@ -146,6 +146,9 @@ namespace PythonNodeModelsWpf
             editText.Options.ShowSpaces = dynamoViewModel.ShowTabsAndSpacesInScriptEditor;
             editText.Options.ShowTabs = dynamoViewModel.ShowTabsAndSpacesInScriptEditor;
 
+            // Set options to reflect global settings when python script editor in initialized for the first time.
+            //editText.Options.ConvertTabsToSpaces = dynamoViewModel.ConvertTabsToSpacesInScriptEditor;                                  // ip code
+
             // Set font size in editor and cache it
             editText.FontSize = dynamoViewModel.PreferenceSettings.PythonScriptZoomScale * fontSizePreferencesSliderProportionValue;
             zoomScaleCacheValue = dynamoViewModel.PreferenceSettings.PythonScriptZoomScale;
@@ -508,7 +511,9 @@ namespace PythonNodeModelsWpf
                     CachedEngine);
             }
 
-            editText.Options.ConvertTabsToSpaces = CachedEngine != PythonEngineManager.IronPython2EngineName;
+            //editText.Options.ConvertTabsToSpaces = CachedEngine != PythonEngineManager.IronPython2EngineName; dynamoViewModel.ConvertTabsToSpacesInScriptEditor
+            // ip code
+            editText.Options.ConvertTabsToSpaces = dynamoViewModel.ConvertTabsToSpacesInScriptEditor;
         }
 
         private void OnScriptEditorWindowClosed(object sender, EventArgs e)

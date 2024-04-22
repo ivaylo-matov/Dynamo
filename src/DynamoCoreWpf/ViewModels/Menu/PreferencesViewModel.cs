@@ -980,6 +980,23 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
+        /// Controls the IsChecked property in the "Convert Tabs to Spaces in Python editor" toggle button
+        /// </summary>
+        public bool ConvertTabsToSpacesIsChecked
+        {
+            get
+            {
+                return preferenceSettings.ConvertTabsToSpacesInScriptEditor;
+            }
+            set
+            {
+                //pythonScriptEditorTextOptions.ConvertTabsToSpaces(value);  // used to be : pythonScriptEditorTextOptions.ShowWhiteSpaceCharacters(value)
+                preferenceSettings.ConvertTabsToSpacesInScriptEditor = value;
+                RaisePropertyChanged(nameof(ConvertTabsToSpacesIsChecked));
+            }
+        }
+
+        /// <summary>
         /// Controls the IsChecked property in the "Notification Center" toggle button
         /// </summary>
         public bool NotificationCenterIsChecked
@@ -1780,6 +1797,9 @@ namespace Dynamo.ViewModels
                     goto default;
                 case nameof(ShowWhitespaceIsChecked):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewShowWhitespaceInPythonEditor), System.Globalization.CultureInfo.InvariantCulture);
+                    goto default;
+                case nameof(ConvertTabsToSpacesIsChecked):
+                    description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewConvertTabsToSpacesInPythonEditor), System.Globalization.CultureInfo.InvariantCulture);
                     goto default;
                 case nameof(NodeAutocompleteIsChecked):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewEnableNodeAutoComplete), System.Globalization.CultureInfo.InvariantCulture);

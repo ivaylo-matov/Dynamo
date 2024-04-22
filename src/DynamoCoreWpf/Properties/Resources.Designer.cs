@@ -7445,6 +7445,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Convert Tabs to Spaces in Python Editor.
+        /// </summary>
+        public static string PreferencesViewConvertTabsToSpacesInPythonEditor {
+            get {
+                return ResourceManager.GetString("PreferencesViewConvertTabsToSpacesInPythonEditor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Default Python Engine.
         /// </summary>
         public static string PreferencesViewDefaultPythonEngine {

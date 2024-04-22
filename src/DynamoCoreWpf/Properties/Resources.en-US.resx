@@ -2358,6 +2358,10 @@ Uninstall the following packages: {0}?</value>
     <value>Show Whitespace in Python Editor</value>
     <comment>Preferences | Features | Python | Show Whitspace Characters in Python editor</comment>
   </data>
+  <data name="PreferencesViewConvertTabsToSpacesInPythonEditor" xml:space="preserve">
+    <value>Convert Tabs to Spaces in Python Editor</value>
+    <comment>Preferences | Features | Python | Convert Tabs to Spaces in Python editor</comment>
+  </data>
   <data name="PreferencesViewDefaultPythonEngine" xml:space="preserve">
     <value>Default Python Engine</value>
     <comment>Preferences | Features | Python | Default Python Engine</comment>

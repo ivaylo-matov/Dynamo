@@ -197,7 +197,7 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        /// Controls if the the ML data ingestion pipeline is beta from feature flag
+        /// Controls if the ML data ingestion pipeline is beta from feature flag
         /// </summary>
         internal bool IsMLDataIngestionPipelineinBeta
         {
@@ -609,8 +609,7 @@ namespace Dynamo.ViewModels
             {
                 return editTextOptions;
             }
-        } 
-
+        }
 
         /// <summary>
         /// Indicates if the whitespaces and tabs should be visible in the python script editor.
@@ -627,6 +626,24 @@ namespace Dynamo.ViewModels
                 PythonScriptEditorTextOptions.ShowWhiteSpaceCharacters(value);
                 model.PreferenceSettings.ShowTabsAndSpacesInScriptEditor = value;
                 RaisePropertyChanged(nameof(ShowTabsAndSpacesInScriptEditor));
+            }
+        }
+
+        /// <summary>
+        /// Indicates if the tabs should be converted to spaces in the python script editor.
+        /// </summary>
+        public bool ConvertTabsToSpacesInScriptEditor
+        {
+            get
+            {
+                return model.PreferenceSettings.ConvertTabsToSpacesInScriptEditor;
+            }
+            set
+            {
+                // ip code
+                //PythonScriptEditorTextOptions.ConvertTabsToSpaces(value);
+                model.PreferenceSettings.ConvertTabsToSpacesInScriptEditor = value;
+                RaisePropertyChanged(nameof(ConvertTabsToSpacesInScriptEditor));
             }
         }
 

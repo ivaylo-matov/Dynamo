@@ -1,4 +1,4 @@
-﻿abstract Dynamo.Extensions.LinterExtensionBase.Name.get -> string
+abstract Dynamo.Extensions.LinterExtensionBase.Name.get -> string
 abstract Dynamo.Extensions.LinterExtensionBase.Shutdown() -> void
 abstract Dynamo.Extensions.LinterExtensionBase.UniqueId.get -> string
 abstract Dynamo.Graph.ModelBase.DeserializeCore(System.Xml.XmlElement nodeElement, Dynamo.Graph.SaveContext context) -> void
@@ -249,6 +249,8 @@ Dynamo.Configuration.PreferenceSettings.ShowRunPreview.get -> bool
 Dynamo.Configuration.PreferenceSettings.ShowRunPreview.set -> void
 Dynamo.Configuration.PreferenceSettings.ShowTabsAndSpacesInScriptEditor.get -> bool
 Dynamo.Configuration.PreferenceSettings.ShowTabsAndSpacesInScriptEditor.set -> void
+Dynamo.Configuration.PreferenceSettings.ConvertTabsToSpacesInScriptEditor.get -> bool
+Dynamo.Configuration.PreferenceSettings.ConvertTabsToSpacesInScriptEditor.set -> void
 Dynamo.Configuration.PreferenceSettings.StaticFields() -> System.Collections.Generic.List<string>
 Dynamo.Configuration.PreferenceSettings.TrustedLocations.get -> System.Collections.Generic.List<string>
 Dynamo.Configuration.PreferenceSettings.UseHardwareAcceleration.get -> bool

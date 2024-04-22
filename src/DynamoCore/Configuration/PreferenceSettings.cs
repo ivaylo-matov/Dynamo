@@ -625,6 +625,11 @@ namespace Dynamo.Configuration
         public bool ShowTabsAndSpacesInScriptEditor { get; set; }
 
         /// <summary>
+        /// This defines if user wants to convert tabs to spaces in python script editor.
+        /// </summary>
+        public bool ConvertTabsToSpacesInScriptEditor { get; set; }
+
+        /// <summary>
         /// This defines if user wants to see the enabled node Auto Complete feature for port interaction.
         /// </summary>
         public bool EnableNodeAutoComplete { get; set; }
@@ -940,6 +945,7 @@ namespace Dynamo.Configuration
             PythonTemplateFilePath = "";
             IsIronPythonDialogDisabled = false;
             ShowTabsAndSpacesInScriptEditor = false;
+            ConvertTabsToSpacesInScriptEditor = true;
             EnableNodeAutoComplete = true;
             DefaultEnableLegacyPolyCurveBehavior = true;
             HideNodesBelowSpecificConfidenceLevel = false;

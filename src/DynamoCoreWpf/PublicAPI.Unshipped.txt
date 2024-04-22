@@ -2070,6 +2070,8 @@ Dynamo.ViewModels.DynamoViewModel.ShowStartPage.get -> bool
 Dynamo.ViewModels.DynamoViewModel.ShowStartPage.set -> void
 Dynamo.ViewModels.DynamoViewModel.ShowTabsAndSpacesInScriptEditor.get -> bool
 Dynamo.ViewModels.DynamoViewModel.ShowTabsAndSpacesInScriptEditor.set -> void
+Dynamo.ViewModels.DynamoViewModel.ConvertTabsToSpacesInScriptEditor.get -> bool
+Dynamo.ViewModels.DynamoViewModel.ConvertTabsToSpacesInScriptEditor.set -> void
 Dynamo.ViewModels.DynamoViewModel.ShutdownParams
 Dynamo.ViewModels.DynamoViewModel.ShutdownParams.ShutdownParams() -> void
 Dynamo.ViewModels.DynamoViewModel.ShutdownParams.ShutdownParams(bool shutdownHost, bool allowCancellation) -> void
@@ -2749,6 +2751,8 @@ Dynamo.ViewModels.PreferencesViewModel.ShowPreviewBubbles.get -> bool
 Dynamo.ViewModels.PreferencesViewModel.ShowPreviewBubbles.set -> void
 Dynamo.ViewModels.PreferencesViewModel.ShowWhitespaceIsChecked.get -> bool
 Dynamo.ViewModels.PreferencesViewModel.ShowWhitespaceIsChecked.set -> void
+Dynamo.ViewModels.PreferencesViewModel.ConvertTabsToSpacesIsChecked.get -> bool
+Dynamo.ViewModels.PreferencesViewModel.ConvertTabsToSpacesIsChecked.set -> void
 Dynamo.ViewModels.PreferencesViewModel.StaticSplashScreenEnabled.get -> bool
 Dynamo.ViewModels.PreferencesViewModel.StaticSplashScreenEnabled.set -> void
 Dynamo.ViewModels.PreferencesViewModel.StyleItemsList.get -> System.Collections.ObjectModel.ObservableCollection<Dynamo.Configuration.GroupStyleItem>
@@ -5168,6 +5172,7 @@ static Dynamo.Wpf.Properties.Resources.PreferencesViewShowPreviewBubbles.get -> 
 static Dynamo.Wpf.Properties.Resources.PreferencesViewShowRunPreviewTooltip.get -> string
 static Dynamo.Wpf.Properties.Resources.PreferencesViewShowStaticSplashScreenTooltip.get -> string
 static Dynamo.Wpf.Properties.Resources.PreferencesViewShowWhitespaceInPythonEditor.get -> string
+static Dynamo.Wpf.Properties.Resources.PreferencesViewConvertTabsToSpacesInPythonEditor.get -> string
 static Dynamo.Wpf.Properties.Resources.PreferencesViewTitle.get -> string
 static Dynamo.Wpf.Properties.Resources.PreferencesViewTrustWarningHeader.get -> string
 static Dynamo.Wpf.Properties.Resources.PreferencesViewTrustWarningLabel.get -> string
