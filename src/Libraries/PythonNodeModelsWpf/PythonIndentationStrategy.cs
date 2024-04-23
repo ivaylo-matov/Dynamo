@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Dynamo.Configuration;
 
 namespace PythonNodeModelsWpf
 {
@@ -17,9 +18,8 @@ namespace PythonNodeModelsWpf
     {
         #region Fields
 
-        const int indent_space_count = 4;
+        private const int indentSpaceCount = Configurations.SpacesPerTab;
         private readonly bool convertTabsToSpaces;
-
         TextEditor textEditor;        
 
         #endregion Fields
@@ -45,7 +45,7 @@ namespace PythonNodeModelsWpf
             int currentIndent = CalcSpace(prevLine);
 
             char indentChar = convertTabsToSpaces ? ' ' : '\t';
-            int additionalIndent = convertTabsToSpaces ? indent_space_count : 1;
+            int additionalIndent = convertTabsToSpaces ? indentSpaceCount : 1;
 
             var previousIsComment = prevLine.TrimStart().StartsWith("#", StringComparison.CurrentCulture);
 

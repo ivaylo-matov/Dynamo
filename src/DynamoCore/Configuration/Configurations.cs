@@ -428,5 +428,14 @@ namespace Dynamo.Configuration
         /// </summary>
         public const int NotificationsDefaultTimeOut = 10000;
         #endregion
+
+        #region Formatting Constants
+
+        /// <summary>
+        /// Default number of spaces that represent a single tab in Python script editor
+        /// </summary>
+        public const int SpacesPerTab = 4;
+
+        #endregion
     }
 }
