@@ -146,9 +146,6 @@ namespace PythonNodeModelsWpf
             editText.Options.ShowSpaces = dynamoViewModel.ShowTabsAndSpacesInScriptEditor;
             editText.Options.ShowTabs = dynamoViewModel.ShowTabsAndSpacesInScriptEditor;
 
-            // Set options to reflect global settings when python script editor in initialized for the first time.
-            //editText.Options.ConvertTabsToSpaces = dynamoViewModel.ConvertTabsToSpacesInScriptEditor;                                  // ip code
-
             // Set font size in editor and cache it
             editText.FontSize = dynamoViewModel.PreferenceSettings.PythonScriptZoomScale * fontSizePreferencesSliderProportionValue;
             zoomScaleCacheValue = dynamoViewModel.PreferenceSettings.PythonScriptZoomScale;
@@ -228,7 +225,7 @@ namespace PythonNodeModelsWpf
 
         private void InstallFoldingManager()
         {
-            editText.TextArea.IndentationStrategy = new PythonIndentationStrategy(editText);
+            editText.TextArea.IndentationStrategy = new PythonIndentationStrategy(editText, dynamoViewModel.ConvertTabsToSpacesInScriptEditor);
 
             foldingManager = FoldingManager.Install(editText.TextArea);
             foldingStrategy = new TabFoldingStrategy();

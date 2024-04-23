@@ -20,18 +20,19 @@ namespace PythonNodeModelsWpf
         const int indent_space_count = 4;
 
         TextEditor textEditor;
+        private readonly bool convertTabsToSpaces;
 
         #endregion Fields
 
         #region Constructors
 
-        internal PythonIndentationStrategy(TextEditor textEditor)
+        internal PythonIndentationStrategy(TextEditor textEditor, bool convertTabsToSpaces)
         {
             this.textEditor = textEditor;
+            this.convertTabsToSpaces = convertTabsToSpaces;
         }
 
         #endregion Constructors
-
 
         /// <inheritdoc cref="IIndentationStrategy.IndentLine"/>
         public override void IndentLine(TextDocument document, DocumentLine line)
@@ -41,32 +42,35 @@ namespace PythonNodeModelsWpf
 
             var prevLine = document.GetText(line.PreviousLine.Offset, line.PreviousLine.Length);
             var curLine = document.GetText(line.Offset, line.Length);
-            int prev = CalcSpace(prevLine);
+            int currentIndent = CalcSpace(prevLine);
+
+            char indentChar = convertTabsToSpaces ? ' ' : '\t';
+            int additionalIndent = convertTabsToSpaces ? indent_space_count : 1;
 
             var previousIsComment = prevLine.TrimStart().StartsWith("#", StringComparison.CurrentCulture);
 
             // If the current line ends with a column and was not followed by a comment
             if (curLine.EndsWith(":") && !previousIsComment)
             {
-                var ind = new string(' ', prev);
+                var ind = new string(indentChar, currentIndent);
                 document.Insert(line.Offset, ind);
             }
             // If the previous line ends with a column and was not followed by a comment
             // We should indent
             else if (prevLine.EndsWith(":") && !previousIsComment)
             {
-                var ind = new string(' ', prev + indent_space_count);
+                var ind = new string(indentChar, currentIndent + additionalIndent);
                 document.Insert(line.Offset, ind);
             }
             else
             {
-                var ind = new string(' ', prev);
+                var ind = new string(indentChar, currentIndent);
                 if (line != null)
                     document.Insert(line.Offset, ind);
             }
         }
 
-        // Calculates the amount of white space leading in a string 
+        // Calculates the amount of white space leading in a string
         private int CalcSpace(string str)
         {
             for (int i = 0; i < str.Length; ++i)

@@ -990,7 +990,7 @@ namespace Dynamo.ViewModels
             }
             set
             {
-                //pythonScriptEditorTextOptions.ConvertTabsToSpaces(value);  // used to be : pythonScriptEditorTextOptions.ShowWhiteSpaceCharacters(value)
+                pythonScriptEditorTextOptions.ConvertTabsToSpaces(value);
                 preferenceSettings.ConvertTabsToSpacesInScriptEditor = value;
                 RaisePropertyChanged(nameof(ConvertTabsToSpacesIsChecked));
             }

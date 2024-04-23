@@ -640,8 +640,7 @@ namespace Dynamo.ViewModels
             }
             set
             {
-                // ip code
-                //PythonScriptEditorTextOptions.ConvertTabsToSpaces(value);
+                PythonScriptEditorTextOptions.ConvertTabsToSpaces(value);
                 model.PreferenceSettings.ConvertTabsToSpacesInScriptEditor = value;
                 RaisePropertyChanged(nameof(ConvertTabsToSpacesInScriptEditor));
             }
