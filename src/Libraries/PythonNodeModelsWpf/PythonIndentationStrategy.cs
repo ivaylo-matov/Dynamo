@@ -18,9 +18,9 @@ namespace PythonNodeModelsWpf
         #region Fields
 
         const int indent_space_count = 4;
-
-        TextEditor textEditor;
         private readonly bool convertTabsToSpaces;
+
+        TextEditor textEditor;        
 
         #endregion Fields
 

@@ -14,11 +14,12 @@ namespace PythonNodeModelsWpf
     {
         // How many spaces == one tab
         private const int SpacesInTab = 4;
+        private readonly bool convertTabsToSpaces;
 
         /// <summary>
         /// Creates a new TabFoldingStrategy.
         /// </summary>
-        internal TabFoldingStrategy()
+        internal TabFoldingStrategy(bool convertTabsToSpaces)
         {
         }
 
@@ -54,6 +55,7 @@ namespace PythonNodeModelsWpf
 
             var startOffsets = new Stack<int>();
             var tabLevel = 0;
+            int SpacesInTab1 = convertTabsToSpaces ? SpacesInTab : 1;
 
             foreach (DocumentLine line in (document as TextDocument).Lines)
             {
@@ -64,9 +66,9 @@ namespace PythonNodeModelsWpf
 
                 // If the number of white spaces is multiple of tab spaces
                 // then we have either a new folding or a folded text
-                if (whiteSpaces > 0 && whiteSpaces % SpacesInTab == 0)
+                if (whiteSpaces > 0 && whiteSpaces % SpacesInTab1 == 0)
                 {
-                    var currentTabLevel = whiteSpaces / SpacesInTab;
+                    var currentTabLevel = whiteSpaces / SpacesInTab1;
                     if (tabLevel != currentTabLevel && currentTabLevel > tabLevel)
                     {
                         // Don't tab if the line is empty

@@ -228,7 +228,7 @@ namespace PythonNodeModelsWpf
             editText.TextArea.IndentationStrategy = new PythonIndentationStrategy(editText, dynamoViewModel.ConvertTabsToSpacesInScriptEditor);
 
             foldingManager = FoldingManager.Install(editText.TextArea);
-            foldingStrategy = new TabFoldingStrategy();
+            foldingStrategy = new TabFoldingStrategy(dynamoViewModel.ConvertTabsToSpacesInScriptEditor);
             foldingStrategy.UpdateFoldings(foldingManager, editText.Document);
 
             editText.TextChanged += EditTextOnTextChanged;
