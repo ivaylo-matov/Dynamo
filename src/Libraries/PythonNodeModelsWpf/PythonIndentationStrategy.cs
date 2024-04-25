@@ -96,7 +96,7 @@ namespace PythonNodeModelsWpf
         }
 
         /// <summary>
-        /// Converts tabs in a legacy python code to spaces.
+        /// Converts tabs to spaces in a legacy python code.
         /// </summary>
         /// <param name="text"></param>
         /// <returns></returns>
