@@ -17,6 +17,7 @@ using DynCmd = Dynamo.Models.DynamoModel;
 using System.Threading;
 using System.Text.RegularExpressions;
 using PythonNodeModelsWpf;
+using Lucene.Net.Search.Spans;
 
 namespace Dynamo.Tests
 {
@@ -68,6 +69,22 @@ namespace Dynamo.Tests
                 System.Guid.Empty, pythonNode.GUID, "ScriptContent", value);
 
             ViewModel.ExecuteCommand(command);
+        }
+
+        /// <summary>
+        ///     Counts the non-overlapping occurrences of a specified substring within a given string.
+        /// </summary>
+        private int CountSubstrings(string code, string subscting)
+        {
+            int count = 0;
+            int index = code.IndexOf(subscting, 0);
+
+            while (index != -1)
+            {
+                count ++;
+                index = code.IndexOf(subscting, index + subscting.Length);
+            }
+            return count;
         }
 
         [Test]
@@ -222,7 +239,7 @@ namespace Dynamo.Tests
             var tabIndent = "\t";
 
             // Assert initial conditions : 17 tab indents and no space indents
-            Assert.IsTrue(Regex.Matches(pynode.Script, Regex.Escape(tabIndent)).Count == 17);
+            Assert.IsTrue(pynode.Script.Count(c => c == '\t') == 17);
             Assert.IsTrue(Regex.Matches(pynode.Script, Regex.Escape(spacesIndent)).Count == 0);
 
             // Convert tabs to spaces
@@ -230,10 +247,9 @@ namespace Dynamo.Tests
             pynode.Script = convertedString;
 
             // Assert the tab indents are converted to space indents
-            Assert.IsTrue(Regex.Matches(pynode.Script, Regex.Escape(tabIndent)).Count == 0);
-            Assert.IsTrue(Regex.Matches(pynode.Script, Regex.Escape(spacesIndent)).Count == 17);
+            Assert.IsTrue(pynode.Script.Count(c => c == '\t') == 0);
+            Assert.IsTrue(CountSubstrings(pynode.Script, spacesIndent) == 17);
         }
-
 
         [Test]
         public void VarInPythonScriptEdit_WorkspaceChangesReflected()
