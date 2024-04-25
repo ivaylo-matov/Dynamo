@@ -489,8 +489,6 @@ namespace PythonNodeModelsWpf
             if (NodeModel == null)
                 throw new NullReferenceException(nameof(NodeModel));
 
-            //var convertedText = string.Empty;
-
             if (editText.Document != null)
             {
                 var convertedText = PythonIndentationStrategy.ConvertTabsToSpaces(editText.Document.Text);
@@ -692,9 +690,7 @@ namespace PythonNodeModelsWpf
             this.ZoomOutButton.IsEnabled = false;
             this.EngineSelectorComboBox.IsEnabled = false;
             this.MigrationAssistantButton.IsEnabled = false;
-            // ip code:
             this.ConvertTabsToSpacesButton.IsEnabled = false;
-
             this.MoreInfoButton.IsEnabled = false;
             this.SaveButtonBar.Visibility = Visibility.Collapsed;
             this.UnsavedChangesStatusBar.Visibility = Visibility.Visible;
@@ -712,10 +708,7 @@ namespace PythonNodeModelsWpf
             this.ZoomOutButton.IsEnabled = true;
             this.EngineSelectorComboBox.IsEnabled = true;
             this.MigrationAssistantButton.IsEnabled = true;
-
-            // ip code:
             this.ConvertTabsToSpacesButton.IsEnabled = true;
-
             this.MoreInfoButton.IsEnabled = true;
             this.SaveButtonBar.Visibility = Visibility.Visible;
             this.UnsavedChangesStatusBar.Visibility = Visibility.Collapsed;

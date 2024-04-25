@@ -15,9 +15,7 @@ using PythonNodeModels;
 using Dynamo.PythonServices;
 using DynCmd = Dynamo.Models.DynamoModel;
 using System.Threading;
-using System.Text.RegularExpressions;
 using PythonNodeModelsWpf;
-using Lucene.Net.Search.Spans;
 
 namespace Dynamo.Tests
 {
@@ -240,7 +238,7 @@ namespace Dynamo.Tests
 
             // Assert initial conditions : 17 tab indents and no space indents
             Assert.IsTrue(pynode.Script.Count(c => c == '\t') == 17);
-            Assert.IsTrue(Regex.Matches(pynode.Script, Regex.Escape(spacesIndent)).Count == 0);
+            Assert.IsTrue(CountSubstrings(pynode.Script, spacesIndent) == 0);
 
             // Convert tabs to spaces
             var convertedString = PythonIndentationStrategy.ConvertTabsToSpaces(pynode.Script);
@@ -497,7 +495,6 @@ namespace Dynamo.Tests
         }
 
         [Test]
-
         public void Python_CanReferenceDynamoServicesExecutionSession()
         {
             // open test graph

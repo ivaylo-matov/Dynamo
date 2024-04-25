@@ -313,8 +313,7 @@
                             <Image x:Key="HighlightShape"
                                    Source="/PythonNodeModelsWpf;component/Resources/convert_hover.png" />
                         </Button.Resources>
-                    </Button>
-                    
+                    </Button>                    
                     <Button Style="{StaticResource IconButton}"
                             Name="ConvertTabsToSpacesButton"
                             Click="OnConvertTabsToSpacesClicked"
@@ -331,7 +330,6 @@
                                    Source="/PythonNodeModelsWpf;component/Resources/tabs_hover.png" />
                         </Button.Resources>
                     </Button>
-
                     <Button Style="{StaticResource IconButton}"
                             Name="MoreInfoButton"
                             Click="OnMoreInfoClicked">
