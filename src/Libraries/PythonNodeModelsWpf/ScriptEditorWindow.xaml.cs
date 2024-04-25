@@ -489,12 +489,11 @@ namespace PythonNodeModelsWpf
             if (NodeModel == null)
                 throw new NullReferenceException(nameof(NodeModel));
 
-            var convertedText = string.Empty;
+            //var convertedText = string.Empty;
 
             if (editText.Document != null)
             {
-                var currentText = editText.Document.Text;
-                convertedText = currentText.Replace("\t", new string(' ', 4));  // Assuming a tab size of 4 spaces
+                var convertedText = PythonIndentationStrategy.ConvertTabsToSpaces(editText.Document.Text);
                 editText.Document.Text = convertedText;
             }
         }
