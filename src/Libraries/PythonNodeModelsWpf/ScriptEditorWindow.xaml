@@ -326,9 +326,9 @@
                         </Button.ToolTip>
                         <Button.Resources>
                             <Image x:Key="Shape"
-                                   Source="/PythonNodeModelsWpf;component/Resources/convert.png" />
+                                   Source="/PythonNodeModelsWpf;component/Resources/tabs.png" />
                             <Image x:Key="HighlightShape"
-                                   Source="/PythonNodeModelsWpf;component/Resources/convert_hover.png" />
+                                   Source="/PythonNodeModelsWpf;component/Resources/tabs_hover.png" />
                         </Button.Resources>
                     </Button>
 
