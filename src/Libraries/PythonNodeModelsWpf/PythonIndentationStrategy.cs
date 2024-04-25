@@ -17,7 +17,7 @@ namespace PythonNodeModelsWpf
     {
         #region Fields
 
-        const int indent_space_count = 4;
+        const int IndentSpaceCount = 4;
 
         TextEditor textEditor;
 
@@ -55,7 +55,7 @@ namespace PythonNodeModelsWpf
             // We should indent
             else if (prevLine.EndsWith(":") && !previousIsComment)
             {
-                var ind = new string(' ', prev + indent_space_count);
+                var ind = new string(' ', prev + IndentSpaceCount);
                 document.Insert(line.Offset, ind);
 
             }
@@ -102,7 +102,7 @@ namespace PythonNodeModelsWpf
         /// <returns></returns>
         public static string ConvertTabsToSpaces(string text)
         {
-            return text.Replace("\t", new string(' ', indent_space_count));
+            return text.Replace("\t", new string(' ', IndentSpaceCount));
         }
     }
 }

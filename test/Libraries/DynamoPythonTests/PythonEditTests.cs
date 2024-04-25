@@ -15,6 +15,8 @@ using PythonNodeModels;
 using Dynamo.PythonServices;
 using DynCmd = Dynamo.Models.DynamoModel;
 using System.Threading;
+using System.Text.RegularExpressions;
+using PythonNodeModelsWpf;
 
 namespace Dynamo.Tests
 {
@@ -201,6 +203,37 @@ namespace Dynamo.Tests
             // script is edited
             Assert.AreEqual(pynode.Script, newScript);
         }
+
+        [Test]
+        public void PythonScriptEdit_ConvertTabsToSpacesButton()
+        {
+            // Open file and get the Python node
+            var model = ViewModel.Model;
+            var examplePath = Path.Combine(TestDirectory, @"core\python", "ConvertTabsToSpaces.dyn");
+            ViewModel.OpenCommand.Execute(examplePath);
+            var pynode = model.CurrentWorkspace.Nodes.OfType<PythonNode>().First();
+
+            // Asset the node is loaded
+            Assert.NotNull(pynode, "Python node should be loaded from the file.");
+
+            // number of spaces is hard coded as providing a public property or changing the access
+            // level of PythonIndentationStrategy.ConvertTabsToSpaces is unnecessary for this purpose only
+            var spacesIndent = new string(' ', 4);
+            var tabIndent = "\t";
+
+            // Assert initial conditions : 17 tab indents and no space indents
+            Assert.IsTrue(Regex.Matches(pynode.Script, Regex.Escape(tabIndent)).Count == 17);
+            Assert.IsTrue(Regex.Matches(pynode.Script, Regex.Escape(spacesIndent)).Count == 0);
+
+            // Convert tabs to spaces
+            var convertedString = PythonIndentationStrategy.ConvertTabsToSpaces(pynode.Script);
+            pynode.Script = convertedString;
+
+            // Assert the tab indents are converted to space indents
+            Assert.IsTrue(Regex.Matches(pynode.Script, Regex.Escape(tabIndent)).Count == 0);
+            Assert.IsTrue(Regex.Matches(pynode.Script, Regex.Escape(spacesIndent)).Count == 17);
+        }
+
 
         [Test]
         public void VarInPythonScriptEdit_WorkspaceChangesReflected()
