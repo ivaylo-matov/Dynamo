@@ -4302,6 +4302,10 @@ static Dynamo.UI.SharedDictionaryManager.DataTemplatesDictionary.get -> System.W
 static Dynamo.UI.SharedDictionaryManager.DataTemplatesDictionaryUri.get -> System.Uri
 static Dynamo.UI.SharedDictionaryManager.DynamoColorsAndBrushesDictionary.get -> System.Windows.ResourceDictionary
 static Dynamo.UI.SharedDictionaryManager.DynamoColorsAndBrushesDictionaryUri.get -> System.Uri
+
+static Dynamo.UI.SharedDictionaryManager.CustomBrowserControlDictionary.get -> System.Windows.ResourceDictionary
+static Dynamo.UI.SharedDictionaryManager.CustomBrowserControlDictionaryUri.get -> System.Uri
+
 static Dynamo.UI.SharedDictionaryManager.DynamoConvertersDictionary.get -> System.Windows.ResourceDictionary
 static Dynamo.UI.SharedDictionaryManager.DynamoConvertersDictionaryUri.get -> System.Uri
 static Dynamo.UI.SharedDictionaryManager.DynamoModernDictionary.get -> System.Windows.ResourceDictionary

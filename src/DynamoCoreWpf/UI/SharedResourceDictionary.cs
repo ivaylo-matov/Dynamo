@@ -57,6 +57,7 @@ namespace Dynamo.UI
         private static ResourceDictionary _dynamoModernDictionary;
         private static ResourceDictionary _dataTemplatesDictionary;
         private static ResourceDictionary _dynamoColorsAndBrushesDictionary;
+        private static ResourceDictionary _customBrowserControlDictionary;
         private static ResourceDictionary _dynamoConvertersDictionary;
         private static ResourceDictionary _dynamoTextDictionary;
         private static ResourceDictionary _menuStyleDictionary;
@@ -91,6 +92,11 @@ namespace Dynamo.UI
         public static Uri DynamoColorsAndBrushesDictionaryUri
         {
             get { return new Uri(Path.Combine(ThemesDirectory, "DynamoColorsAndBrushes.xaml")); }
+        }
+
+        public static Uri CustomBrowserControlDictionaryUri
+        {
+            get { return new Uri(Path.Combine(ThemesDirectory, "CustomBrowserControlDictionary.xaml")); }
         }
 
         public static Uri DynamoConvertersDictionaryUri
@@ -173,6 +179,15 @@ namespace Dynamo.UI
             get {
                 return _dynamoColorsAndBrushesDictionary ??
                        (_dynamoColorsAndBrushesDictionary = new ResourceDictionary() { Source = DynamoColorsAndBrushesDictionaryUri });
+            }
+        }
+
+        public static ResourceDictionary CustomBrowserControlDictionary
+        {
+            get
+            {
+                return _customBrowserControlDictionary ??
+                       (_customBrowserControlDictionary = new ResourceDictionary() { Source = CustomBrowserControlDictionaryUri });
             }
         }
 
