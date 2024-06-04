@@ -370,6 +370,7 @@
                     </DataTrigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate>
+            
             <Style TargetType="TreeViewItem" x:Key="CustomTreeViewItem">
                 <Setter Property="Template" Value="{DynamicResource TreeViewItemControlTemplate1}" />
                 <Setter Property="IsExpanded" Value="True" />
