@@ -15,8 +15,6 @@
                 <ui:SharedResourceDictionary Source="{x:Static ui:SharedDictionaryManager.DynamoConvertersDictionaryUri}" />
                 <ui:SharedResourceDictionary Source="{x:Static ui:SharedDictionaryManager.DynamoColorsAndBrushesDictionaryUri}" />
             </ResourceDictionary.MergedDictionaries>
-
-            <!--#region BRUSHES-->
             <SolidColorBrush x:Key="TreeViewItem.TreeArrow.Static.Stroke" Color="Transparent"/>
             <SolidColorBrush x:Key="TreeViewItem.TreeArrow.Static.Fill" Color="#DCDCDC"/>
             <SolidColorBrush x:Key="TreeViewItem.TreeArrow.MouseOver.Stroke" Color="Transparent"/>
@@ -28,31 +26,7 @@
             <SolidColorBrush x:Key="StrokeBrush" Color="#696969" />
             <SolidColorBrush x:Key="ListBorder" Color="#828790"/>
             <PathGeometry x:Key="TreeArrow" Figures="M 0 0 L 0 7.2 L 4.8 3.6 Z"/>
-            <!--#endregion-->
-
-
-            <!--Folder toggle-->
             
-            <!-- MOVED TO RESOURCE DICTIONARY
-            This handles the expand/collapse functionality of the TreeView.
-            The ComtrolTemplate inside defines how the ToggleButton looks and behaves.
-            The template included a Border and a Canvas containing a Path element that represents an arrow.
-            The Triggers define visual changes when the ToggleButton interacts with:
-            - IsChecked
-            - IsMouseOver
-            - MultiTrigger: changes the arrow's color when both IsChecked and IsMouseOver are true
-            In normal state the ToggleButton is shown with an arrow pointing in the default direction (right).
-            In checked state (when clicking on it) the arrow rotates 90 degrees and the fill and stroke color change.
-            ...also the node is expanded, showing its children.
-            In MouseOver state, the fill and stroke color change.
-            In Combined state (IsCheched = true, IsMouseOver = true) a specific set of color and stroke are applied.
-
-            Each node in the ToggleButton is styled by a "FolderToggleStyle". Clicking the TOggleButton expands or collapses the folder
-            showing or hiding its sub-folders and files.
-            
-            Customizes the ToggleButton  that is within the TreeViewItem to expand and collapse nodes (folders).
-            The ToggleButton is typically placed next to each item in the TreeView to indicate whether the node can be expanded or collapsed.
-            -->
             <Style x:Key="FolderToggleStyle" TargetType="{x:Type ToggleButton}">
                 <Setter Property="Focusable" Value="False"/>
                 <Setter Property="Width" Value="16"/>
@@ -96,23 +70,7 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-        
-           <!--Tree view style-->
             
-
-            <!-- MOVED TO RESOURCE DICTIONARY
-            The purpose of this style is to modify the appearance and behavior of the TreeView control.
-            ControlTemplate sets up the Border and Scroller. It specifies how the ViewTree should be rendered.
-            Trigger for IsEnables changes the background color of the border when the TreeView is disabled.
-            Trigger for the IsVisualizing enables scrolling in the ScrollViewwer when visualization is active.
-            It also sets the ItemPanel to use a VistualizingStackPanel when visualization is enabled. This improves
-            performance by only creating UI elements for items currently in view.
-            In conclusion, this Style customizes the appearance an behavior of the TreeView control by:
-            - setting default values for properties such as background and border
-            - defining a ControlTemplate that specifies the visual structure of the TreeView, including a ScrollViewer.
-            - using triggers to change the appearance when the TreeView is disabled or when visualization is enabled.
-            This style customizes the overall appearance of the and behavior of the TreeView.
-            !!!-->
             <Style x:Key="TreeViewStyle" TargetType="{x:Type TreeView}">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="BorderBrush" Value="{StaticResource ListBorder}"/>
@@ -159,12 +117,6 @@
                     </Trigger>
                 </Style.Triggers>   
             </Style>
-
-            <!--#region CheckBox -->   
-            <!--
-            This CheckBox Style customizes the appearance of the focus visual control. This focus visual is a indicator that shows which
-            control currently has keyboard focus. It typically appears as a dotted rectangle around the control.
-            -->
             
             <Style x:Key="FocusVisual">
                 <Setter Property="Control.Template">
@@ -175,12 +127,6 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-
-            <!--
-            This Style customizes the appearance of the focus visual control. Similarly to the one above.
-            It is specially designed to create a visual indicator for when a control has keyboard focus, but this includes different
-            margin settings to position the visual indicator.
-            -->
 
             <Style x:Key="OptionMarkFocusVisual">
                 <Setter Property="Control.Template">
@@ -204,13 +150,6 @@
             <SolidColorBrush x:Key="OptionMark.Disabled.Background" Color="#FFE6E6E6"/>
             <SolidColorBrush x:Key="OptionMark.Disabled.Border" Color="#FFBCBCBC"/>
             <SolidColorBrush x:Key="OptionMark.Disabled.Glyph" Color="#FF707070"/>
-
-            <!-- MOVED TO RESOURCE DICTIONARY
-            This Style customizes the appearance of the CheckBox controls.
-            The ControlTemplate inside it defines how the check box should be visually structured, including the box,
-            check mark, and any associated content. Triggers with the template respond to state changes and adjust the visual elements
-            accordingly to provide a dynamic and responsive user experience.
-            -->
 
             <Style x:Key="CheckBoxStyle" TargetType="{x:Type CheckBox}">
                 <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}"/>
@@ -275,35 +214,14 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-            <!--#endregion-->
 
-            <!--#region CONVERTERS-->
             <!--https://stackoverflow.com/questions/61217523/wpf-treeview-how-to-make-controls-align-relative-to-every-treeviewitem-yet-sti-->
             <local:IndentConverter x:Key="IndentConverter" />
             <local:HasChildrenToVisibilityConverter x:Key="HasChildrenToVisibilityConverter" />
             <local:DependencyTypeToVisibilityConverter x:Key="DependencyTypeToVisibilityConverter" />
             <local:SortingConverter x:Key="SortingConverter" />
             <local:ChildrenItemsContainsFolderToVisibilityConverter x:Key="ChildrenItemsContainsFolderToVisibilityConverter" />
-            <!--#endregion-->
-
-            <!-- MOVED TO RESOURCE DICTIONARY
-            This Template customizes the appearance and behavior of items within the TreeView control.
-            This template contains the Vertical Dash Line and Indentation, Horizontal Dash Line and the Arrow Expander!
-            ContlorPresenter displays the header content of the TreeViewItem such as the folder of the file name. It is tryled
-            an positioned within a Border.
-            This template also contains the Remove Button!
-            ItemsPresenter displays the child items of the TreeViewItem. The indentation is dynamically set to create a hierarchical view.
-    
-            Both this template and FolderToggleStyle relate to the appearance and behavior of TreeViewItem controls,
-            but they do so in different ways for different aspects of the TreeViewItem.
-            Application: FolderToggleStyle is applied to the ToggleButton named Expander within this template! The template is applied to the
-            entire TreeViewItem, setting up the structure and visual behavior for the item incorporating ToogleButton styles by FolderToggleStyle.
-            Key Element: FolderToggleStyle defines the size, focusability, and visual elements (like arrow) of the ToggleButton including its
-            rotation when expanded or collapsed. This template defines a grid layout with columns and rows, includes a Border for selection indication,
-            a ToggleButton for expanding/collapsing and s ContentPresenter for displaying the items content.
-            How they work together: the FolderToggleStyle is used with the TreeViewItemControlTemplate1 to provide a consistent and styled collapse/expand
-            button for each TreeViewItem.
-            -->
+            
             <ControlTemplate x:Key="TreeViewItemControlTemplate1" TargetType="{x:Type TreeViewItem}">
                 <Grid x:Name="tvGrid">
                     <Grid.ColumnDefinitions>
@@ -452,36 +370,6 @@
                     </DataTrigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate>
-
-            <!-- MOVED TO RESOURCE DICTIONARY
-            This Style customizes properties of the TreeViewItem such as it's template, expansion state, font size and foreground color.
-            It also included triggers to change the items' properties based on specific conditions.
-            Template: sets the control template of the TreeViewItem to TreeViewItemControlTemplate1
-            IsExpanded: ensures that the TreeViewItem is expanded by default.
-            FontSize: Sets the font size to 12
-            Foreground: sets it to light gray
-
-            Data Triggers: binds the DependencyType property of the data context and uses converter to determine the visibility
-            based on the converter parameter (Folder). Also, when the converter returns Collapsed, the Visibility property of the
-            TreeviewItem is set to Collapsed, effectively hiding the item.
-            
-            This Style and FolderToggleStyle work together to define the overall appearance and behavior of TreeViewItem controls.
-            This style applies to the TreeViewItems as a whole. This meant that the TreeViewItems will use the TreeViewItemControlTemplate1 to
-            define its structure and appearance.
-            TreeViewItemControlTemplate1 defines the layout of the TreeVireItem, including the ToggleButton that handles expanding and collapsing the item.
-            FolderToggleStyle specifically defines the appearance and behavior of the ToggleButtin that is used to expand and collapse the nodes.
-            
-            How they work together:
-            - CustomTreeViewItem Style is applied to the entire TreeViewItem and sets the TreeViewItemControlTemplate1 as it's template.
-            - TreeViewItemControlTemplate1 defines the layout of the TreeViewItem, including placing the ToggleButton for expanding/collapsing nodes.
-            - FolderToggleStyle is specifically applied to the ToggleButton. It defines the appearance and behavior of the ToggleButton, including the visual
-            changes when it is checked (expanded) or unchecked (collapsed).
-
-            Summary:
-            - The CustomTreeViewItem sets up the general appearance and behavior of the TreViewItem
-            - The TreeViewItemControlTemplate1  defines the structure, including where the expand/collapse button is placed.
-            - The FolderToggleStyle  specifically styles the expand /collapse button (the ToggleButton)
-            -->
             <Style TargetType="TreeViewItem" x:Key="CustomTreeViewItem">
                 <Setter Property="Template" Value="{DynamicResource TreeViewItemControlTemplate1}" />
                 <Setter Property="IsExpanded" Value="True" />
