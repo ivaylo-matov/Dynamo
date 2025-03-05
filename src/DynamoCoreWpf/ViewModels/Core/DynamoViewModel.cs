@@ -2286,18 +2286,19 @@ namespace Dynamo.ViewModels
         /// <param name="showDefault">Whether to apply the default description or clear it.</param>
         public void ApplyAnnotationDescriptionSetting(bool showDefault)
         {
+            var c0 = PreferenceSettings.Instance.ShowDefaultGroupDescription;
+
             foreach (var workspace in Model.Workspaces)
             {
                 foreach (var group in workspace.Annotations)
                 {
-                    if (showDefault && string.IsNullOrEmpty(group.AnnotationDescriptionText))
-                    {
-                        group.AnnotationDescriptionText = Resources.GroupDefaultText;
-                    }
-                    else if (!showDefault && group.AnnotationDescriptionText == Resources.GroupDefaultText)
-                    {
-                        group.AnnotationDescriptionText = string.Empty;
-                    }
+                    var c1 = PreferenceSettings.Instance.ShowDefaultGroupDescription;
+
+                    var temp = group.AnnotationDescriptionText;
+
+                    group.AnnotationDescriptionText = temp;
+
+                    RaisePropertyChanged(nameof(group.AnnotationDescriptionText));
                 }
             }
         }

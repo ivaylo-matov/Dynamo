@@ -182,7 +182,7 @@
                                 <Setter Property="BorderThickness" Value="0" />
                                 <Setter Property="Height" Value="{Binding Source={x:Static configuration:Configurations.CodeBlockOutputPortHeightInPixels}}" />
                                 <Setter Property="Width" Value="20px" />
-                                <Setter Property="Margin" Value="5,0,0,0" />
+                                <!--<Setter Property="Margin" Value="5,0,0,0" />-->
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
