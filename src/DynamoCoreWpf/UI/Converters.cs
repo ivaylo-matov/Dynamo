@@ -5,6 +5,8 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Resources;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -2845,7 +2847,11 @@ namespace Dynamo.Controls
 
             bool showDefault = Dynamo.Configuration.PreferenceSettings.Instance.ShowDefaultGroupDescription;
 
-            if (!showDefault && text == Properties.Resources.GroupDefaultText)
+            // Try to get the correct localized GroupDefaultText
+            //ResourceManager resourceManager = Resources.ResourceManager;
+            //string localizedDefaultText = resourceManager.GetString("GroupDefaultText", CultureInfo.CurrentUICulture);
+
+            if (!showDefault && text == Resources.GroupDefaultText)
             {
                 return string.Empty;
             }
