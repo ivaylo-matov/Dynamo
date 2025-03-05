@@ -2116,7 +2116,7 @@ namespace Dynamo.ViewModels
                 ExecuteCommand(new DynamoModel.OpenFileCommand(filePath, forceManualMode, isTemplate));
 
                 // Apply annotation updates based on the preference setting
-                ApplyAnnotationDescriptionSetting(PreferenceSettings.ShowDefaultGroupDescription);
+                RefreshAnnotationDescriptions();
 
                 // Only show trust warning popop when current opened workspace is homeworkspace and not custom node workspace
                 if (displayTrustWarning && (currentWorkspaceViewModel?.IsHomeSpace ?? false))
@@ -2280,11 +2280,10 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        /// Updates all existing annotations in the workspace based on the 
-        /// ShowDefaultGroupDescription setting.
+        /// Forces all annotations in the workspace to refresh their description text,
+        /// ensuring that UI updates when the ShowDefaultGroupDescription setting changes.
         /// </summary>
-        /// <param name="showDefault">Whether to apply the default description or clear it.</param>
-        public void ApplyAnnotationDescriptionSetting(bool showDefault)
+        public void RefreshAnnotationDescriptions()
         {
             foreach (var workspace in Model.Workspaces)
             {
@@ -2293,10 +2292,7 @@ namespace Dynamo.ViewModels
                     foreach (var group in workspace.Annotations)
                     {
                         var temp = group.AnnotationDescriptionText;
-
                         group.AnnotationDescriptionText = temp;
-
-                        //RaisePropertyChanged(nameof(group.AnnotationDescriptionText));
                     }
                 }
             }
