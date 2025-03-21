@@ -47,10 +47,13 @@ namespace Dynamo.ViewModels
             }
         }
 
+
+
+       
         [JsonIgnore]
         public Double Width
         {
-            get { return annotationModel.Width; }
+            get => annotationModel.Width;
             set
             {
                 annotationModel.Width = value;
@@ -66,6 +69,36 @@ namespace Dynamo.ViewModels
                 annotationModel.Height = value;
             }
         }
+
+
+        [JsonIgnore]
+        public double WidthCollapsed
+        {
+            get => annotationModel.WidthCollapsed;
+            set
+            {
+                annotationModel.WidthCollapsed = value;
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         [JsonIgnore]
         public double ModelAreaHeight
@@ -372,6 +405,13 @@ namespace Dynamo.ViewModels
             }
         }
         #endregion
+
+
+
+
+
+
+
 
         #region Commands
         private DelegateCommand _changeFontSize;
@@ -1222,6 +1262,14 @@ namespace Dynamo.ViewModels
                     RaisePropertyChanged(nameof(ModelAreaHeight));
                     RaisePropertyChanged(nameof(ModelAreaRect));
                     RaisePropertyChanged(nameof(Width));
+
+
+
+                    RaisePropertyChanged(nameof(WidthCollapsed));
+
+
+
+
                     break;
                 case nameof(AnnotationModel.Position):
                     RaisePropertyChanged(nameof(ModelAreaRect));

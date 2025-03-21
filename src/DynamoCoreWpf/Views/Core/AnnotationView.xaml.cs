@@ -17,6 +17,7 @@ using Dynamo.Wpf.Utilities;
 using Dynamo.Graph.Annotations;
 using Dynamo.Logging;
 using Dynamo.Configuration;
+using System.Diagnostics;
 
 namespace Dynamo.Nodes
 {
@@ -411,6 +412,10 @@ namespace Dynamo.Nodes
             if (xAdjust >= ViewModel.Width - ViewModel.AnnotationModel.WidthAdjustment)
             {
                 ViewModel.AnnotationModel.WidthAdjustment += e.HorizontalChange;
+
+                //Debug.WriteLine($"Original thumb moved: {e.HorizontalChange}     WIdth : {ViewModel.Width}");
+                Debug.WriteLine($"WidthAdjustment updated: {ViewModel.AnnotationModel.WidthAdjustment}");
+
                 ViewModel.WorkspaceViewModel.HasUnsavedChanges = true;
             }
 
@@ -418,9 +423,56 @@ namespace Dynamo.Nodes
             {
                 ViewModel.AnnotationModel.HeightAdjustment += e.VerticalChange;
                 ViewModel.WorkspaceViewModel.HasUnsavedChanges = true;
+            }   
+        }       
 
+        private void CollapsedAnnotationRectangleThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            var xAdjust = (ViewModel.Width) + e.HorizontalChange;
+            var yAdjust = (ViewModel.Height) + e.VerticalChange;
+
+            if (xAdjust >= ViewModel.Width - ViewModel.AnnotationModel.WidthAdjustment)
+            {
+                ViewModel.AnnotationModel.WidthAdjustment += e.HorizontalChange;
+
+                //Debug.WriteLine($"Original thumb moved: {e.HorizontalChange}     WIdth : {ViewModel.Width}");
+                Debug.WriteLine($"WidthAdjustment updated: {ViewModel.AnnotationModel.WidthAdjustment}");
+
+                ViewModel.WorkspaceViewModel.HasUnsavedChanges = true;
+            }
+
+            if (yAdjust >= ViewModel.Height - ViewModel.AnnotationModel.HeightAdjustment)
+            {
+                ViewModel.AnnotationModel.HeightAdjustment += e.VerticalChange;
+                ViewModel.WorkspaceViewModel.HasUnsavedChanges = true;
             }
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /// <summary>
+        /// When the GroupStyle Submenu is opened then we need to re-load the GroupStyles in the ContextMenu (in case more Styles were added in Preferences panel).
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void GroupStyleAnnotation_SubmenuOpened(object sender, RoutedEventArgs e)
+        {
+            ViewModel.ReloadGroupStyles();
+            // Tracking loading group style items
+            Logging.Analytics.TrackEvent(Actions.Load, Categories.GroupStyleOperations, nameof(GroupStyleItem) + "s");
+        }
+
 
         private void Thumb_MouseEnter(object sender, MouseEventArgs e)
         {
@@ -458,18 +510,6 @@ namespace Dynamo.Nodes
             ViewModel.UpdateGroupStyle(groupStyleItemSelected);
             // Tracking selecting group style item and if it is a default style by Dynamo
             Logging.Analytics.TrackEvent(Actions.Select, Categories.GroupStyleOperations, nameof(GroupStyleItem), groupStyleItemSelected.IsDefault ? 1 : 0);
-        }
-
-        /// <summary>
-        /// When the GroupStyle Submenu is opened then we need to re-load the GroupStyles in the ContextMenu (in case more Styles were added in Preferences panel).
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void GroupStyleAnnotation_SubmenuOpened(object sender, RoutedEventArgs e)
-        {
-            ViewModel.ReloadGroupStyles();
-            // Tracking loading group style items
-            Logging.Analytics.TrackEvent(Actions.Load, Categories.GroupStyleOperations, nameof(GroupStyleItem) + "s");
         }
     }
 }

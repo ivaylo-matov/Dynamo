@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Xml;
 using Dynamo.Graph.Nodes;
@@ -77,6 +78,66 @@ namespace Dynamo.Graph.Annotations
                 RaisePropertyChanged("Width");
             }
         }
+
+        private double widthCollapsed;
+        public double WidthCollapsed
+        {
+            get => widthCollapsed;
+            set
+            {
+                if (widthCollapsed == value) return;
+
+                widthCollapsed = value;
+                RaisePropertyChanged(nameof(WidthCollapsed));
+            }
+        }
+
+        private double widthAdjustment;
+        /// <summary>
+        /// Adjustment margin to be added to the width of the
+        /// group. When set the width of the group will always
+        /// be set to Width + widthAdjustment
+        /// </summary>
+        public double WidthAdjustment
+        {
+            get { return widthAdjustment; }
+            set
+            {
+                if (value == widthAdjustment) return;
+                widthAdjustment = value;
+                UpdateBoundaryFromSelection();
+            }
+        }
+        private double widthAdjustmentCollapsed;
+        public double WidthAdjustmentCollapsed
+        {
+            get => widthAdjustmentCollapsed;
+            set
+            {
+                if (value == widthAdjustmentCollapsed) return;
+                widthAdjustmentCollapsed = value;
+                UpdateBoundaryFromSelection();
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         private double height;
         /// <summary>
@@ -331,22 +392,7 @@ namespace Dynamo.Graph.Annotations
         /// </summary>
         private HashSet<Guid> removedPins = new HashSet<Guid>();
 
-        private double widthAdjustment;
-        /// <summary>
-        /// Adjustment margin to be added to the width of the
-        /// group. When set the width of the group will always
-        /// be set to Width + widthAdjustment
-        /// </summary>
-        public double WidthAdjustment
-        {
-            get { return widthAdjustment; }
-            set 
-            {
-                if (value == widthAdjustment) return;
-                widthAdjustment = value;
-                UpdateBoundaryFromSelection();
-            }
-        }
+        
 
         private double heightAdjustment;
         /// <summary>
@@ -424,6 +470,60 @@ namespace Dynamo.Graph.Annotations
         }
         #endregion
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        private bool isCollapsedResized;
+        public bool IsCollapsedResized
+        {
+            get => isCollapsedResized;
+            set
+            {
+                isCollapsedResized = value;
+                RaisePropertyChanged(nameof(IsCollapsedResized));
+            }
+        }
+        
+        private double countResizing;
+        public double CountResizing
+        {
+            get => countResizing;
+            set
+            {
+                countResizing = value;
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         /// <summary>
         /// Initializes a new instance of the <see cref="AnnotationModel"/> class.
         /// </summary>
@@ -499,6 +599,9 @@ namespace Dynamo.Graph.Annotations
                     break;
                 case nameof(ModelBase.Height):
                 case nameof(ModelBase.Width):
+
+                case nameof(WidthCollapsed):
+
                     UpdateBoundaryFromSelection();
                     break;
                 case nameof(NodeModel.State):
@@ -564,16 +667,42 @@ namespace Dynamo.Graph.Annotations
                 this.ModelAreaHeight = IsExpanded ? region.Height : ModelAreaHeight;
                 Height = this.ModelAreaHeight + TextBlockHeight;
 
-                if (IsExpanded)
+
+
+
+                WidthCollapsed = Width;
+
+
+
+
+                // ip code
+                Width = Math.Max(region.Width, TextMaxWidth + ExtendSize);
+                lastExpandedWidth = Width;
+
+
+                if (!IsCollapsedResized)
                 {
-                    Width = Math.Max(region.Width, TextMaxWidth + ExtendSize);                    
-                    lastExpandedWidth = Width;
+                    WidthCollapsed = Width;
                 }
-                else
-                {
-                    //If the annotation is not expanded, then it will remain the same width of the last time it was expanded
-                    Width = lastExpandedWidth;
-                }
+
+
+                //if (IsExpanded)
+                //{
+                //    Width = Math.Max(region.Width, TextMaxWidth + ExtendSize);                    
+                //    lastExpandedWidth = Width;
+
+
+                //    if (!IsCollapsedResized)
+                //    {
+                //        WidthCollapsed = Width;
+                //    }
+
+                //}
+                //else
+                //{
+                //    //If the annotation is not expanded, then it will remain the same width of the last time it was expanded
+                //    Width = lastExpandedWidth;
+                //}
 
                 //Initial Height is to store the Actual height of the group.
                 //that is the height should be the initial height without the textblock height.
