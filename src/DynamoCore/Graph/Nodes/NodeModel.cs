@@ -1744,12 +1744,18 @@ namespace Dynamo.Graph.Nodes
             if (State == ElementState.Info)
             {
                 infos.RemoveWhere(x => x.State == ElementState.Info);
+                State = ElementState.Active;
             }
             else if (State == ElementState.PersistentInfo)
             {
                 infos.RemoveWhere(x => x.State == ElementState.PersistentInfo);
+                State = ElementState.Active;
             }
-            State = ElementState.Active;
+            // If there are still warnings/errors, keep the state unchanged.
+            else if (State == ElementState.Warning || State == ElementState.Error)
+            {
+                infos.RemoveWhere(x => x.State == ElementState.PersistentInfo || x.State == ElementState.Info);
+            }
             OnNodeInfoMessagesClearing();
         }
 

@@ -448,10 +448,6 @@ namespace CoreNodeModels
                 OnNodeModified();
                 return;
             }
-            if(!IsResizing)
-            {
-                ClearErrorsAndWarnings();
-            }
 
             object curve = null;
 
@@ -526,16 +522,18 @@ namespace CoreNodeModels
                     break;
             }
 
-            if (curve is not null)
+            if (curve is CurveBase dynamicCurve)
             {
-                dynamic dynamicCurve = curve;
                 RenderValuesX = dynamicCurve.GetCurveXValues(PointsCount, true);
-                RenderValuesY = dynamicCurve.GetCurveYValues(PointsCount, true);
+                RenderValuesY = dynamicCurve.GetCurveYValues(PointsCount, true);                
+
+                if (dynamicCurve.IsYOutOfRange)
+                    Info(Properties.Resources.CurveMapperInfoMessage, true);
+                else
+                    ClearInfoMessages();
 
                 if (!IsResizing)
-                {
                     OnNodeModified();
-                }
             }
         }
 

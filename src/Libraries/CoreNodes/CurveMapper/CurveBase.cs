@@ -13,6 +13,9 @@ namespace DSCore.CurveMapper
         protected double CanvasSize;
         protected const double renderIncrementX = 1.0;
 
+
+        public bool IsYOutOfRange { get; set; }
+
         protected CurveBase(double canvasSize)
         {
             CanvasSize = canvasSize;

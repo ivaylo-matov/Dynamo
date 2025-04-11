@@ -69,6 +69,9 @@ namespace DSCore.CurveMapper
             flipHorizontally = ControlPoint1X > ControlPoint2X;
             flipVertically = ControlPoint1Y > ControlPoint2Y;
 
+            // y values
+            IsYOutOfRange = lowY < 0 || lowY > CanvasSize || highY < 0 || highY > CanvasSize;
+
             if (isRender)
             {
                 valuesX = new List<double> { System.Math.Clamp(leftX, 0, CanvasSize), System.Math.Clamp(rightX, 0, CanvasSize) };
