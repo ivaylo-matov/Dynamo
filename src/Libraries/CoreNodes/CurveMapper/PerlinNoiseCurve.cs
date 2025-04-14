@@ -164,6 +164,7 @@ namespace DSCore.CurveMapper
         {
             var valuesX = new List<double>();
             var valuesY = new List<double>();
+            bool outOfRange = false; 
 
             double scalingFactor = CanvasSize / initialWidth;
             scale = (CanvasSize - ControlPoint1X) / (CanvasSize * 3.0);
@@ -181,7 +182,13 @@ namespace DSCore.CurveMapper
                         valuesX.Add(x);
                         valuesY.Add(y);
                     }
+                    else
+                    {
+                        outOfRange = true;
+                    }
                 }
+
+                IsYOutOfRange = outOfRange;
 
                 // Add the intersection points & sort the values
                 var intersectionValuesX = GetBoundaryIntersections();

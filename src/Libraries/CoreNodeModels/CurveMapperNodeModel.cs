@@ -24,8 +24,6 @@ namespace CoreNodeModels
         private double maxLimitY = 1;
         private List<Double> pointsCount = new List<double>() { 10.0 };
 
-        private List<double> outputValuesY;
-        private List<double> outputValuesX;
         private List<double> renderValuesY;
         private List<double> renderValuesX;
 

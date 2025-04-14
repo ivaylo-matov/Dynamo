@@ -208,6 +208,19 @@ namespace Dynamo.Graph.Nodes
             NodeInfoMessagesClearing?.Invoke(this);
         }
 
+        /// <summary>
+        /// Event triggered when the node clears only warning messages
+        /// </summary>
+        public event Action<NodeModel> NodeWarningMessagesClearing;
+
+        /// <summary>
+        /// Fires on each node that is modified to clear only warning messages, when the graph executes.
+        /// </summary>
+        internal void OnNodeWarningMessagesClearing()
+        {
+            NodeWarningMessagesClearing?.Invoke(this);
+        }
+
         internal void OnNodeExecutionBegin()
         {
             NodeExecutionBegin?.Invoke(this);
@@ -1730,7 +1743,16 @@ namespace Dynamo.Graph.Nodes
 
             SetNodeStateBasedOnConnectionAndDefaults();
             ClearTransientWarningsAndErrors();
-            OnNodeMessagesClearing();
+
+            // If persistent info is still present, ensure it is reflected in the node state
+            if (Infos.Any(x => x.State == ElementState.PersistentInfo))
+            {
+                OnNodeWarningMessagesClearing();
+            }
+            else
+            {
+                OnNodeMessagesClearing();
+            }            
         }
 
         /// <summary>
@@ -1900,6 +1922,8 @@ namespace Dynamo.Graph.Nodes
         /// cleared when the node is next evaluated. If false, the info will be cleared on the next evaluation.</param>
         public void Info(string p, bool isPersistent = false)
         {
+            var initialState = State;
+
             if (isPersistent)
             {
                 if (!Infos.Any(x => x.Message.Equals(p) && x.State == ElementState.PersistentInfo))
@@ -1912,6 +1936,16 @@ namespace Dynamo.Graph.Nodes
             {
                 State = ElementState.Info;
                 infos.Add(new Info(p, ElementState.Info));
+            }
+
+            // Preserve more critical states such as Warning, PersistentWarning, or Error.
+            // We don't want to downgrade the node visually or functionally if it already has
+            // more important issues that should take precedence over an informational message.
+            if (initialState == ElementState.Warning ||
+                initialState == ElementState.PersistentWarning ||
+                initialState == ElementState.Error)
+            {
+                State = initialState;
             }
         }
 

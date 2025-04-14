@@ -13,8 +13,12 @@ namespace DSCore.CurveMapper
         protected double CanvasSize;
         protected const double renderIncrementX = 1.0;
 
-
-        public bool IsYOutOfRange { get; set; }
+        private bool isYOutOfRange;
+        public bool IsYOutOfRange
+        {
+            get => isYOutOfRange;
+            set => isYOutOfRange = value;
+        }
 
         protected CurveBase(double canvasSize)
         {
