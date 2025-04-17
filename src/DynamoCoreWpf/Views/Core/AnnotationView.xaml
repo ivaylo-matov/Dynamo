@@ -232,6 +232,7 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <ContentPresenter Grid.ColumnSpan="3"
                                                       Margin="4"
@@ -261,9 +262,73 @@
                                         </Image.Style>
                                     </Image>
 
+                                    <!-- Frozen Button/Icon -->
+                                    <Grid>
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Path=DataContext.Zoom,
+                                                        RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type views:WorkspaceView}},
+                                                        Converter={StaticResource ZoomToVisibilityCollapsedConverter}}" Value="Visible">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <Button Name="FrozenButton"
+                                                Command="{Binding Path=ToggleIsFrozenGroupCommand}"
+                                                Width="16"
+                                                Height="16"
+                                                VerticalAlignment="Bottom"
+                                                HorizontalAlignment="Right"
+                                                Margin="0,0,2.5,2.5"
+                                                Visibility="{Binding DataContext.AnnotationModel.IsFrozen, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityCollapsedConverter}}">
+                                            <Button.ToolTip>
+                                                <ToolTip Style="{StaticResource GenericToolTipLight}">
+                                                    <TextBlock Text="{x:Static p:Resources.GroupFrozenButtonToolTip}" />
+                                                </ToolTip>
+                                            </Button.ToolTip>
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="OverridesDefaultStyle" Value="True"/>
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Image x:Name="FrozenImage"
+                                                                       Width="16"
+                                                                       Height="16"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Source="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-dark-64px.png"/>
+                                                                <ControlTemplate.Triggers>
+                                                                    <!-- Hover state -->
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="FrozenImage"
+                                                                                Property="Source"
+                                                                                Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-hover-24px.png"/>
+                                                                    </Trigger>
+                                                                    <!-- Background override -->
+                                                                    <DataTrigger Binding="{Binding DataContext.Background,
+                                                                        RelativeSource={RelativeSource AncestorType=UserControl},
+                                                                        Converter={StaticResource BackgroundConditionEvaluator}}"
+                                                                                 Value="True">
+                                                                        <Setter TargetName="FrozenImage"
+                                                                                Property="Source"
+                                                                                Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-light-64px.png"/>
+                                                                    </DataTrigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </Grid>                                    
+
                                     <!--Expander button-->
                                     <ToggleButton OverridesDefaultStyle="True"
-                                                  Grid.Column="1"
+                                                  Grid.Column="2"
                                                   Margin="0,0,0,2.5"
                                                   Template="{StaticResource GroupExpanderTemplate}"
                                                   IsChecked="{Binding IsExpanded, Mode=TwoWay, 
@@ -272,7 +337,7 @@
 
                                     <!--Group context menu-->
                                     <Button x:Name="contextMenu"
-                                            Grid.Column="2"
+                                            Grid.Column="3"
                                             Background="Transparent"
                                             BorderBrush="Transparent"
                                             BorderThickness="0"
@@ -520,6 +585,66 @@
                 </MenuItem>
             </ContextMenu>
         </Grid.ContextMenu>
+
+        <!-- Frozen button on zoomed out-->
+        <Grid x:Name="ZoomedOutFrozenIcon"
+              Grid.Row="0"
+              Grid.RowSpan="2"
+              Grid.Column="0"
+              Grid.ColumnSpan="4"
+              Panel.ZIndex="1">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding DataContext.AnnotationModel.IsFrozen, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                                <Condition Binding="{Binding DataContext.IsExpanded, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False" />
+                                <Condition Binding="{Binding Path=DataContext.Zoom,
+                                    RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type views:WorkspaceView}},
+                                    Converter={StaticResource ZoomToVisibilityCollapsedConverter}}"
+                                           Value="Visible" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <Button Name="FrozenButton"
+                    Command="{Binding Path=ToggleIsFrozenGroupCommand}"
+                    Width="64"
+                    Height="64">
+                <Button.ToolTip>
+                    <ToolTip Style="{StaticResource GenericToolTipLight}">
+                        <TextBlock Text="{x:Static p:Resources.GroupFrozenButtonToolTip}" />
+                    </ToolTip>
+                </Button.ToolTip>
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="OverridesDefaultStyle" Value="True"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Image x:Name="FrozenImage"
+                                           Width="64"
+                                           Height="64"
+                                           Source="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-dark-64px.png"/>
+                                    <ControlTemplate.Triggers>
+                                        <!-- Hover state -->
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="FrozenImage"
+                                                    Property="Source"
+                                                    Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-hover-24px.png"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Grid>
 
         <!--Persistent border shows around the entire group at all time-->
         <Border Name="persistentBorder"
