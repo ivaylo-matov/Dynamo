@@ -30,6 +30,7 @@
         <controls:StringToBrushColorConverter x:Key="StringToBrushColorConverter"/>
         <controls:TextForegroundSaturationColorConverter x:Key="TextForegroundSaturationColorConverter"/>
         <controls:BackgroundConditionEvaluator x:Key="BackgroundConditionEvaluator"/>
+        <controls:ZoomToVisibilityCollapsedConverter x:Key="ZoomToVisibilityCollapsedConverter"/>
         <CornerRadius x:Key="ExpanderCornerRadius"
                       TopLeft="10"
                       TopRight="10" />

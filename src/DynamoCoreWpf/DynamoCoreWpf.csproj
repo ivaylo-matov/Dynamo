@@ -174,6 +174,9 @@
     <None Remove="UI\Images\lock_default_16px.png" />
     <None Remove="UI\Images\lock_hover_16px.png" />
     <None Remove="UI\Images\menu_white_48px.png" />
+    <None Remove="UI\Images\NodeStates\frozen-dark-64px.png" />
+    <None Remove="UI\Images\NodeStates\frozen-hover-24px.png" />
+    <None Remove="UI\Images\NodeStates\frozen-light-64px.png" />
     <None Remove="UI\Images\PackageManager\empty-state-first-use-light-gray.png" />
     <None Remove="UI\Images\reset_default_16px.png" />
     <None Remove="UI\Images\reset_hover_16px.png" />
@@ -1328,6 +1331,9 @@
     <Resource Include="UI\Images\NodeStates\alert-64px.png" />
     <Resource Include="UI\Images\NodeStates\error-64px.png" />
     <Resource Include="UI\Images\NodeStates\frozen-64px.png" />
+    <Resource Include="UI\Images\NodeStates\frozen-dark-64px.png" />
+    <Resource Include="UI\Images\NodeStates\frozen-hover-24px.png" />
+    <Resource Include="UI\Images\NodeStates\frozen-light-64px.png" />
     <Resource Include="UI\Images\NodeStates\hidden-64px.png" />
     <Resource Include="UI\Images\NodeStates\info-64px.png" />
     <Resource Include="UI\Images\NodeStates\package-64px.png" />
