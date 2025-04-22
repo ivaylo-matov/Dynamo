@@ -306,7 +306,7 @@
                                                                     <Trigger Property="IsMouseOver" Value="True">
                                                                         <Setter TargetName="FrozenImage"
                                                                                 Property="Source"
-                                                                                Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-hover-24px.png"/>
+                                                                                Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-hover-64px.png"/>
                                                                     </Trigger>
                                                                     <!-- Background override -->
                                                                     <DataTrigger Binding="{Binding DataContext.Background,
@@ -315,7 +315,7 @@
                                                                                  Value="True">
                                                                         <Setter TargetName="FrozenImage"
                                                                                 Property="Source"
-                                                                                Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-light-64px.png"/>
+                                                                                Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-64px.png"/>
                                                                     </DataTrigger>
                                                                 </ControlTemplate.Triggers>
                                                             </ControlTemplate>
@@ -635,7 +635,7 @@
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter TargetName="FrozenImage"
                                                     Property="Source"
-                                                    Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-hover-24px.png"/>
+                                                    Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-hover-64px.png"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
