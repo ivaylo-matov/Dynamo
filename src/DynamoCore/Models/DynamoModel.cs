@@ -3507,7 +3507,6 @@ namespace Dynamo.Models
         {
             var iDoc = LuceneUtility.InitializeIndexDocumentForNodes();
             List<NodeSearchElement> nodes = new();
-
             foreach (var funcGroup in functionGroups)
             {
                 foreach (var functionDescriptor in funcGroup.Functions)
@@ -3764,7 +3763,7 @@ namespace Dynamo.Models
             return result;
         }
 
-        internal static void RecordUndoModels(WorkspaceModel workspace, List<ModelBase> undoItems)
+        private void RecordUndoModels(WorkspaceModel workspace, List<ModelBase> undoItems)
         {
             var userActionDictionary = new Dictionary<ModelBase, UndoRedoRecorder.UserAction>();
             //Add models that were newly created
