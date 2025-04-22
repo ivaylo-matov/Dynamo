@@ -302,21 +302,41 @@
                                                                        VerticalAlignment="Center"
                                                                        Source="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-dark-64px.png"/>
                                                                 <ControlTemplate.Triggers>
-                                                                    <!-- Hover state -->
+                                                                    <!-- Hover state --><!--
                                                                     <Trigger Property="IsMouseOver" Value="True">
                                                                         <Setter TargetName="FrozenImage"
                                                                                 Property="Source"
                                                                                 Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-hover-64px.png"/>
                                                                     </Trigger>
-                                                                    <!-- Background override -->
+                                                                    --><!-- Background override --><!--
                                                                     <DataTrigger Binding="{Binding DataContext.Background,
                                                                         RelativeSource={RelativeSource AncestorType=UserControl},
                                                                         Converter={StaticResource BackgroundConditionEvaluator}}"
                                                                                  Value="True">
                                                                         <Setter TargetName="FrozenImage"
                                                                                 Property="Source"
-                                                                                Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-64px.png"/>
+                                                                                Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-light-64px.png"/>
+                                                                    </DataTrigger>-->
+                                                                    <!-- Hover on light background -->
+                                                                    <MultiDataTrigger>
+                                                                        <MultiDataTrigger.Conditions>
+                                                                            <Condition Binding="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=IsMouseOver}" Value="True"/>
+                                                                            <Condition Binding="{Binding DataContext.Background, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BackgroundConditionEvaluator}}" Value="True"/>
+                                                                        </MultiDataTrigger.Conditions>
+                                                                        <Setter TargetName="FrozenImage" Property="Source" Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-hover-light-64px.png"/>
+                                                                    </MultiDataTrigger>
+                                                                    <MultiDataTrigger>
+                                                                        <MultiDataTrigger.Conditions>
+                                                                            <Condition Binding="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=IsMouseOver}" Value="True"/>
+                                                                            <Condition Binding="{Binding DataContext.Background, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BackgroundConditionEvaluator}}" Value="False"/>
+                                                                        </MultiDataTrigger.Conditions>
+                                                                        <Setter TargetName="FrozenImage" Property="Source" Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-hover-dark-64px.png"/>
+                                                                    </MultiDataTrigger>
+                                                                    <DataTrigger Binding="{Binding DataContext.Background, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BackgroundConditionEvaluator}}" Value="True">
+                                                                        <Setter TargetName="FrozenImage" Property="Source" Value="/DynamoCoreWpf;component/UI/Images/NodeStates/frozen-light-64px.png"/>
                                                                     </DataTrigger>
+
+
                                                                 </ControlTemplate.Triggers>
                                                             </ControlTemplate>
                                                         </Setter.Value>

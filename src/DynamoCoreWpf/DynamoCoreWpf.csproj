@@ -1333,7 +1333,6 @@
     <Resource Include="UI\Images\NodeStates\error-64px.png" />
     <Resource Include="UI\Images\NodeStates\frozen-64px.png" />
     <Resource Include="UI\Images\NodeStates\frozen-dark-64px.png" />
-    <Resource Include="UI\Images\NodeStates\frozen-hover-24px.png" />
     <Resource Include="UI\Images\NodeStates\frozen-hover-64px.png" />
     <Resource Include="UI\Images\NodeStates\frozen-light-64px.png" />
     <Resource Include="UI\Images\NodeStates\hidden-64px.png" />
