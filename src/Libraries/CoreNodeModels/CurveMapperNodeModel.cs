@@ -1053,77 +1053,46 @@ namespace CoreNodeModels
             switch (SelectedGraphType)
             {
                 case GraphTypes.LinearCurve:
-                    LinearCurveControlPointData1 = ApplyIfChanged(
-                        LinearCurveControlPointData1, LoadPointData(element, "Linear1"), nameof(LinearCurveControlPointData1));
-                    LinearCurveControlPointData2 = ApplyIfChanged(
-                        LinearCurveControlPointData2, LoadPointData(element, "Linear2"), nameof(LinearCurveControlPointData2));
+                    LinearCurveControlPointData1 = LoadPointData(element, "Linear1");
+                    LinearCurveControlPointData2 = LoadPointData(element, "Linear2");
                     break;
-
                 case GraphTypes.BezierCurve:
-                    BezierCurveControlPointData1 = ApplyIfChanged(
-                        BezierCurveControlPointData1, LoadPointData(element, "Bezier1"), nameof(BezierCurveControlPointData1));
-                    BezierCurveControlPointData2 = ApplyIfChanged(
-                        BezierCurveControlPointData2, LoadPointData(element, "Bezier2"), nameof(BezierCurveControlPointData2));
-                    BezierCurveControlPointData3 = ApplyIfChanged(
-                        BezierCurveControlPointData3, LoadPointData(element, "Bezier3"), nameof(BezierCurveControlPointData3));
-                    BezierCurveControlPointData4 = ApplyIfChanged(
-                        BezierCurveControlPointData4, LoadPointData(element, "Bezier4"), nameof(BezierCurveControlPointData4));
+                    BezierCurveControlPointData1 = LoadPointData(element, "Bezier1");
+                    BezierCurveControlPointData2 = LoadPointData(element, "Bezier2");
+                    BezierCurveControlPointData3 = LoadPointData(element, "Bezier3");
+                    BezierCurveControlPointData4 = LoadPointData(element, "Bezier4");
                     break;
-
                 case GraphTypes.SineWave:
-                    SineWaveControlPointData1 = ApplyIfChanged(
-                        SineWaveControlPointData1, LoadPointData(element, "Sine1"), nameof(SineWaveControlPointData1));
-                    SineWaveControlPointData2 = ApplyIfChanged(
-                        SineWaveControlPointData2, LoadPointData(element, "Sine2"), nameof(SineWaveControlPointData2));
+                    SineWaveControlPointData1 = LoadPointData(element, "Sine1");
+                    SineWaveControlPointData2 = LoadPointData(element, "Sine2");
                     break;
-
                 case GraphTypes.CosineWave:
-                    CosineWaveControlPointData1 = ApplyIfChanged(
-                        CosineWaveControlPointData1, LoadPointData(element, "Cosine1"), nameof(CosineWaveControlPointData1));
-                    CosineWaveControlPointData2 = ApplyIfChanged(
-                        CosineWaveControlPointData2, LoadPointData(element, "Cosine2"), nameof(CosineWaveControlPointData2));
+                    CosineWaveControlPointData1 = LoadPointData(element, "Cosine1");
+                    CosineWaveControlPointData2 = LoadPointData(element, "Cosine2");
                     break;
-
                 case GraphTypes.ParabolicCurve:
-                    ParabolicCurveControlPointData1 = ApplyIfChanged(
-                        ParabolicCurveControlPointData1, LoadPointData(element, "Parabolic1"), nameof(ParabolicCurveControlPointData1));
-                    ParabolicCurveControlPointData2 = ApplyIfChanged(
-                        ParabolicCurveControlPointData2, LoadPointData(element, "Parabolic2"), nameof(ParabolicCurveControlPointData2));
+                    ParabolicCurveControlPointData1 = LoadPointData(element, "Parabolic1");
+                    ParabolicCurveControlPointData2 = LoadPointData(element, "Parabolic2");
                     break;
-
                 case GraphTypes.PerlinNoiseCurve:
-                    PerlinNoiseControlPointData1 = ApplyIfChanged(
-                        PerlinNoiseControlPointData1, LoadPointData(element, "Perlin1"), nameof(PerlinNoiseControlPointData1));
-                    PerlinNoiseControlPointData2 = ApplyIfChanged(
-                        PerlinNoiseControlPointData2, LoadPointData(element, "Perlin2"), nameof(PerlinNoiseControlPointData2));
-                    PerlinNoiseControlPointData3 = ApplyIfChanged(
-                        PerlinNoiseControlPointData3, LoadPointData(element, "Perlin3"), nameof(PerlinNoiseControlPointData3));
+                    PerlinNoiseControlPointData1 = LoadPointData(element, "Perlin1");
+                    PerlinNoiseControlPointData2 = LoadPointData(element, "Perlin2");
+                    PerlinNoiseControlPointData3 = LoadPointData(element, "Perlin3");
                     break;
-
                 case GraphTypes.PowerCurve:
-                    PowerCurveControlPointData1 = ApplyIfChanged(
-                        PowerCurveControlPointData1, LoadPointData(element, "Power1"), nameof(PowerCurveControlPointData1));
+                    PowerCurveControlPointData1 = LoadPointData(element, "Power1");
                     break;
-
                 case GraphTypes.SquareRootCurve:
-                    SquareRootCurveControlPointData1 = ApplyIfChanged(
-                        SquareRootCurveControlPointData1, LoadPointData(element, "SquareRoot1"), nameof(SquareRootCurveControlPointData1));
-                    SquareRootCurveControlPointData2 = ApplyIfChanged(
-                        SquareRootCurveControlPointData2, LoadPointData(element, "SquareRoot2"), nameof(SquareRootCurveControlPointData2));
+                    SquareRootCurveControlPointData1 = LoadPointData(element, "SquareRoot1");
+                    SquareRootCurveControlPointData2 = LoadPointData(element, "SquareRoot2");
                     break;
-
                 case GraphTypes.GaussianCurve:
-                    GaussianCurveControlPointData1 = ApplyIfChanged(
-                        GaussianCurveControlPointData1, LoadPointData(element, "Gaussian1"), nameof(GaussianCurveControlPointData1));
-                    GaussianCurveControlPointData2 = ApplyIfChanged(
-                        GaussianCurveControlPointData2, LoadPointData(element, "Gaussian2"), nameof(GaussianCurveControlPointData2));
-                    GaussianCurveControlPointData3 = ApplyIfChanged(
-                        GaussianCurveControlPointData3, LoadPointData(element, "Gaussian3"), nameof(GaussianCurveControlPointData3));
-                    GaussianCurveControlPointData4 = ApplyIfChanged(
-                        GaussianCurveControlPointData4, LoadPointData(element, "Gaussian4"), nameof(GaussianCurveControlPointData4));
+                    GaussianCurveControlPointData1 = LoadPointData(element, "Gaussian1");
+                    GaussianCurveControlPointData2 = LoadPointData(element, "Gaussian2");
+                    GaussianCurveControlPointData3 = LoadPointData(element, "Gaussian3");
+                    GaussianCurveControlPointData4 = LoadPointData(element, "Gaussian4");
                     break;
             }
-
 
             GenerateRenderValues();
             RaisePropertyChanged("ControlPointsDeserialized");
@@ -1151,17 +1120,6 @@ namespace CoreNodeModels
 
             return new ControlPointData(x, y, tag);
         }
-
-        private ControlPointData ApplyIfChanged(ControlPointData current, ControlPointData incoming, string propertyName)
-        {
-            if (!current.Equals(incoming))
-            {
-                RaisePropertyChanged(propertyName);
-                return incoming;
-            }
-            return current;
-        }
-
 
         #endregion
     }
