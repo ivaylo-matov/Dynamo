@@ -19,10 +19,6 @@ namespace Dynamo.Wpf.CurveMapper
     /// </summary>
     public partial class CurveMapperControl : UserControl, INotifyPropertyChanged
     {
-        private bool isDragRecordingActive = false;
-
-
-
         private NodeViewModel nodeViewModel;
 
         private readonly CurveMapperNodeModel curveMapperNodeModel;
@@ -109,36 +105,22 @@ namespace Dynamo.Wpf.CurveMapper
             Width = canvasSize + controlLabelsWidth;
             Height = canvasSize + controlLabelsHeight;
 
-
             model.PropertyChanged += NodeModel_PropertyChanged;
             resizeThumb.DragStarted += ResizeThumb_DragStarted;
             Unloaded += Unload;
 
-
             DrawGrid();
 
             // Dictionary to map UI control points to their corresponding data
-            var controlPointsMap = BuildControlPointsDictionary();
-            RecreateControlPoints(controlPointsMap);
-
-            RenderCurve();
-
+            UpdateUIFromModel();
             ToggleControlPointsLock();
             UpdateLockButton();
         }
-        
+
         private void OnControlPointDragStarted()
         {
-            if (curveMapperNodeModel.IsLocked || isDragRecordingActive) return;
-
-            var undoRecorder = nodeViewModel.WorkspaceViewModel.Model.UndoRecorder;
-            WorkspaceModel.RecordModelForModification(curveMapperNodeModel, undoRecorder);
-        }
-
-        private void OnLockStatusChanged()
-        {
-            var undoRecorder = nodeViewModel.WorkspaceViewModel.Model.UndoRecorder;
-            WorkspaceModel.RecordModelForModification(curveMapperNodeModel, undoRecorder);
+            if (!curveMapperNodeModel.IsLocked)
+                RecordUndo();
         }
 
         private void RenderCurve()
@@ -222,15 +204,11 @@ namespace Dynamo.Wpf.CurveMapper
 
         private void LockButton_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as Button;
-            if (button != null)
-            {
-                OnLockStatusChanged();
+            RecordUndo();
 
-                curveMapperNodeModel.IsLocked = !curveMapperNodeModel.IsLocked;
-                UpdateLockButton();
-                ToggleControlPointsLock();
-            }
+            curveMapperNodeModel.IsLocked = !curveMapperNodeModel.IsLocked;
+            UpdateLockButton();
+            ToggleControlPointsLock();
         }
 
         private void NodeModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -270,9 +248,7 @@ namespace Dynamo.Wpf.CurveMapper
 
             if (e.PropertyName == nameof(curveMapperNodeModel.SelectedGraphType))
             {
-                var controlPointsMap = BuildControlPointsDictionary();
-                RecreateControlPoints(controlPointsMap);
-                RenderCurve();
+                UpdateUIFromModel();
 
                 if (!curveMapperNodeModel.IsRestoringUndo)
                 {
@@ -297,17 +273,11 @@ namespace Dynamo.Wpf.CurveMapper
 
             if (e.PropertyName == "ControlPointsDeserialized")
             {
-                var controlPointsMap = BuildControlPointsDictionary();
-                RecreateControlPoints(controlPointsMap);
-                RenderCurve();
+                UpdateUIFromModel();
             }
 
             if (e.PropertyName == nameof(curveMapperNodeModel.IsLocked))
             {
-                if (!curveMapperNodeModel.IsRestoringUndo)
-                {
-                    
-                }
                 UpdateLockButton();
                 ToggleControlPointsLock();
             }
@@ -315,8 +285,7 @@ namespace Dynamo.Wpf.CurveMapper
 
         private void ResizeThumb_DragStarted(object sender, DragStartedEventArgs e)
         {
-            var workspace = nodeViewModel?.WorkspaceViewModel?.Model;
-            WorkspaceModel.RecordModelForModification(curveMapperNodeModel, workspace?.UndoRecorder);
+            RecordUndo();
         }
 
         private void Unload(object sender, RoutedEventArgs e)
@@ -560,8 +529,20 @@ namespace Dynamo.Wpf.CurveMapper
 
         private void GraphTypeComboBox_DropDownOpened(object sender, EventArgs e)
         {
-            var workspace = nodeViewModel?.WorkspaceViewModel?.Model;
-            WorkspaceModel.RecordModelForModification(curveMapperNodeModel, workspace?.UndoRecorder);
+            RecordUndo();
+        }
+
+        private void RecordUndo()
+        {
+            var undoRecorder = nodeViewModel.WorkspaceViewModel.Model.UndoRecorder;
+            WorkspaceModel.RecordModelForModification(curveMapperNodeModel, undoRecorder);
+        }
+
+        private void UpdateUIFromModel()
+        {
+            var controlPointsMap = BuildControlPointsDictionary();
+            RecreateControlPoints(controlPointsMap);
+            RenderCurve();
         }
     }
 }
