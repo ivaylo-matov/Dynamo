@@ -39,9 +39,7 @@
     <Grid>
         <Grid x:Name="MainGrid"
           MinWidth="325"
-          MinHeight="340"
-          Width="{Binding MainGridWidth, Mode=TwoWay}"
-          Height="{Binding MainGridHeight, Mode=TwoWay}">
+          MinHeight="340">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="35" />

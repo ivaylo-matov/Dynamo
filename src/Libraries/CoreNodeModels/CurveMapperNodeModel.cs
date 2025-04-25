@@ -1030,7 +1030,6 @@ namespace CoreNodeModels
             var typeAttr = element.GetAttribute(nameof(SelectedGraphType));
             if (!string.IsNullOrEmpty(typeAttr) && Enum.TryParse(typeAttr, out GraphTypes parsedType))
                 SelectedGraphType = parsedType;
-            IsRestoringUndo = false;
 
             if (bool.TryParse(element.GetAttribute(nameof(IsLocked)), out var locked))
             {
@@ -1047,8 +1046,9 @@ namespace CoreNodeModels
                 {
                     DynamicCanvasSize = canvasSize;
                     RaisePropertyChanged(nameof(DynamicCanvasSize));
-                }                
+                }
             }
+            IsRestoringUndo = false;
 
             switch (SelectedGraphType)
             {
