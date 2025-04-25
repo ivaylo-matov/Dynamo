@@ -156,7 +156,8 @@
                           Margin="10,0,0,0"
                           VerticalAlignment="Center"
                           ItemsSource="{Binding GraphTypesList}"
-                          SelectedItem="{Binding SelectedGraphTypeDescription, Mode=TwoWay}">
+                          SelectedItem="{Binding SelectedGraphTypeDescription, Mode=TwoWay}"
+                          DropDownOpened="GraphTypeComboBox_DropDownOpened">
                     <ComboBox.Style>
                         <Style BasedOn="{StaticResource RefreshComboBox}" TargetType="ComboBox">
                             <Style.Triggers>
