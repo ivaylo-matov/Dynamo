@@ -80,6 +80,7 @@ namespace CoreNodeModels
         private double dynamicCanvasSize = defaultCanvasSize;
         private bool isLocked;
         private bool isResizing;
+        private bool isRestoringUndo;
 
         #region Curves & Point Data
         
@@ -336,6 +337,7 @@ namespace CoreNodeModels
                 selectedGraphType = value;
                 GenerateRenderValues();
                 RaisePropertyChanged(nameof(SelectedGraphType));
+                RaisePropertyChanged(nameof(SelectedGraphTypeDescription));
             }
         }
 
@@ -365,6 +367,20 @@ namespace CoreNodeModels
                 {
                     isResizing = value;
                     RaisePropertyChanged(nameof(IsResizing));
+                }
+            }
+        }
+
+        /// <summary> Indicates whether the node is currently restoring its state during undo. </summary>
+        [JsonIgnore]
+        public bool IsRestoringUndo
+        {
+            get => isRestoringUndo;
+            private set
+            {
+                if (isRestoringUndo != value)
+                {
+                    isRestoringUndo = value;
                 }
             }
         }
@@ -1010,9 +1026,11 @@ namespace CoreNodeModels
             base.DeserializeCore(element, context);
 
             // Restore the selected graph type
+            IsRestoringUndo = true;
             var typeAttr = element.GetAttribute(nameof(SelectedGraphType));
             if (!string.IsNullOrEmpty(typeAttr) && Enum.TryParse(typeAttr, out GraphTypes parsedType))
                 SelectedGraphType = parsedType;
+            IsRestoringUndo = false;
 
             if (bool.TryParse(element.GetAttribute(nameof(IsLocked)), out var locked))
                 IsLocked = locked;
