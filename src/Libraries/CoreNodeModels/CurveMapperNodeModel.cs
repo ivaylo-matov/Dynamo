@@ -1025,21 +1025,31 @@ namespace CoreNodeModels
         {
             base.DeserializeCore(element, context);
 
-            // Restore the selected graph type
+            // Suppress undo-related reactions
             IsRestoringUndo = true;
+
+            // Restore the selected graph type
             var typeAttr = element.GetAttribute(nameof(SelectedGraphType));
             if (!string.IsNullOrEmpty(typeAttr) && Enum.TryParse(typeAttr, out GraphTypes parsedType))
-                SelectedGraphType = parsedType;
+            {
+                if (SelectedGraphType != parsedType)
+                {
+                    SelectedGraphType = parsedType;
+                    RaisePropertyChanged(nameof(SelectedGraphType));
+                }
+            }
 
+            // Restore locked state
             if (bool.TryParse(element.GetAttribute(nameof(IsLocked)), out var locked))
             {
-                if ( IsLocked != locked)
+                if (IsLocked != locked)
                 {
                     IsLocked = locked;
                     RaisePropertyChanged(nameof(IsLocked));
-                }                
-            }                
+                }
+            }
 
+            // Restore canvas size
             if (double.TryParse(element.GetAttribute(nameof(DynamicCanvasSize)), out var canvasSize))
             {
                 if (DynamicCanvasSize != canvasSize)
@@ -1048,6 +1058,7 @@ namespace CoreNodeModels
                     RaisePropertyChanged(nameof(DynamicCanvasSize));
                 }
             }
+
             IsRestoringUndo = false;
 
             switch (SelectedGraphType)

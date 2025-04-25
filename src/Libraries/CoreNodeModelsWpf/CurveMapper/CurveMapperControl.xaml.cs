@@ -117,6 +117,12 @@ namespace Dynamo.Wpf.CurveMapper
             UpdateLockButton();
         }
 
+        private void RecordUndo()
+        {
+            var undoRecorder = nodeViewModel.WorkspaceViewModel.Model.UndoRecorder;
+            WorkspaceModel.RecordModelForModification(curveMapperNodeModel, undoRecorder);
+        }
+
         private void OnControlPointDragStarted()
         {
             if (!curveMapperNodeModel.IsLocked)
@@ -211,6 +217,16 @@ namespace Dynamo.Wpf.CurveMapper
             ToggleControlPointsLock();
         }
 
+        private void GraphTypeComboBox_DropDownOpened(object sender, EventArgs e)
+        {
+            RecordUndo();
+        }
+
+        private void ResizeThumb_DragStarted(object sender, DragStartedEventArgs e)
+        {
+            RecordUndo();
+        }
+
         private void NodeModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(curveMapperNodeModel.DynamicCanvasSize))
@@ -283,11 +299,6 @@ namespace Dynamo.Wpf.CurveMapper
             }
         }
 
-        private void ResizeThumb_DragStarted(object sender, DragStartedEventArgs e)
-        {
-            RecordUndo();
-        }
-
         private void Unload(object sender, RoutedEventArgs e)
         {
             this.curveMapperNodeModel.PropertyChanged -= NodeModel_PropertyChanged;
@@ -347,6 +358,13 @@ namespace Dynamo.Wpf.CurveMapper
                     Canvas.SetTop(newPoint, dataPoints[i].Y - offsetValue);
                 }
             }
+        }
+
+        private void UpdateUIFromModel()
+        {
+            var controlPointsMap = BuildControlPointsDictionary();
+            RecreateControlPoints(controlPointsMap);
+            RenderCurve();
         }
 
         private void UpdateControlPointPosition(UIElement controlPoint, ControlPointData dataPoint, double newSize)
@@ -525,24 +543,6 @@ namespace Dynamo.Wpf.CurveMapper
             curveMapperNodeModel.GenerateRenderValues();
 
             curveMapperNodeModel.IsResizing = false;
-        }
-
-        private void GraphTypeComboBox_DropDownOpened(object sender, EventArgs e)
-        {
-            RecordUndo();
-        }
-
-        private void RecordUndo()
-        {
-            var undoRecorder = nodeViewModel.WorkspaceViewModel.Model.UndoRecorder;
-            WorkspaceModel.RecordModelForModification(curveMapperNodeModel, undoRecorder);
-        }
-
-        private void UpdateUIFromModel()
-        {
-            var controlPointsMap = BuildControlPointsDictionary();
-            RecreateControlPoints(controlPointsMap);
-            RenderCurve();
         }
     }
 }
