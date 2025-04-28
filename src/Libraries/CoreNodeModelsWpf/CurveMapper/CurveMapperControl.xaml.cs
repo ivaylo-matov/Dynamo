@@ -200,12 +200,11 @@ namespace Dynamo.Wpf.CurveMapper
         {
             if (curveMapperNodeModel.IsLocked) return;
 
+            RecordUndo();
+
             curveMapperNodeModel.ResetControlPointData();
 
-            // Dictionary to map UI control points to their corresponding data
-            var controlPointsResetMap = BuildControlPointsDictionary();
-            RecreateControlPoints(controlPointsResetMap);
-            RenderCurve();
+            UpdateUIFromModel();
         }
 
         private void LockButton_Click(object sender, RoutedEventArgs e)
