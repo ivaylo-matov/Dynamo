@@ -18,6 +18,8 @@ using Dynamo.Graph.Annotations;
 using Dynamo.Logging;
 using Dynamo.Configuration;
 using System.Diagnostics;
+using System.Windows.Threading;
+using static Lucene.Net.Store.Lock;
 
 namespace Dynamo.Nodes
 {
@@ -26,6 +28,13 @@ namespace Dynamo.Nodes
     /// </summary>
     public partial class AnnotationView : IViewModelView<AnnotationViewModel>
     {
+
+
+        private EventHandler portsGeneratedHandler;
+
+
+
+
         public AnnotationViewModel ViewModel { get; private set; }
         public static DependencyProperty SelectAllTextOnFocus;
         public AnnotationView()
@@ -46,7 +55,9 @@ namespace Dynamo.Nodes
             // Because the size of the CollapsedAnnotationRectangle doesn't necessarily change 
             // when going from Visible to collapse (and other way around), we need to also listen
             // to IsVisibleChanged. Both of these handlers will set the ModelAreaHeight on the ViewModel
-            this.CollapsedAnnotationRectangle.SizeChanged += CollapsedAnnotationRectangle_SizeChanged;
+
+            //this.CollapsedAnnotationRectangle.SizeChanged += CollapsedAnnotationRectangle_SizeChanged;
+
             this.CollapsedAnnotationRectangle.IsVisibleChanged += CollapsedAnnotationRectangle_IsVisibleChanged;
         }
 
@@ -55,7 +66,9 @@ namespace Dynamo.Nodes
             Loaded -= AnnotationView_Loaded;
             DataContextChanged -= AnnotationView_DataContextChanged;
             this.GroupTextBlock.SizeChanged -= GroupTextBlock_SizeChanged;
-            this.CollapsedAnnotationRectangle.SizeChanged -= CollapsedAnnotationRectangle_SizeChanged;
+
+            //this.CollapsedAnnotationRectangle.SizeChanged -= CollapsedAnnotationRectangle_SizeChanged;
+
             this.CollapsedAnnotationRectangle.IsVisibleChanged -= CollapsedAnnotationRectangle_IsVisibleChanged;
         }
 
@@ -83,6 +96,22 @@ namespace Dynamo.Nodes
                 }
 
                 ViewModel.UpdateProxyPortsPosition();
+
+                // Attach event handler for PortsGenerated
+                ViewModel.PortsGenerated += (s, args) =>
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        //double inPortsHeight = MeasureCombinedPortHeight(inputPortControl);
+                        //double outPortsHeight = MeasureCombinedPortHeight(outputPortControl);
+
+                        //ViewModel.AnnotationModel.MinHeightOnCollapsed = Math.Max(inPortsHeight, outPortsHeight);
+                        ViewModel.AnnotationModel.MinWidthOnCollapsed = MeasureMaxPortWidth(inputPortControl) + MeasureMaxPortWidth(outputPortControl) + 10;
+
+                        //ViewModel.AnnotationModel.UpdateBoundaryFromSelection();
+
+                    }), DispatcherPriority.ApplicationIdle);
+                };
             }
         }
 
@@ -383,8 +412,81 @@ namespace Dynamo.Nodes
 
         private void CollapsedAnnotationRectangle_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
+            if (CollapsedAnnotationRectangle.IsVisible)
+            {
+                //Dispatcher.BeginInvoke(new Action(() =>
+                //{
+                //    double maxInPortWidth = MeasureMaxPortWidth(inputPortControl);
+                //    double maxOutPortWidth = MeasureMaxPortWidth(outputPortControl);
+                //    double inPortsHeight = MeasureCombinedPortHeight(inputPortControl);
+                //    double outPortsHeight = MeasureCombinedPortHeight(outputPortControl);
+
+                //    //double totalHeight = Math.Max(inPortsHeight, outPortsHeight);
+
+                //    // Store in the model
+                //    ViewModel.AnnotationModel.MinWidthOnCollapsed = maxInPortWidth + maxOutPortWidth + 10;
+                //    ViewModel.AnnotationModel.MinHeightOnCollapsed = Math.Max(inPortsHeight, outPortsHeight);
+
+                //    //Debug.WriteLine($"[PortControlWidth from control]: {totalHeight}");
+
+                //}), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
+
             SetModelAreaHeight();
         }
+        private double MeasureMaxPortWidth(ItemsControl portControl)
+        {
+            double max = 0;
+
+            foreach (var item in portControl.Items)
+            {
+                var container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+                if (container == null)
+                {
+                    portControl.UpdateLayout();
+                    container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+                }
+
+                if (container != null)
+                {
+                    container.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    double width = container.DesiredSize.Width;
+                    max = Math.Max(max, width);
+                }
+            }
+
+            return max;
+        }
+        private double MeasureCombinedPortHeight(ItemsControl portControl)
+        {
+            double combinedHeight = 0;
+
+            foreach (var item in portControl.Items)
+            {
+                var container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+                if (container == null)
+                {
+                    portControl.UpdateLayout();
+                    container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+                }
+
+                if (container != null)
+                {
+                    container.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    double height = container.DesiredSize.Height;
+                    combinedHeight += height;
+                }
+            }
+
+            return combinedHeight;
+        }
+
+
+
+
+
+
+
 
         private void SetModelAreaHeight()
         {
@@ -393,7 +495,13 @@ namespace Dynamo.Nodes
             // as if its not it will be equal to the height of the
             // contained nodes + the TextBlockHeight
             if (ViewModel is null || !this.CollapsedAnnotationRectangle.IsVisible) return;
-            ViewModel.ModelAreaHeight = this.CollapsedAnnotationRectangle.ActualHeight;
+
+            //// Only update ModelAreaHeight if user has NOT manually resized the collapsed group
+            //if (!ViewModel.AnnotationModel.IsCollapsedResized)
+            //{
+            //    ViewModel.ModelAreaHeight = this.CollapsedAnnotationRectangle.ActualHeight;
+            //}
+
             ViewModel.AnnotationModel.UpdateBoundaryFromSelection();
         }
 
@@ -412,10 +520,6 @@ namespace Dynamo.Nodes
             if (xAdjust >= ViewModel.Width - ViewModel.AnnotationModel.WidthAdjustment)
             {
                 ViewModel.AnnotationModel.WidthAdjustment += e.HorizontalChange;
-
-                //Debug.WriteLine($"Original thumb moved: {e.HorizontalChange}     WIdth : {ViewModel.Width}");
-                Debug.WriteLine($"WidthAdjustment updated: {ViewModel.AnnotationModel.WidthAdjustment}");
-
                 ViewModel.WorkspaceViewModel.HasUnsavedChanges = true;
             }
 
@@ -423,42 +527,30 @@ namespace Dynamo.Nodes
             {
                 ViewModel.AnnotationModel.HeightAdjustment += e.VerticalChange;
                 ViewModel.WorkspaceViewModel.HasUnsavedChanges = true;
-            }   
+            }
         }       
 
         private void CollapsedAnnotationRectangleThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
         {
-            var xAdjust = (ViewModel.Width) + e.HorizontalChange;
-            var yAdjust = (ViewModel.Height) + e.VerticalChange;
+            // Mark the group as being resized while collapsed
+            ViewModel.AnnotationModel.HasCollapsedResized = true;
 
-            if (xAdjust >= ViewModel.Width - ViewModel.AnnotationModel.WidthAdjustment)
+            var xAdjust = ViewModel.Width + e.HorizontalChange;
+            var yAdjust = ViewModel.Height + e.VerticalChange;
+
+            //if (xAdjust >= ViewModel.Width - ViewModel.AnnotationModel.WidthAdjustment)
+            if (xAdjust >= ViewModel.AnnotationModel.MinWidthOnCollapsed)
             {
                 ViewModel.AnnotationModel.WidthAdjustment += e.HorizontalChange;
-
-                //Debug.WriteLine($"Original thumb moved: {e.HorizontalChange}     WIdth : {ViewModel.Width}");
-                Debug.WriteLine($"WidthAdjustment updated: {ViewModel.AnnotationModel.WidthAdjustment}");
-
                 ViewModel.WorkspaceViewModel.HasUnsavedChanges = true;
             }
-
-            if (yAdjust >= ViewModel.Height - ViewModel.AnnotationModel.HeightAdjustment)
+            //if (yAdjust >= ViewModel.Height - ViewModel.AnnotationModel.HeightAdjustment) // REVIEW
+            if (yAdjust >= ViewModel.AnnotationModel.MinHeightOnCollapsed + ViewModel.AnnotationModel.TextBlockHeight + 72)
             {
                 ViewModel.AnnotationModel.HeightAdjustment += e.VerticalChange;
                 ViewModel.WorkspaceViewModel.HasUnsavedChanges = true;
             }
         }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
         /// <summary>
@@ -511,5 +603,11 @@ namespace Dynamo.Nodes
             // Tracking selecting group style item and if it is a default style by Dynamo
             Logging.Analytics.TrackEvent(Actions.Select, Categories.GroupStyleOperations, nameof(GroupStyleItem), groupStyleItemSelected.IsDefault ? 1 : 0);
         }
+
+
+
+
+
+
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Xml;
 using Dynamo.Graph.Nodes;
@@ -11,6 +12,7 @@ using Dynamo.Selection;
 using Dynamo.Utilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using ProtoCore.AST.ImperativeAST;
 
 namespace Dynamo.Graph.Annotations
 {
@@ -28,6 +30,8 @@ namespace Dynamo.Graph.Annotations
         double lastExpandedWidth = 0;
 
         #region Properties
+
+        #region HIDE
 
         /// <summary>
         /// Triggers when it needs to get the model to add from Workspace
@@ -60,26 +64,100 @@ namespace Dynamo.Graph.Annotations
         /// </summary>
         public bool loadFromXML { get; set; }
 
+        #endregion
+
+
+        private double minInPortsHeightCollapsed;
+        public double MinInPortsHeightCollapsed
+        {
+            get => minInPortsHeightCollapsed;
+            set
+            {
+                if (minInPortsHeightCollapsed == value) return;
+                minInPortsHeightCollapsed = value;
+                RaisePropertyChanged(nameof(MinInPortsHeightCollapsed));
+            }
+        }
+        private double minOutPortsHeightCollapsed;
+        public double MinOutPortsHeightCollapsed
+        {
+            get => minOutPortsHeightCollapsed;
+            set
+            {
+                if (minOutPortsHeightCollapsed == value) return;
+                minOutPortsHeightCollapsed = value;
+                RaisePropertyChanged(nameof(MinOutPortsHeightCollapsed));
+            }
+        }
+
+
         private double width;
         /// <summary>
         /// Returns width of the group
         /// </summary>
         public override double Width
         {
-            get
-            {
-                return width;
-            }
+            get => width;
             set
             {
                 if (width == value) return;
-
                 width = value;
-                RaisePropertyChanged("Width");
+                RaisePropertyChanged(nameof(Width));
             }
         }
 
+
+        private double height;
+        /// <summary>
+        /// Returns the full height of the group.
+        /// That means ModelAreaHeight + TextBlockHeight 
+        /// </summary>
+        public override double Height
+        {
+            get => height;
+            set
+            {
+                if (height == value) return;
+                height = value;
+                RaisePropertyChanged(nameof(Height));
+            }
+        }
+
+
+
+
+        [JsonProperty]
+        private double heightCollapsed;
+        [JsonProperty]
+        public double HeightCollapsed
+        {
+            get => heightCollapsed;
+            set
+            {
+                if (heightCollapsed == value) return;
+
+                heightCollapsed = value;
+                RaisePropertyChanged(nameof(HeightCollapsed));
+            }
+        }
+        [JsonProperty]
+        private double heightExpanded;
+        [JsonProperty]
+        public double HeightExpanded
+        {
+            get => heightExpanded;
+            set
+            {
+                if (heightExpanded == value) return;
+
+                heightExpanded = value;
+                RaisePropertyChanged(nameof(HeightExpanded));
+            }
+        }
+
+        [JsonProperty]
         private double widthCollapsed;
+        [JsonProperty]
         public double WidthCollapsed
         {
             get => widthCollapsed;
@@ -91,6 +169,117 @@ namespace Dynamo.Graph.Annotations
                 RaisePropertyChanged(nameof(WidthCollapsed));
             }
         }
+        [JsonProperty]
+        private double widthExpanded;
+        [JsonProperty]
+        public double WidthExpanded
+        {
+            get => widthExpanded;
+            set
+            {
+                if (widthExpanded == value) return;
+
+                widthExpanded = value;
+                RaisePropertyChanged(nameof(WidthExpanded));
+            }
+        }
+
+        private double inPortControlHeight;
+        public double InPortControlHeight
+        {
+            get => inPortControlHeight;
+            set
+            {
+                if (Math.Abs(inPortControlHeight - value) > 0.1)
+                {
+                    inPortControlHeight = value;
+                    RaisePropertyChanged(nameof(InPortControlHeight));
+                }
+            }
+        }
+        private double outPortControlHeight;
+        public double OutPortControlHeight
+        {
+            get => outPortControlHeight;
+            set
+            {
+                if (Math.Abs(outPortControlHeight - value) > 0.1)
+                {
+                    outPortControlHeight = value;
+                    RaisePropertyChanged(nameof(OutPortControlHeight));
+                }
+            }
+        }
+
+        //private double inPortControlWidth;
+        //public double InPortControlWidth
+        //{
+        //    get => inPortControlWidth;  
+        //    set
+        //    {
+        //        if (Math.Abs(inPortControlWidth - value) > 0.1)
+        //        {
+        //            inPortControlWidth = value;
+        //            RaisePropertyChanged(nameof(InPortControlWidth));
+        //        }
+        //    }
+        //}
+        //private double outPortControlWidth;
+        //public double OutPortControlWidth
+        //{
+        //    get => outPortControlWidth;
+        //    set
+        //    {
+        //        if (Math.Abs(outPortControlWidth - value) > 0.1)
+        //        {
+        //            outPortControlWidth = value;
+        //            RaisePropertyChanged(nameof(OutPortControlWidth));
+        //        }
+        //    }
+        //}
+        private double minWidthOnCollapsed;
+        public double MinWidthOnCollapsed
+        {
+            get => minWidthOnCollapsed;
+            set
+            {
+                if (Math.Abs(minWidthOnCollapsed - value) > 0.1)
+                {
+                    minWidthOnCollapsed = value;
+                    RaisePropertyChanged(nameof(MinWidthOnCollapsed));
+                }
+            }
+        }
+        private double minHeightOnCollapsed;
+        public double MinHeightOnCollapsed
+        {
+            get => minHeightOnCollapsed;
+            set
+            {
+                if (Math.Abs(minHeightOnCollapsed - value) > 0.1)
+                {
+                    minHeightOnCollapsed = value;
+                    RaisePropertyChanged(nameof(MinHeightOnCollapsed));
+                }
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         private double widthAdjustment;
         /// <summary>
@@ -100,7 +289,7 @@ namespace Dynamo.Graph.Annotations
         /// </summary>
         public double WidthAdjustment
         {
-            get { return widthAdjustment; }
+            get => widthAdjustment;
             set
             {
                 if (value == widthAdjustment) return;
@@ -108,6 +297,13 @@ namespace Dynamo.Graph.Annotations
                 UpdateBoundaryFromSelection();
             }
         }
+
+
+
+
+
+
+
         private double widthAdjustmentCollapsed;
         public double WidthAdjustmentCollapsed
         {
@@ -116,48 +312,77 @@ namespace Dynamo.Graph.Annotations
             {
                 if (value == widthAdjustmentCollapsed) return;
                 widthAdjustmentCollapsed = value;
-                UpdateBoundaryFromSelection();
             }
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        private double height;
-        /// <summary>
-        /// Returns the full height of the group.
-        /// That means ModelAreaHeight + TextBlockHeight 
-        /// </summary>
-        public override double Height
+        private double widthAdjustmentExpanded;
+        public double WidthAdjustmentExpanded
         {
-            get
-            {
-                return height;
-            }
+            get => widthAdjustmentExpanded;
             set
             {
-                if (height == value) return;
-
-                height = value;
-                RaisePropertyChanged("Height");
+                if (value == widthAdjustmentExpanded) return;
+                widthAdjustmentExpanded = value;
             }
         }
+        private double heightAdjustmentCollapsed;
+        public double HeightAdjustmentCollapsed
+        {
+            get => heightAdjustmentCollapsed;
+            set
+            {
+                if (value == heightAdjustmentCollapsed) return;
+                heightAdjustmentCollapsed = value;
+            }
+        }
+        private double heightAdjustmentExpanded;
+        public double HeightAdjustmentExpanded
+        {
+            get => heightAdjustmentExpanded;
+            set
+            {
+                if (value == heightAdjustmentExpanded) return;
+                heightAdjustmentExpanded = value;
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         private double modelAreaHeight;
         /// <summary>
@@ -173,6 +398,8 @@ namespace Dynamo.Graph.Annotations
                 RaisePropertyChanged(nameof(ModelAreaHeight));
             }
         }
+
+        #region HIDE
 
         private string text;
 
@@ -321,7 +548,12 @@ namespace Dynamo.Graph.Annotations
                 //Increase the Y value by 10. This provides the extra space between
                 // a model and textbox. Otherwise there will be some overlap
                 Y = InitialTop - ExtendSize - textBlockHeight;
-                Height = InitialHeight + textBlockHeight - MinTextHeight;
+                if (IsExpanded)
+                {
+                    Height = InitialHeight + textBlockHeight - MinTextHeight;
+                }
+                // else?
+                
                 UpdateBoundaryFromSelection();
             }
         }
@@ -392,7 +624,10 @@ namespace Dynamo.Graph.Annotations
         /// </summary>
         private HashSet<Guid> removedPins = new HashSet<Guid>();
 
-        
+        #endregion
+
+
+
 
         private double heightAdjustment;
         /// <summary>
@@ -410,6 +645,34 @@ namespace Dynamo.Graph.Annotations
                 UpdateBoundaryFromSelection();
             }
         }
+        
+
+        private double collapsedRectHeight = 72;
+        public double CollapsedRectHeight
+        {
+            get => collapsedRectHeight;
+            set
+            {
+                if (collapsedRectHeight == value) return;
+
+                collapsedRectHeight = value;
+                RaisePropertyChanged(nameof(CollapsedRectHeight));
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         private bool isExpanded = true;
         /// <summary>
@@ -485,24 +748,15 @@ namespace Dynamo.Graph.Annotations
 
 
 
-        private bool isCollapsedResized;
-        public bool IsCollapsedResized
+        private bool hasCollapsedResized;
+        public bool HasCollapsedResized
         {
-            get => isCollapsedResized;
+            get => hasCollapsedResized;
             set
             {
-                isCollapsedResized = value;
-                RaisePropertyChanged(nameof(IsCollapsedResized));
-            }
-        }
-        
-        private double countResizing;
-        public double CountResizing
-        {
-            get => countResizing;
-            set
-            {
-                countResizing = value;
+                if (hasCollapsedResized == value) return;
+                hasCollapsedResized = value;
+                RaisePropertyChanged(nameof(HasCollapsedResized));
             }
         }
 
@@ -635,84 +889,169 @@ namespace Dynamo.Graph.Annotations
 
             if (selectedModelsList.Any())
             {
-                var groupModels = selectedModelsList.OrderBy(x => x.X).ToList();
-
-                //Shifting x by 10 and y to the height of textblock
-                var regionX = groupModels.Min(x => x.X) - ExtendSize;
-                //Increase the Y value by 10. This provides the extra space between
-                // a model and textbox. Otherwise there will be some overlap
-                var regionY = groupModels.Min(y => (y as NoteModel) == null ? (y.Y) : (y.Y - NoteYAdjustment)) -
-                    ExtendSize - (TextBlockHeight == 0.0 ? MinTextHeight : TextBlockHeight);
-
-                //calculates the distance between the nodes
-                var xDistance = groupModels.Max(x => (x.X + x.Width)) - regionX;
-                var yDistance = groupModels.Max(y => (y as NoteModel) == null ? (y.Y + y.Height) : (y.Y + y.Height - NoteYAdjustment)) - regionY;
-                
-                // InitialTop is to store the Y value without the Textblock height
-                this.InitialTop = groupModels.Min(y => (y as NoteModel) == null ? (y.Y) : (y.Y - NoteYAdjustment));
-
-
-                var region = new Rect2D
+                if (IsExpanded)
                 {
-                    X = regionX,
-                    Y = regionY,
-                    Width = xDistance + ExtendSize + WidthAdjustment,
-                    Height = yDistance + ExtendSize + ExtendYHeight + HeightAdjustment - TextBlockHeight
-                };
+                    //var groupModels = selectedModelsList.OrderBy(x => x.X).ToList();
 
-                bool positionChanged = region.X != X || region.Y != Y;
+                    ////Shifting x by 10 and y to the height of textblock
+                    //var regionX = groupModels.Min(x => x.X) - ExtendSize;
+                    ////Increase the Y value by 10. This provides the extra space between
+                    //// a model and textbox. Otherwise there will be some overlap
+                    //var regionY = groupModels.Min(y => (y as NoteModel) == null ? (y.Y) : (y.Y - NoteYAdjustment)) -
+                    //    ExtendSize - (TextBlockHeight == 0.0 ? MinTextHeight : TextBlockHeight);
 
-                this.X = region.X;              
-                this.Y = region.Y;
-                this.ModelAreaHeight = IsExpanded ? region.Height : ModelAreaHeight;
-                Height = this.ModelAreaHeight + TextBlockHeight;
+                    ////calculates the distance between the nodes
+                    //var xDistance = groupModels.Max(x => (x.X + x.Width)) - regionX;
+                    //var yDistance = groupModels.Max(y => (y as NoteModel) == null ? (y.Y + y.Height) : (y.Y + y.Height - NoteYAdjustment)) - regionY;
 
-
-
-
-                WidthCollapsed = Width;
+                    //// InitialTop is to store the Y value without the Textblock height
+                    //this.InitialTop = groupModels.Min(y => (y as NoteModel) == null ? (y.Y) : (y.Y - NoteYAdjustment));
 
 
+                    //var region = new Rect2D
+                    //{
+                    //    X = regionX,
+                    //    Y = regionY,
+                    //    Width = xDistance + ExtendSize + WidthAdjustment,
+                    //    Height = yDistance + ExtendSize + ExtendYHeight + HeightAdjustment - TextBlockHeight
+                    //};
+
+                    //bool positionChanged = region.X != X || region.Y != Y;
+
+                    //this.X = region.X;
+                    //this.Y = region.Y;
+                    //this.ModelAreaHeight = IsExpanded ? region.Height : ModelAreaHeight;
+                    //Height = this.ModelAreaHeight + TextBlockHeight;
+
+                    //if (IsExpanded)
+                    //{
+                    //    Width = Math.Max(region.Width, TextMaxWidth + ExtendSize);
+                    //    lastExpandedWidth = Width;
+                    //}
+                    //else
+                    //{
+                    //    //If the annotation is not expanded, then it will remain the same width of the last time it was expanded
+                    //    Width = lastExpandedWidth;
+                    //}
+
+                    ////Initial Height is to store the Actual height of the group.
+                    ////that is the height should be the initial height without the textblock height.
+                    //if (this.InitialHeight <= 0.0)
+                    //    this.InitialHeight = region.Height;
+
+                    //if (positionChanged)
+                    //{
+                    //    RaisePropertyChanged(nameof(Position));
+                    //}
 
 
-                // ip code
-                Width = Math.Max(region.Width, TextMaxWidth + ExtendSize);
-                lastExpandedWidth = Width;
+                    var groupModels = selectedModelsList.OrderBy(x => x.X).ToList();
+
+                    //Shifting x by 10 and y to the height of textblock
+                    var regionX = groupModels.Min(x => x.X) - ExtendSize;
+                    //Increase the Y value by 10. This provides the extra space between
+                    // a model and textbox. Otherwise there will be some overlap
+                    var regionY = groupModels.Min(y => (y as NoteModel) == null ? (y.Y) : (y.Y - NoteYAdjustment)) -
+                        ExtendSize - (TextBlockHeight == 0.0 ? MinTextHeight : TextBlockHeight);
+
+                    //calculates the distance between the nodes
+                    var xDistance = groupModels.Max(x => (x.X + x.Width)) - regionX;
+                    var yDistance = groupModels.Max(y => (y as NoteModel) == null ? (y.Y + y.Height) : (y.Y + y.Height - NoteYAdjustment)) - regionY;
+
+                    // InitialTop is to store the Y value without the Textblock height
+                    this.InitialTop = groupModels.Min(y => (y as NoteModel) == null ? (y.Y) : (y.Y - NoteYAdjustment));
 
 
-                if (!IsCollapsedResized)
+                    var region = new Rect2D
+                    {
+                        X = regionX,
+                        Y = regionY,
+                        Width = xDistance + ExtendSize + WidthAdjustment,
+                        Height = yDistance + ExtendSize + ExtendYHeight + HeightAdjustment - TextBlockHeight
+                    };
+
+                    bool positionChanged = region.X != X || region.Y != Y;
+
+                    this.X = region.X;
+                    this.Y = region.Y;
+                    this.ModelAreaHeight = IsExpanded ? region.Height : ModelAreaHeight;
+                    Height = this.ModelAreaHeight + TextBlockHeight;
+
+                    Width = Math.Max(region.Width, TextMaxWidth + ExtendSize);
+                    lastExpandedWidth = Width;
+
+                    //Initial Height is to store the Actual height of the group.
+                    //that is the height should be the initial height without the textblock height.
+                    if (this.InitialHeight <= 0.0)
+                        this.InitialHeight = region.Height;
+
+                    if (positionChanged)
+                    {
+                        RaisePropertyChanged(nameof(Position));
+                    }
+
+                    //Debug.WriteLine($"Height : {Height} Adjustment : {HeightAdjustmentCollapsed}");
+                }
+                else
                 {
-                    WidthCollapsed = Width;
+                    // GET THE MIN WIDTH
+                    var defMinWidth = 400;
+
+                    var groupModels = selectedModelsList.OrderBy(x => x.X).ToList();
+                    var regionX = groupModels.Min(x => x.X) - ExtendSize;
+                    var regionY = groupModels.Min(y => (y as NoteModel) == null ? (y.Y) : (y.Y - NoteYAdjustment)) - ExtendSize - (TextBlockHeight == 0.0 ? MinTextHeight : TextBlockHeight);
+                    var xDistance = groupModels.Max(x => (x.X + x.Width)) - regionX;
+
+                    var regionWidth = xDistance + ExtendSize + WidthAdjustment;
+                    var calculatedNodeWidth = Math.Max(regionWidth, TextMaxWidth + ExtendSize);
+
+                    var minCollasedWidth = Math.Min(defMinWidth, calculatedNodeWidth);
+
+
+                    var minCollapsedHeight = 222;
+
+
+
+                    // InitialTop is to store the Y value without the Textblock height
+                    this.InitialTop = groupModels.Min(y => (y as NoteModel) == null ? (y.Y) : (y.Y - NoteYAdjustment));
+
+                    bool positionChanged = regionX != X || regionY != Y;
+
+                    this.X = regionX;
+                    this.Y = regionY;
+
+                    // if the group has not being resized while collapsed pick up the width from the expanded group
+                    if (!HasCollapsedResized)
+                    {
+                        Width = Math.Max(xDistance + ExtendSize + WidthAdjustment, TextMaxWidth + ExtendSize);
+                        lastExpandedWidth = Width;
+
+                        Height = TextBlockHeight + MinHeightOnCollapsed + 92;
+                    }
+                    else
+                    {
+                        Width = Math.Max(xDistance + ExtendSize + WidthAdjustment, TextMaxWidth + ExtendSize);
+                        lastExpandedWidth = Width;
+
+                        Height = TextBlockHeight + MinHeightOnCollapsed + 92 + HeightAdjustment;
+                    }
+
+                    
+
+                    ////Initial Height is to store the Actual height of the group.
+                    ////that is the height should be the initial height without the textblock height.
+                    //if (this.InitialHeight <= 0.0)
+                    //    this.InitialHeight = region.Height;
+
+                    if (positionChanged)
+                    {
+                        RaisePropertyChanged(nameof(Position));
+                    }
+
+                    //Debug.WriteLine($"Height : {Height} HeightCollapsed : {HeightCollapsed} Adjustment : {HeightAdjustmentCollapsed} ModelHeight : {CollapsedRectHeight}");
                 }
 
 
-                //if (IsExpanded)
-                //{
-                //    Width = Math.Max(region.Width, TextMaxWidth + ExtendSize);                    
-                //    lastExpandedWidth = Width;
-
-
-                //    if (!IsCollapsedResized)
-                //    {
-                //        WidthCollapsed = Width;
-                //    }
-
-                //}
-                //else
-                //{
-                //    //If the annotation is not expanded, then it will remain the same width of the last time it was expanded
-                //    Width = lastExpandedWidth;
-                //}
-
-                //Initial Height is to store the Actual height of the group.
-                //that is the height should be the initial height without the textblock height.
-                if (this.InitialHeight <= 0.0)
-                    this.InitialHeight = region.Height;
-
-                if (positionChanged)
-                {
-                    RaisePropertyChanged(nameof(Position));
-                }
             }
             else
             {

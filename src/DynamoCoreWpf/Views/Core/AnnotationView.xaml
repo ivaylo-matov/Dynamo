@@ -340,7 +340,8 @@
     </UserControl.Resources>
 
     <Grid Name="AnnotationGrid"
-          Height="Auto"
+          Width="{Binding Width}"
+          Height="{Binding Height}"
           IsHitTestVisible="True">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"></RowDefinition>
@@ -864,13 +865,13 @@
             </Border.Background>
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition x:Name="proxyInPortsColumn" Width="auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="auto" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
                 <!--INPUT PORTS-->
