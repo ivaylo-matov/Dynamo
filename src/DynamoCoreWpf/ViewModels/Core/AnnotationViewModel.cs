@@ -23,9 +23,6 @@ namespace Dynamo.ViewModels
 {
     public class AnnotationViewModel : ViewModelBase
     {
-        public event EventHandler PortsGenerated;
-
-
         private AnnotationModel annotationModel;
         private IEnumerable<PortModel> originalInPorts;
         private IEnumerable<PortModel> originalOutPorts;
@@ -51,34 +48,17 @@ namespace Dynamo.ViewModels
             }
         }
 
-
-        //public double ContentHeight => CollapsedRectHeight - 52;
-
-        [JsonIgnore]
-        public double CollapsedRectHeight
-        {
-            get => annotationModel.CollapsedRectHeight;            
-            set
-            {
-                annotationModel.CollapsedRectHeight = value;
-                RaisePropertyChanged(nameof(CollapsedRectHeight));
-            }
-        }
-
-
         [JsonIgnore]
         public Double Width
         {
-            //get => annotationModel.Width;
             get
             {
-                //Debug.WriteLine($"ViewModel Width : {annotationModel.Width}");
                 return annotationModel.Width;
             }
             set
             {
                 annotationModel.Width = value;
-            }                        
+            }
         }
 
         [JsonIgnore]
@@ -91,86 +71,33 @@ namespace Dynamo.ViewModels
             }
         }
 
+        //private double portControlHeight;
+        //public double PortControlHeight
+        //{
+        //    get => portControlHeight;
+        //    set
+        //    {
+        //        if (Math.Abs(portControlHeight - value) > 0.1)
+        //        {
+        //            portControlHeight = value;
+        //            RaisePropertyChanged(nameof(PortControlHeight));
+        //        }
+        //    }
+        //}
 
-
-        
-        [JsonIgnore]
-        public double WidthCollapsed
-        {
-            get => annotationModel.WidthCollapsed;
-            set
-            {
-                annotationModel.WidthCollapsed = value;
-            }
-        }
-        [JsonIgnore]
-        public double HeightCollapsed
-        {
-            get => annotationModel.HeightCollapsed;
-            set
-            {
-                annotationModel.HeightCollapsed = value;
-            }
-        }
-        [JsonIgnore]
-        public double WidthExpanded
-        {
-            get => annotationModel.WidthExpanded;
-            set
-            {
-                annotationModel.WidthExpanded = value;
-            }
-        }
-        [JsonIgnore]
-        public double HeightExpanded
-        {
-            get => annotationModel.HeightExpanded;
-            set
-            {
-                annotationModel.HeightExpanded = value;
-            }
-        }
-
-        private double portControlHeight;
-        public double PortControlHeight
-        {
-            get => portControlHeight;
-            set
-            {
-                if (Math.Abs(portControlHeight - value) > 0.1)
-                {
-                    portControlHeight = value;
-                    RaisePropertyChanged(nameof(PortControlHeight));
-                }
-            }
-        }
-
-        private double collapsedAreaHeight;
-        public double CollapsedAreaHeight
-        {
-            get => collapsedAreaHeight;
-            set
-            {
-                if (Math.Abs(collapsedAreaHeight - value) > 0.1)
-                {
-                    collapsedAreaHeight = value;
-                    RaisePropertyChanged(nameof(CollapsedAreaHeight));
-                }
-            }
-        }
-
-
-
-
-
-
-
-
-
-
-
-
-
+        //private double collapsedAreaHeight;
+        //public double CollapsedAreaHeight
+        //{
+        //    get => collapsedAreaHeight;
+        //    set
+        //    {
+        //        if (Math.Abs(collapsedAreaHeight - value) > 0.1)
+        //        {
+        //            collapsedAreaHeight = value;
+        //            RaisePropertyChanged(nameof(CollapsedAreaHeight));
+        //        }
+        //    }
+        //}
 
         [JsonIgnore]
         public double ModelAreaHeight
@@ -181,10 +108,6 @@ namespace Dynamo.ViewModels
                 annotationModel.ModelAreaHeight = value;
             }
         }
-
-
-
-        #region HIDE
 
         [JsonIgnore]
         public Double Top
@@ -482,14 +405,6 @@ namespace Dynamo.ViewModels
         }
 
         #endregion
-        #endregion
-
-
-
-
-
-
-
 
         #region Commands
         private DelegateCommand _changeFontSize;
@@ -813,7 +728,7 @@ namespace Dynamo.ViewModels
             newPortViewModels = CreateProxyInPorts(originalInPorts);
 
             // ENTER COMMENT HERE
-            annotationModel.MinHeightOnCollapsed = newPortViewModels.Count * 34;
+            annotationModel.MinHeightOnCollapsed = newPortViewModels.Count * 34;  // CAN THIS BE IMPROVED? CAN WE GET 34 PROGRAMATICALLY?
 
             if (newPortViewModels == null) return;
             InPorts.AddRange(newPortViewModels);
@@ -830,7 +745,7 @@ namespace Dynamo.ViewModels
             List<PortViewModel> newPortViewModels;
 
             // we need to store the original ports here
-            // as we need thoese later for when we
+            // as we need those later for when we
             // need to collapse the groups content
             if (this.AnnotationModel.HasNestedGroups)
             {
@@ -853,7 +768,7 @@ namespace Dynamo.ViewModels
             newPortViewModels = CreateProxyOutPorts(originalOutPorts);
 
             // ENTER COMMENT HERE | NEEDS ADJUSTMENT WHEN THE OUTPORTS ARE FROM CODE BLOCKS
-            annotationModel.OutPortControlHeight = newPortViewModels.Count * 34;
+            annotationModel.OutPortControlHeight = newPortViewModels.Count * 34;   // CAN THIS BE IMPROVED? CAN WE GET 34 PROGRAMATICALLY? USE MinHeightOnCollapsed INSTEAD OF OutPortControlHeight
 
             if (newPortViewModels == null) return;
             OutPorts.AddRange(newPortViewModels);
@@ -1192,7 +1107,7 @@ namespace Dynamo.ViewModels
                 this.SetGroupInputPorts();
                 this.SetGroupOutPorts();
                 this.CollapseGroupContents(true);
-                SwapWidthAndHeight(true);
+                SwapWidthAndHeight(true);       // COME UP WITH BETTER NAME FOR THE METHOD
 
                 RaisePropertyChanged(nameof(Height));
                 RaisePropertyChanged(nameof(NodeContentCount));
@@ -1204,7 +1119,7 @@ namespace Dynamo.ViewModels
             ReportNodesPosition();
         }
 
-
+        // BETTER NAME FOR THE METHOD AND ADD COMMENT OR XML SUMMARY
         private void SwapWidthAndHeight(bool isCollapsing)
         {
             // every time we are collapsing the group we should cache the expanded side
@@ -1383,14 +1298,6 @@ namespace Dynamo.ViewModels
                     RaisePropertyChanged(nameof(ModelAreaHeight));
                     RaisePropertyChanged(nameof(ModelAreaRect));
                     RaisePropertyChanged(nameof(Width));
-
-
-
-                    RaisePropertyChanged(nameof(WidthCollapsed));
-
-
-
-
                     break;
                 case nameof(AnnotationModel.Position):
                     RaisePropertyChanged(nameof(ModelAreaRect));
