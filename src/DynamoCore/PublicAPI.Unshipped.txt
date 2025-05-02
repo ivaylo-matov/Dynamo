@@ -698,12 +698,18 @@ Dynamo.Graph.Annotations.AnnotationModel.GroupStyleId.set -> void
 Dynamo.Graph.Annotations.AnnotationModel.HasNestedGroups.get -> bool
 Dynamo.Graph.Annotations.AnnotationModel.HeightAdjustment.get -> double
 Dynamo.Graph.Annotations.AnnotationModel.HeightAdjustment.set -> void
+Dynamo.Graph.Annotations.AnnotationModel.HeightAdjustmentCollapsed.get -> double
+Dynamo.Graph.Annotations.AnnotationModel.HeightAdjustmentCollapsed.set -> void
+Dynamo.Graph.Annotations.AnnotationModel.HeightAdjustmentExpanded.get -> double
+Dynamo.Graph.Annotations.AnnotationModel.HeightAdjustmentExpanded.set -> void
 Dynamo.Graph.Annotations.AnnotationModel.InitialHeight.get -> double
 Dynamo.Graph.Annotations.AnnotationModel.InitialHeight.set -> void
 Dynamo.Graph.Annotations.AnnotationModel.InitialTop.get -> double
 Dynamo.Graph.Annotations.AnnotationModel.InitialTop.set -> void
 Dynamo.Graph.Annotations.AnnotationModel.IsExpanded.get -> bool
 Dynamo.Graph.Annotations.AnnotationModel.IsExpanded.set -> void
+Dynamo.Graph.Annotations.AnnotationModel.IsResizedWhileCollapsed.get -> bool
+Dynamo.Graph.Annotations.AnnotationModel.IsResizedWhileCollapsed.set -> void
 Dynamo.Graph.Annotations.AnnotationModel.IsVisible.get -> bool
 Dynamo.Graph.Annotations.AnnotationModel.loadFromXML.get -> bool
 Dynamo.Graph.Annotations.AnnotationModel.loadFromXML.set -> void
@@ -722,6 +728,10 @@ Dynamo.Graph.Annotations.AnnotationModel.TextMaxWidth.get -> double
 Dynamo.Graph.Annotations.AnnotationModel.TextMaxWidth.set -> void
 Dynamo.Graph.Annotations.AnnotationModel.WidthAdjustment.get -> double
 Dynamo.Graph.Annotations.AnnotationModel.WidthAdjustment.set -> void
+Dynamo.Graph.Annotations.AnnotationModel.WidthAdjustmentCollapsed.get -> double
+Dynamo.Graph.Annotations.AnnotationModel.WidthAdjustmentCollapsed.set -> void
+Dynamo.Graph.Annotations.AnnotationModel.WidthAdjustmentExpanded.get -> double
+Dynamo.Graph.Annotations.AnnotationModel.WidthAdjustmentExpanded.set -> void
 Dynamo.Graph.ConnectorPinModel
 Dynamo.Graph.ConnectorPinModel.ConnectorId.get -> System.Guid
 Dynamo.Graph.ConnectorPinModel.ConnectorId.set -> void

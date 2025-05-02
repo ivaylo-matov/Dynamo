@@ -71,34 +71,6 @@ namespace Dynamo.ViewModels
             }
         }
 
-        //private double portControlHeight;
-        //public double PortControlHeight
-        //{
-        //    get => portControlHeight;
-        //    set
-        //    {
-        //        if (Math.Abs(portControlHeight - value) > 0.1)
-        //        {
-        //            portControlHeight = value;
-        //            RaisePropertyChanged(nameof(PortControlHeight));
-        //        }
-        //    }
-        //}
-
-        //private double collapsedAreaHeight;
-        //public double CollapsedAreaHeight
-        //{
-        //    get => collapsedAreaHeight;
-        //    set
-        //    {
-        //        if (Math.Abs(collapsedAreaHeight - value) > 0.1)
-        //        {
-        //            collapsedAreaHeight = value;
-        //            RaisePropertyChanged(nameof(CollapsedAreaHeight));
-        //        }
-        //    }
-        //}
-
         [JsonIgnore]
         public double ModelAreaHeight
         {
@@ -243,7 +215,6 @@ namespace Dynamo.ViewModels
             {
                 viewModelBases = value;
             }
-
         }
 
         private ObservableCollection<PortViewModel> inPorts;
@@ -727,12 +698,15 @@ namespace Dynamo.ViewModels
             // owner
             newPortViewModels = CreateProxyInPorts(originalInPorts);
 
-            // ENTER COMMENT HERE
-            annotationModel.MinHeightOnCollapsed = newPortViewModels.Count * 34;  // CAN THIS BE IMPROVED? CAN WE GET 34 PROGRAMATICALLY?
+            // Set the minimum required vertical space to fit the input ports when collapsed
+            if (newPortViewModels == null)
+            {
+                annotationModel.MinCollapsedPortAreaHeight = 0;
+                return;
+            }
 
-            if (newPortViewModels == null) return;
+            annotationModel.MinCollapsedPortAreaHeight = newPortViewModels.Sum(p => p.Height);
             InPorts.AddRange(newPortViewModels);
-            return;
         }
 
         /// <summary>
@@ -763,16 +737,19 @@ namespace Dynamo.ViewModels
 
             // Create proxies of the ports so we can
             // visually add them to the group but they
-            // should still reference their NodeModel
-            // owner
+            // should still reference their NodeModel owner
             newPortViewModels = CreateProxyOutPorts(originalOutPorts);
 
-            // ENTER COMMENT HERE | NEEDS ADJUSTMENT WHEN THE OUTPORTS ARE FROM CODE BLOCKS
-            annotationModel.OutPortControlHeight = newPortViewModels.Count * 34;   // CAN THIS BE IMPROVED? CAN WE GET 34 PROGRAMATICALLY? USE MinHeightOnCollapsed INSTEAD OF OutPortControlHeight
+            // If no view models were created, we leave the existing height as is
+            if (newPortViewModels == null)
+                return;
 
-            if (newPortViewModels == null) return;
+            // Update the collapsed port area height to be the greater of the existing value
+            // and the height needed to render all output ports
+            var outportsHeight = newPortViewModels.Sum(p => p.Height);
+            annotationModel.MinCollapsedPortAreaHeight = Math.Max(annotationModel.MinCollapsedPortAreaHeight, outportsHeight);
+
             OutPorts.AddRange(newPortViewModels);
-            return;
         }
 
         internal IEnumerable<PortModel> GetGroupInPorts(IEnumerable<NodeModel> ownerNodes = null)
@@ -1099,7 +1076,7 @@ namespace Dynamo.ViewModels
 
             if (annotationModel.IsExpanded)
             {
-                SwapWidthAndHeight(false);
+                ToggleSizeAdjustmentsForCollapse(false);
                 this.ShowGroupContents();
             }
             else
@@ -1107,7 +1084,7 @@ namespace Dynamo.ViewModels
                 this.SetGroupInputPorts();
                 this.SetGroupOutPorts();
                 this.CollapseGroupContents(true);
-                SwapWidthAndHeight(true);       // COME UP WITH BETTER NAME FOR THE METHOD
+                ToggleSizeAdjustmentsForCollapse(true);
 
                 RaisePropertyChanged(nameof(Height));
                 RaisePropertyChanged(nameof(NodeContentCount));
@@ -1119,34 +1096,32 @@ namespace Dynamo.ViewModels
             ReportNodesPosition();
         }
 
-        // BETTER NAME FOR THE METHOD AND ADD COMMENT OR XML SUMMARY
-        private void SwapWidthAndHeight(bool isCollapsing)
+        /// <summary>
+        /// Switches the width and height adjustment values when toggling
+        /// between collapsed and expanded group states.
+        /// </summary>
+        private void ToggleSizeAdjustmentsForCollapse(bool isCollapsing)
         {
-            // every time we are collapsing the group we should cache the expanded side
-            // in case we decide to resize collapsed and after that recover the expanded size
             if (isCollapsing)
             {
                 // Cache the expanded values before collapsing
                 annotationModel.WidthAdjustmentExpanded = annotationModel.WidthAdjustment;
                 annotationModel.HeightAdjustmentExpanded = annotationModel.HeightAdjustment;
 
-                // Switch to collapsed values
-                if (annotationModel.HasCollapsedResized)
+                // If the group was resized while collapsed, restore its adjustments
+                if (annotationModel.IsResizedWhileCollapsed)
                 {
                     annotationModel.WidthAdjustment = annotationModel.WidthAdjustmentCollapsed;
                     annotationModel.HeightAdjustment = annotationModel.HeightAdjustmentCollapsed;
                 }
             }
-
-            // if we are expanding we should cache the collapsed size and retrieve the expanded size
-            // only if the group has been resized while collapsed. Otherwise just use the current size
-            else if (annotationModel.HasCollapsedResized)
+            else if (annotationModel.IsResizedWhileCollapsed)
             {
-                // Cache the collapsed values before expanding
+                // Cache the size adjustments from the collapsed state
                 annotationModel.WidthAdjustmentCollapsed = annotationModel.WidthAdjustment;
                 annotationModel.HeightAdjustmentCollapsed = annotationModel.HeightAdjustment;
 
-                // Switch to expanded values
+                // Restore the expanded size adjustments
                 annotationModel.WidthAdjustment = annotationModel.WidthAdjustmentExpanded;
                 annotationModel.HeightAdjustment = annotationModel.HeightAdjustmentExpanded;
             }

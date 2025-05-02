@@ -48,7 +48,8 @@ namespace Dynamo.Nodes
             // Because the size of the CollapsedAnnotationRectangle doesn't necessarily change 
             // when going from Visible to collapse (and other way around), we need to also listen
             // to IsVisibleChanged. Both of these handlers will set the ModelAreaHeight on the ViewModel
-            this.CollapsedAnnotationRectangle.SizeChanged += CollapsedAnnotationRectangle_SizeChanged;          // TRHIS IS NO LONGET THE CASE! REVIEW IF NEEDED
+
+            //this.CollapsedAnnotationRectangle.SizeChanged += CollapsedAnnotationRectangle_SizeChanged;          // TRHIS IS NO LONGET THE CASE! REVIEW IF NEEDED
             this.CollapsedAnnotationRectangle.IsVisibleChanged += CollapsedAnnotationRectangle_IsVisibleChanged;
         }
 
@@ -57,7 +58,8 @@ namespace Dynamo.Nodes
             Loaded -= AnnotationView_Loaded;
             DataContextChanged -= AnnotationView_DataContextChanged;
             this.GroupTextBlock.SizeChanged -= GroupTextBlock_SizeChanged;
-            this.CollapsedAnnotationRectangle.SizeChanged -= CollapsedAnnotationRectangle_SizeChanged;
+
+            //this.CollapsedAnnotationRectangle.SizeChanged -= CollapsedAnnotationRectangle_SizeChanged;
             this.CollapsedAnnotationRectangle.IsVisibleChanged -= CollapsedAnnotationRectangle_IsVisibleChanged;
         }
 
@@ -85,17 +87,6 @@ namespace Dynamo.Nodes
                 }
 
                 ViewModel.UpdateProxyPortsPosition();
-
-                // Attach event handler for PortsGenerated
-                ViewModel.PortsGenerated += (s, args) =>
-                {
-                    Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        // CHECK IF THIS WORKS AT ALL! MIGHT EXECUTE TOO LATE
-                        ViewModel.AnnotationModel.MinWidthOnCollapsed = MeasureMaxPortWidth(inputPortControl) + MeasureMaxPortWidth(outputPortControl) + 10;
-
-                    }), DispatcherPriority.ApplicationIdle);
-                };
             }
         }
 
@@ -389,63 +380,14 @@ namespace Dynamo.Nodes
                 this.GroupNameControl.DesiredSize.Height;
         }
 
-        private void CollapsedAnnotationRectangle_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            SetModelAreaHeight();
-        }
+        //private void CollapsedAnnotationRectangle_SizeChanged(object sender, SizeChangedEventArgs e)
+        //{
+        //    SetModelAreaHeight();
+        //}
 
         private void CollapsedAnnotationRectangle_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             SetModelAreaHeight();
-        }
-
-        // CHECK IF THIS WORKS AT ALL! MIGHT EXECUTE TOO LATE
-        private double MeasureMaxPortWidth(ItemsControl portControl)
-        {
-            double max = 0;
-
-            foreach (var item in portControl.Items)
-            {
-                var container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
-                if (container == null)
-                {
-                    portControl.UpdateLayout();
-                    container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
-                }
-
-                if (container != null)
-                {
-                    container.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    double width = container.DesiredSize.Width;
-                    max = Math.Max(max, width);
-                }
-            }
-
-            return max;
-        }
-        // CHECK IF THIS WORKS AT ALL! MIGHT EXECUTE TOO LATE
-        private double MeasureCombinedPortHeight(ItemsControl portControl)
-        {
-            double combinedHeight = 0;
-
-            foreach (var item in portControl.Items)
-            {
-                var container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
-                if (container == null)
-                {
-                    portControl.UpdateLayout();
-                    container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
-                }
-
-                if (container != null)
-                {
-                    container.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    double height = container.DesiredSize.Height;
-                    combinedHeight += height;
-                }
-            }
-
-            return combinedHeight;
         }
 
         private void SetModelAreaHeight()
@@ -486,21 +428,24 @@ namespace Dynamo.Nodes
         private void CollapsedAnnotationRectangleThumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
         {
             // Mark the group as being resized while collapsed
-            ViewModel.AnnotationModel.HasCollapsedResized = true;
+            ViewModel.AnnotationModel.IsResizedWhileCollapsed = true;
 
+            var model = ViewModel.AnnotationModel;
             var xAdjust = ViewModel.Width + e.HorizontalChange;
             var yAdjust = ViewModel.Height + e.VerticalChange;
 
-            //if (xAdjust >= ViewModel.Width - ViewModel.AnnotationModel.WidthAdjustment)
-            if (xAdjust >= ViewModel.AnnotationModel.MinWidthOnCollapsed)
+            double minWidth = Math.Min(AnnotationModel.MinWidthOnCollapsed, ViewModel.Width - model.WidthAdjustment);
+            double minHeight = model.MinCollapsedPortAreaHeight + model.TextBlockHeight + AnnotationModel.GroupContentDefHeight;
+
+            if (xAdjust >= minWidth)
             {
-                ViewModel.AnnotationModel.WidthAdjustment += e.HorizontalChange;
+                model.WidthAdjustment += e.HorizontalChange;
                 ViewModel.WorkspaceViewModel.HasUnsavedChanges = true;
             }
-            //if (yAdjust >= ViewModel.Height - ViewModel.AnnotationModel.HeightAdjustment) // REVIEW
-            if (yAdjust >= ViewModel.AnnotationModel.MinHeightOnCollapsed + ViewModel.AnnotationModel.TextBlockHeight + 72) // REVIEW ! CREATE A CONST FOR 72?
+
+            if (yAdjust >= minHeight)
             {
-                ViewModel.AnnotationModel.HeightAdjustment += e.VerticalChange;
+                model.HeightAdjustment += e.VerticalChange;
                 ViewModel.WorkspaceViewModel.HasUnsavedChanges = true;
             }
         }
