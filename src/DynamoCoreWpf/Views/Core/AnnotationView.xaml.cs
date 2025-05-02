@@ -17,9 +17,6 @@ using Dynamo.Wpf.Utilities;
 using Dynamo.Graph.Annotations;
 using Dynamo.Logging;
 using Dynamo.Configuration;
-using System.Diagnostics;
-using System.Windows.Threading;
-using static Lucene.Net.Store.Lock;
 
 namespace Dynamo.Nodes
 {
@@ -48,8 +45,6 @@ namespace Dynamo.Nodes
             // Because the size of the CollapsedAnnotationRectangle doesn't necessarily change 
             // when going from Visible to collapse (and other way around), we need to also listen
             // to IsVisibleChanged. Both of these handlers will set the ModelAreaHeight on the ViewModel
-
-            //this.CollapsedAnnotationRectangle.SizeChanged += CollapsedAnnotationRectangle_SizeChanged;          // TRHIS IS NO LONGET THE CASE! REVIEW IF NEEDED
             this.CollapsedAnnotationRectangle.IsVisibleChanged += CollapsedAnnotationRectangle_IsVisibleChanged;
         }
 
@@ -58,8 +53,6 @@ namespace Dynamo.Nodes
             Loaded -= AnnotationView_Loaded;
             DataContextChanged -= AnnotationView_DataContextChanged;
             this.GroupTextBlock.SizeChanged -= GroupTextBlock_SizeChanged;
-
-            //this.CollapsedAnnotationRectangle.SizeChanged -= CollapsedAnnotationRectangle_SizeChanged;
             this.CollapsedAnnotationRectangle.IsVisibleChanged -= CollapsedAnnotationRectangle_IsVisibleChanged;
         }
 
@@ -379,11 +372,6 @@ namespace Dynamo.Nodes
                 this.GroupDescriptionControls.DesiredSize.Height + 
                 this.GroupNameControl.DesiredSize.Height;
         }
-
-        //private void CollapsedAnnotationRectangle_SizeChanged(object sender, SizeChangedEventArgs e)
-        //{
-        //    SetModelAreaHeight();
-        //}
 
         private void CollapsedAnnotationRectangle_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {

@@ -96,7 +96,10 @@ namespace Dynamo.Graph.Annotations
         public const int GroupContentDefHeight = 92; // REVIEW
 
         private double minCollapsedPortAreaHeight;
-        // ADD XML SUMMARY
+        /// <summary>
+        /// Gets or sets the minimum height of the port area when the group is collapsed.
+        /// Used to calculate the total height of the collapsed group based on proxy ports
+        /// </summary>
         public double MinCollapsedPortAreaHeight
         {
             get => minCollapsedPortAreaHeight;
@@ -345,12 +348,7 @@ namespace Dynamo.Graph.Annotations
                 //Increase the Y value by 10. This provides the extra space between
                 // a model and textbox. Otherwise there will be some overlap
                 Y = InitialTop - ExtendSize - textBlockHeight;
-                if (IsExpanded)
-                {
-                    Height = InitialHeight + textBlockHeight - MinTextHeight; // REVIEW THIS !!!
-                }
-                // else?
-                
+                Height = InitialHeight + textBlockHeight - MinTextHeight;
                 UpdateBoundaryFromSelection();
             }
         }
@@ -506,6 +504,7 @@ namespace Dynamo.Graph.Annotations
         /// <summary>
         /// Gets or sets a value indicating whether the group was manually resized while collapsed
         /// </summary>
+        [JsonProperty]
         public bool IsResizedWhileCollapsed
         {
             get => isResizedWhileCollapsed;
@@ -791,6 +790,9 @@ namespace Dynamo.Graph.Annotations
                 case nameof(IsExpanded):
                     IsExpanded = Convert.ToBoolean(value);
                     break;
+                case nameof(IsResizedWhileCollapsed):
+                    IsResizedWhileCollapsed = Convert.ToBoolean(value);
+                    break;
             }
 
             return base.UpdateValueCore(updateValueParams);
@@ -848,6 +850,7 @@ namespace Dynamo.Graph.Annotations
             this.InitialHeight = helper.ReadDouble("InitialHeight", DoubleValue);
             this.IsSelected = helper.ReadBoolean(nameof(IsSelected), false);
             this.IsExpanded = helper.ReadBoolean(nameof(IsExpanded), true);
+            this.IsResizedWhileCollapsed = helper.ReadBoolean(nameof(IsResizedWhileCollapsed), false);
 
             if (IsSelected)
                 DynamoSelection.Instance.Selection.Add(this);
@@ -893,6 +896,7 @@ namespace Dynamo.Graph.Annotations
             RaisePropertyChanged(nameof(AnnotationText));
             RaisePropertyChanged(nameof(Nodes));
             RaisePropertyChanged(nameof(IsExpanded));
+            RaisePropertyChanged(nameof(IsResizedWhileCollapsed));
             this.ReportPosition();
         }
 

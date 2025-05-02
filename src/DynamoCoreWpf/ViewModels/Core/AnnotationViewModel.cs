@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -49,12 +48,19 @@ namespace Dynamo.ViewModels
         }
 
         [JsonIgnore]
+        public bool IsResizedWhileCollapsed
+        {
+            get { return annotationModel.IsResizedWhileCollapsed; }
+            set
+            {
+                annotationModel.IsResizedWhileCollapsed = value;
+            }
+        }
+
+        [JsonIgnore]
         public Double Width
         {
-            get
-            {
-                return annotationModel.Width;
-            }
+            get { return annotationModel.Width; }
             set
             {
                 annotationModel.Width = value;
@@ -1115,7 +1121,7 @@ namespace Dynamo.ViewModels
                     annotationModel.HeightAdjustment = annotationModel.HeightAdjustmentCollapsed;
                 }
             }
-            else if (annotationModel.IsResizedWhileCollapsed)
+            else if (IsResizedWhileCollapsed)
             {
                 // Cache the size adjustments from the collapsed state
                 annotationModel.WidthAdjustmentCollapsed = annotationModel.WidthAdjustment;
