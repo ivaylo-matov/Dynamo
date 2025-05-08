@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Xml;
 using Dynamo.Graph.Nodes;
 using Dynamo.Graph.Notes;
 using Dynamo.Graph.Workspaces;
@@ -11,6 +6,10 @@ using Dynamo.Selection;
 using Dynamo.Utilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Xml;
 
 namespace Dynamo.Graph.Annotations
 {
@@ -26,6 +25,11 @@ namespace Dynamo.Graph.Annotations
         private const double NoteYAdjustment = 8.0;
 
         double lastExpandedWidth = 0;
+
+        /// <summary>
+        /// The default height of the group's content area when collapsed.
+        /// </summary>
+        public const double CollapsedContentHeight = 82;
 
         #region Properties
 
@@ -91,9 +95,20 @@ namespace Dynamo.Graph.Annotations
             }
         }
 
-        // ADD XML SUMMARY
-        public const int MinWidthOnCollapsed = 400; // REVIEW
-        public const int GroupContentDefHeight = 92; // REVIEW
+        private double minWidthOnCollapsed;
+        /// <summary>
+        /// Gets or sets the minimum width of the group when it is collapsed. 
+        /// This value equals the combined width of the group's proxy input and output ports.
+        /// </summary>
+        public double MinWidthOnCollapsed
+        {
+            get => minWidthOnCollapsed;
+            set
+            {
+                if (minWidthOnCollapsed == value) return;
+                minWidthOnCollapsed = value;
+            }
+        }
 
         private double minCollapsedPortAreaHeight;
         /// <summary>
@@ -504,7 +519,6 @@ namespace Dynamo.Graph.Annotations
         /// <summary>
         /// Gets or sets a value indicating whether the group was manually resized while collapsed
         /// </summary>
-        [JsonProperty]
         public bool IsResizedWhileCollapsed
         {
             get => isResizedWhileCollapsed;
@@ -658,7 +672,7 @@ namespace Dynamo.Graph.Annotations
                 {
                     X = regionX,
                     Y = regionY,
-                    Width = xDistance + ExtendSize + WidthAdjustment,
+                    Width = xDistance + ExtendSize + Math.Max(WidthAdjustment, 0),
                     Height = yDistance + ExtendSize + ExtendYHeight + HeightAdjustment - TextBlockHeight
                 };
                 
@@ -675,21 +689,22 @@ namespace Dynamo.Graph.Annotations
             }
             else
             {
-                var regionWidth = xDistance + ExtendSize + WidthAdjustment;
-                var calculatedNodeWidth = Math.Max(regionWidth, TextMaxWidth + ExtendSize);
-                var minCollapsedWidth = Math.Min(MinWidthOnCollapsed, calculatedNodeWidth);
-
-                Width = Math.Max(xDistance + ExtendSize + WidthAdjustment, TextMaxWidth + ExtendSize);
-                lastExpandedWidth = Width;
-
-                // if the group has not being resized while collapsed pick up the width from the expanded group
+                // If the group has not being resized while collapsed pick up the width from the expanded group
                 if (!IsResizedWhileCollapsed)
                 {
-                    Height = TextBlockHeight + MinCollapsedPortAreaHeight + GroupContentDefHeight;
+                    Width = Math.Max(xDistance + ExtendSize + WidthAdjustment, TextMaxWidth + ExtendSize);
+                    lastExpandedWidth = Width;
+
+                    ModelAreaHeight = MinCollapsedPortAreaHeight + CollapsedContentHeight;
+                    Height = TextBlockHeight + MinCollapsedPortAreaHeight + CollapsedContentHeight;
                 }
                 else
                 {
-                    Height = TextBlockHeight + MinCollapsedPortAreaHeight + GroupContentDefHeight + HeightAdjustment;
+                    Width = Math.Max(MinWidthOnCollapsed + ExtendSize + WidthAdjustment, TextMaxWidth + ExtendSize);
+                    lastExpandedWidth = Width;
+
+                    ModelAreaHeight = MinCollapsedPortAreaHeight + CollapsedContentHeight + HeightAdjustment;
+                    Height = TextBlockHeight + ModelAreaHeight;
                 }
             }
 

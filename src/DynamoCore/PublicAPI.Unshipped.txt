@@ -47,6 +47,7 @@ const Dynamo.Engine.LibraryServices.Categories.Constructors = "Create" -> string
 const Dynamo.Engine.LibraryServices.Categories.MemberFunctions = "Actions" -> string
 const Dynamo.Engine.LibraryServices.Categories.Operators = "Operators" -> string
 const Dynamo.Engine.LibraryServices.Categories.Properties = "Query" -> string
+const Dynamo.Graph.Annotations.AnnotationModel.CollapsedContentHeight = 82 -> double
 const Dynamo.Graph.Nodes.BuiltinNodeCategories.ANALYZE_SOLAR = "Analyze.Solar" -> string
 const Dynamo.Graph.Nodes.BuiltinNodeCategories.CORE = "Core" -> string
 const Dynamo.Graph.Nodes.BuiltinNodeCategories.CORE_EVALUATE = "Core.Evaluate" -> string
@@ -715,6 +716,8 @@ Dynamo.Graph.Annotations.AnnotationModel.loadFromXML.get -> bool
 Dynamo.Graph.Annotations.AnnotationModel.loadFromXML.set -> void
 Dynamo.Graph.Annotations.AnnotationModel.MinCollapsedPortAreaHeight.get -> double
 Dynamo.Graph.Annotations.AnnotationModel.MinCollapsedPortAreaHeight.set -> void
+Dynamo.Graph.Annotations.AnnotationModel.MinWidthOnCollapsed.get -> double
+Dynamo.Graph.Annotations.AnnotationModel.MinWidthOnCollapsed.set -> void
 Dynamo.Graph.Annotations.AnnotationModel.ModelAreaHeight.get -> double
 Dynamo.Graph.Annotations.AnnotationModel.ModelAreaHeight.set -> void
 Dynamo.Graph.Annotations.AnnotationModel.ModelBaseRequested -> System.Func<System.Guid, Dynamo.Graph.ModelBase>

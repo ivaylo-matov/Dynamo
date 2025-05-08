@@ -17,6 +17,7 @@ using Dynamo.Wpf.Utilities;
 using Dynamo.Graph.Annotations;
 using Dynamo.Logging;
 using Dynamo.Configuration;
+using System.Diagnostics;
 
 namespace Dynamo.Nodes
 {
@@ -375,17 +376,23 @@ namespace Dynamo.Nodes
 
         private void CollapsedAnnotationRectangle_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            SetModelAreaHeight();
-        }
+            var model = ViewModel.AnnotationModel;
+            if (!model.IsExpanded)
+            {
+                // Measure port widths and update min width
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    double maxInPortWidth = MeasureMaxPortWidth(inputPortControl);
+                    double maxOutPortWidth = MeasureMaxPortWidth(outputPortControl);
+                    model.MinWidthOnCollapsed = maxInPortWidth + maxOutPortWidth + 10;
 
-        private void SetModelAreaHeight()
-        {
-            // We only want to change the ModelAreaHeight
-            // if the CollapsedAnnotationRectangle is visible,
-            // as if its not it will be equal to the height of the
-            // contained nodes + the TextBlockHeight
-            if (ViewModel is null || !this.CollapsedAnnotationRectangle.IsVisible) return;
-            ViewModel.AnnotationModel.UpdateBoundaryFromSelection();
+                    double totalInPortHeight = MeasureCombinedPortHeight(inputPortControl);
+                    double totalOutPortHeight = MeasureCombinedPortHeight(outputPortControl);
+                    model.MinCollapsedPortAreaHeight = Math.Max(totalInPortHeight, totalOutPortHeight);
+
+                    model.UpdateBoundaryFromSelection();
+                }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            }
         }
 
         private void contextMenu_Click(object sender, RoutedEventArgs e)
@@ -422,10 +429,9 @@ namespace Dynamo.Nodes
             var xAdjust = ViewModel.Width + e.HorizontalChange;
             var yAdjust = ViewModel.Height + e.VerticalChange;
 
-            double minWidth = Math.Min(AnnotationModel.MinWidthOnCollapsed, ViewModel.Width - model.WidthAdjustment);
-            double minHeight = model.MinCollapsedPortAreaHeight + model.TextBlockHeight + AnnotationModel.GroupContentDefHeight;
+            double minHeight = model.MinCollapsedPortAreaHeight + model.TextBlockHeight + AnnotationModel.CollapsedContentHeight;
 
-            if (xAdjust >= minWidth)
+            if (xAdjust >= Math.Max(model.TextMaxWidth, model.MinWidthOnCollapsed))
             {
                 model.WidthAdjustment += e.HorizontalChange;
                 ViewModel.WorkspaceViewModel.HasUnsavedChanges = true;
@@ -450,7 +456,6 @@ namespace Dynamo.Nodes
             // Tracking loading group style items
             Logging.Analytics.TrackEvent(Actions.Load, Categories.GroupStyleOperations, nameof(GroupStyleItem) + "s");
         }
-
 
         private void Thumb_MouseEnter(object sender, MouseEventArgs e)
         {
@@ -488,6 +493,80 @@ namespace Dynamo.Nodes
             ViewModel.UpdateGroupStyle(groupStyleItemSelected);
             // Tracking selecting group style item and if it is a default style by Dynamo
             Logging.Analytics.TrackEvent(Actions.Select, Categories.GroupStyleOperations, nameof(GroupStyleItem), groupStyleItemSelected.IsDefault ? 1 : 0);
+        }
+
+        private double MeasureMaxPortWidth(ItemsControl portControl)
+        {
+            //double max = 0;
+
+            //foreach (var item in portControl.Items)
+            //{
+            //    var container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+            //    if (container == null)
+            //    {
+            //        portControl.UpdateLayout(); // Ensures layout is ready
+            //        container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+            //    }
+
+            //    if (container != null)
+            //    {
+            //        container.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            //        double width = container.DesiredSize.Width;
+            //        max = Math.Max(max, width);
+            //    }
+            //}
+
+            //return max;
+            portControl.UpdateLayout();
+
+            double max = 0;
+            foreach (var item in portControl.Items)
+            {
+                if (portControl.ItemContainerGenerator.ContainerFromItem(item) is FrameworkElement container)
+                {
+                    container.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    max = Math.Max(max, container.DesiredSize.Width);
+                }
+            }
+            return max;
+        }
+
+        private double MeasureCombinedPortHeight(ItemsControl portControl)
+        {
+            //double total = 0;
+
+            //foreach (var item in portControl.Items)
+            //{
+            //    var container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+            //    if (container == null)
+            //    {
+            //        portControl.UpdateLayout(); // Ensures layout is ready
+            //        container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+            //    }
+
+            //    if (container != null)
+            //    {
+            //        container.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            //        double height = container.DesiredSize.Height;
+            //        total += height;
+            //    }
+            //}
+
+            //return total;
+
+            portControl.UpdateLayout();
+
+            double total = 0;
+            foreach (var item in portControl.Items)
+            {
+                if (portControl.ItemContainerGenerator.ContainerFromItem(item) is FrameworkElement container && container.IsVisible)
+                {
+                    container.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    total += container.DesiredSize.Height;
+                }
+            }
+
+            return total;
         }
     }
 }
