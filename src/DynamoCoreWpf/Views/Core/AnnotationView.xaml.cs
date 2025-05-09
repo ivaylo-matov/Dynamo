@@ -444,7 +444,6 @@ namespace Dynamo.Nodes
             }
         }
 
-
         /// <summary>
         /// When the GroupStyle Submenu is opened then we need to re-load the GroupStyles in the ContextMenu (in case more Styles were added in Preferences panel).
         /// </summary>

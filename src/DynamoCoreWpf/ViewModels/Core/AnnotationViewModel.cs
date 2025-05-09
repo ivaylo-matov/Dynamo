@@ -807,7 +807,6 @@ namespace Dynamo.ViewModels
         {
             double groupHeaderHeight = Height - ModelAreaRect.Height;
 
-
             double y = Top + groupHeaderHeight + verticalPosition + verticalOffset + portVerticalMidPoint;
 
 
@@ -1131,24 +1130,22 @@ namespace Dynamo.ViewModels
         {
             if (isCollapsing)
             {
-                // Cache the expanded values before collapsing
                 annotationModel.WidthAdjustmentExpanded = annotationModel.WidthAdjustment;
                 annotationModel.HeightAdjustmentExpanded = annotationModel.HeightAdjustment;
 
-                // If the group was resized while collapsed, restore its adjustments
+                // Reset to collapsed value so first resize ignores expanded height adjustment
+                annotationModel.HeightAdjustment = annotationModel.HeightAdjustmentCollapsed;
+
                 if (annotationModel.IsResizedWhileCollapsed)
                 {
                     annotationModel.WidthAdjustment = annotationModel.WidthAdjustmentCollapsed;
-                    annotationModel.HeightAdjustment = annotationModel.HeightAdjustmentCollapsed;
                 }
             }
             else if (annotationModel.IsResizedWhileCollapsed)
             {
-                // Cache the size adjustments from the collapsed state
                 annotationModel.WidthAdjustmentCollapsed = annotationModel.WidthAdjustment;
                 annotationModel.HeightAdjustmentCollapsed = annotationModel.HeightAdjustment;
 
-                // Restore the expanded size adjustments
                 annotationModel.WidthAdjustment = annotationModel.WidthAdjustmentExpanded;
                 annotationModel.HeightAdjustment = annotationModel.HeightAdjustmentExpanded;
             }

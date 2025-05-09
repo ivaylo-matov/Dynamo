@@ -683,8 +683,6 @@ namespace Dynamo.Graph.Annotations
                 //that is the height should be the initial height without the textblock height.
                 if (this.InitialHeight <= 0.0)
                     this.InitialHeight = region.Height;
-
-                lastExpandedWidth = Width;
             }
             else
             {
@@ -693,11 +691,12 @@ namespace Dynamo.Graph.Annotations
                     (!IsResizedWhileCollapsed ? xDistance : MinWidthOnCollapsed) + ExtendSize + WidthAdjustment,
                     TextMaxWidth + ExtendSize
                 );
-                lastExpandedWidth = Width;
 
                 ModelAreaHeight = MinCollapsedPortAreaHeight + CollapsedContentHeight + (IsResizedWhileCollapsed ? HeightAdjustment : 0);
                 Height = TextBlockHeight + ModelAreaHeight;
             }
+
+            lastExpandedWidth = Width;
 
             if (positionChanged)
             {
