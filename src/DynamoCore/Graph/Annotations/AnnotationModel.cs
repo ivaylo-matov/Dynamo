@@ -637,7 +637,6 @@ namespace Dynamo.Graph.Annotations
         internal void UpdateBoundaryFromSelection()
         {          
             var selectedModelsList = nodes.ToList();
-
             if (!selectedModelsList.Any())
             {
                 Width = 0;
@@ -689,23 +688,33 @@ namespace Dynamo.Graph.Annotations
             }
             else
             {
-                // If the group has not being resized while collapsed pick up the width from the expanded group
-                if (!IsResizedWhileCollapsed)
-                {
-                    Width = Math.Max(xDistance + ExtendSize + WidthAdjustment, TextMaxWidth + ExtendSize);
-                    lastExpandedWidth = Width;
+                //// If the group has not being resized while collapsed pick up the width from the expanded group
+                //if (!IsResizedWhileCollapsed)
+                //{
+                //    Width = Math.Max(xDistance + ExtendSize + WidthAdjustment, TextMaxWidth + ExtendSize);
+                //    lastExpandedWidth = Width;
 
-                    ModelAreaHeight = MinCollapsedPortAreaHeight + CollapsedContentHeight;
-                    Height = TextBlockHeight + MinCollapsedPortAreaHeight + CollapsedContentHeight;
-                }
-                else
-                {
-                    Width = Math.Max(MinWidthOnCollapsed + ExtendSize + WidthAdjustment, TextMaxWidth + ExtendSize);
-                    lastExpandedWidth = Width;
+                //    ModelAreaHeight = MinCollapsedPortAreaHeight + CollapsedContentHeight;
+                //    Height = TextBlockHeight + ModelAreaHeight;
+                //}
+                //else
+                //{
+                //    Width = Math.Max(MinWidthOnCollapsed + ExtendSize + WidthAdjustment, TextMaxWidth + ExtendSize);
+                //    lastExpandedWidth = Width;
 
-                    ModelAreaHeight = MinCollapsedPortAreaHeight + CollapsedContentHeight + HeightAdjustment;
-                    Height = TextBlockHeight + ModelAreaHeight;
-                }
+                //    ModelAreaHeight = MinCollapsedPortAreaHeight + CollapsedContentHeight + HeightAdjustment;
+                //    Height = TextBlockHeight + ModelAreaHeight;
+                //}
+
+                // Width is based on group content when collapsed
+                Width = Math.Max(
+                    (!IsResizedWhileCollapsed ? xDistance : MinWidthOnCollapsed) + ExtendSize + WidthAdjustment,
+                    TextMaxWidth + ExtendSize
+                );
+                lastExpandedWidth = Width;
+
+                ModelAreaHeight = MinCollapsedPortAreaHeight + CollapsedContentHeight + (IsResizedWhileCollapsed ? HeightAdjustment : 0);
+                Height = TextBlockHeight + ModelAreaHeight;
             }
 
             if (positionChanged)

@@ -497,26 +497,6 @@ namespace Dynamo.Nodes
 
         private double MeasureMaxPortWidth(ItemsControl portControl)
         {
-            //double max = 0;
-
-            //foreach (var item in portControl.Items)
-            //{
-            //    var container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
-            //    if (container == null)
-            //    {
-            //        portControl.UpdateLayout(); // Ensures layout is ready
-            //        container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
-            //    }
-
-            //    if (container != null)
-            //    {
-            //        container.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            //        double width = container.DesiredSize.Width;
-            //        max = Math.Max(max, width);
-            //    }
-            //}
-
-            //return max;
             portControl.UpdateLayout();
 
             double max = 0;
@@ -533,27 +513,6 @@ namespace Dynamo.Nodes
 
         private double MeasureCombinedPortHeight(ItemsControl portControl)
         {
-            //double total = 0;
-
-            //foreach (var item in portControl.Items)
-            //{
-            //    var container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
-            //    if (container == null)
-            //    {
-            //        portControl.UpdateLayout(); // Ensures layout is ready
-            //        container = portControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
-            //    }
-
-            //    if (container != null)
-            //    {
-            //        container.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            //        double height = container.DesiredSize.Height;
-            //        total += height;
-            //    }
-            //}
-
-            //return total;
-
             portControl.UpdateLayout();
 
             double total = 0;
@@ -565,7 +524,6 @@ namespace Dynamo.Nodes
                     total += container.DesiredSize.Height;
                 }
             }
-
             return total;
         }
     }
