@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -16,7 +15,6 @@ using Dynamo.Selection;
 using Dynamo.UI.Commands;
 using Dynamo.Utilities;
 using DynamoUtilities;
-using Lucene.Net.Search;
 using Newtonsoft.Json;
 using Color = System.Windows.Media.Color;
 
@@ -806,13 +804,7 @@ namespace Dynamo.ViewModels
         private Point2D CalculatePortPosition(PortModel portModel, double verticalPosition)
         {
             double groupHeaderHeight = Height - ModelAreaRect.Height;
-
             double y = Top + groupHeaderHeight + verticalPosition + verticalOffset + portVerticalMidPoint;
-
-
-            Debug.WriteLine($"top:{Top}  headerH:{groupHeaderHeight}  vPos:{verticalPosition}  Y:{y}");
-
-
             switch (portModel.PortType)
             {
                 case PortType.Input:
@@ -879,16 +871,6 @@ namespace Dynamo.ViewModels
 
         internal void UpdateProxyPortsPosition()
         {
-            // check before
-            var _out = outPorts;
-            foreach (var port in _out)
-            {
-                var c1 = port.PortModel.Center;
-                var c2 = port.Center;
-            }
-
-
-
             var parent = WorkspaceViewModel.Annotations
                 .FirstOrDefault(x => x.AnnotationModel.ContainsModel(AnnotationModel));
 
@@ -917,16 +899,6 @@ namespace Dynamo.ViewModels
                     model.Center = CalculatePortPosition(model, verticalPosition);
                     verticalPosition += model.Height;
                 }
-
-                //Debug.WriteLine($"Port position : {model.Center}");
-            }
-
-            // check after
-            var _out1 = outPorts;
-            foreach (var port in _out1)
-            {
-                var d1 = port.PortModel.Center;
-                var d2 = port.Center;
             }
         }
 
@@ -1008,8 +980,11 @@ namespace Dynamo.ViewModels
             }
         }
 
-        public void RedrawConnectors()
+        private void RedrawConnectors(bool isCollapsedCheck = false)
         {
+            if (isCollapsedCheck && IsExpanded && !annotationModel.IsResizedWhileCollapsed)
+                return;
+
             var allNodes = this.Nodes
                 .OfType<AnnotationModel>()
                 .SelectMany(x => x.Nodes.OfType<NodeModel>())
@@ -1024,8 +999,6 @@ namespace Dynamo.ViewModels
 
                 connectorViewModel.Redraw();
                 connector.Start.Owner.ReportPosition();
-
-                var c1 = connector.Start.Center;
             }
         }
 
@@ -1141,7 +1114,7 @@ namespace Dynamo.ViewModels
                     annotationModel.WidthAdjustment = annotationModel.WidthAdjustmentCollapsed;
                 }
             }
-            else if (annotationModel.IsResizedWhileCollapsed)
+            else //if (annotationModel.IsResizedWhileCollapsed)
             {
                 annotationModel.WidthAdjustmentCollapsed = annotationModel.WidthAdjustment;
                 annotationModel.HeightAdjustmentCollapsed = annotationModel.HeightAdjustment;
@@ -1149,6 +1122,10 @@ namespace Dynamo.ViewModels
                 annotationModel.WidthAdjustment = annotationModel.WidthAdjustmentExpanded;
                 annotationModel.HeightAdjustment = annotationModel.HeightAdjustmentExpanded;
             }
+                
+            var c1 = annotationModel.HeightAdjustment;
+            var c2 = annotationModel.HeightAdjustmentCollapsed;
+            var c3 = annotationModel.HeightAdjustmentExpanded;
         }
 
         private void UpdateFontSize(object parameter)
@@ -1266,7 +1243,7 @@ namespace Dynamo.ViewModels
                     RaisePropertyChanged("Width");
                     RaisePropertyChanged(nameof(ModelAreaRect));
                     UpdateAllGroupedGroups();
-                    RedrawConnectorsCollapsed();
+                    RedrawConnectors(false);
                     break;
                 case "Height":
                     RaisePropertyChanged("Height");
@@ -1309,31 +1286,6 @@ namespace Dynamo.ViewModels
                     break;
             }
         }
-
-        private void RedrawConnectorsCollapsed()
-        {
-            if (IsExpanded && !annotationModel.IsResizedWhileCollapsed) return;
-
-            var allNodes = this.Nodes
-                .OfType<AnnotationModel>()
-                .SelectMany(x => x.Nodes.OfType<NodeModel>())
-                .Concat(this.Nodes.OfType<NodeModel>());
-
-            foreach (var connector in allNodes.SelectMany(x => x.AllConnectors))
-            {
-                var connectorViewModel = WorkspaceViewModel
-                    .Connectors
-                    .Where(x => connector.GUID == x.ConnectorModel.GUID)
-                    .FirstOrDefault();
-
-                connectorViewModel.Redraw();
-                connector.Start.Owner.ReportPosition();
-                var c1 = connector.Start.Center;
-            }
-        }
-
-
-
 
         private void OnModelRemovedFromGroup(object sender, EventArgs e)
         {
