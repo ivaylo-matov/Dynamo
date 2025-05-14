@@ -1005,14 +1005,24 @@
                                   Cursor="Hand"
                                   HorizontalAlignment="Left"
                                   VerticalAlignment="Center"
-                                  Margin="10,0">
+                                  Margin="10,0,-25,0">
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding OptionalInPorts.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ToggleButton.Style>
                         <ToggleButton.Template>
                             <ControlTemplate TargetType="ToggleButton">
                                 <Border Background="Transparent">
-                                    <StackPanel Orientation="Horizontal">
+                                    <StackPanel Orientation="Horizontal" Margin="0">
                                         <TextBlock Text="{Binding OptionalInPorts.Count, StringFormat={}{0} Optional}"
-                                           VerticalAlignment="Center"
-                                           Foreground="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}}"/>
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}}"/>
                                         <Path Width="8" Height="6"
                                               Margin="6,0,0,0"
                                               VerticalAlignment="Center"
@@ -1074,6 +1084,16 @@
                           HorizontalAlignment="Right"
                           VerticalAlignment="Center"
                           Margin="0,0,10,0">
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding UnconnectedOutPorts.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ToggleButton.Style>
                         <ToggleButton.Template>
                             <ControlTemplate TargetType="ToggleButton">
                                 <Border Background="Transparent">

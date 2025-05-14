@@ -899,13 +899,17 @@ namespace Dynamo.ViewModels
 
             foreach (var groupPort in groupPortModels)
             {
+                // Subscribe (un-subscribe?) to PortModel PropertyChanges so that the proxy ports can move from unconnected to connected while the group is collapsed
+                // RELOCATE OnPortPropertyChanged!
+                groupPort.PropertyChanged += OnPortConnectionChanged;
+
                 var originalPort = originalPortViewModels.FirstOrDefault(x => x.PortModel.GUID == groupPort.GUID);
                 if (originalPort != null)
                 {
                     var portViewModel = originalPort.CreateProxyPortViewModel(groupPort);
 
-                    if (!originalPort.UsingDefaultValue)
-                    {                        
+                    if (!originalPort.UsingDefaultValue || groupPort.Connectors.Any())
+                    {
                         mainPortViewModels.Add(portViewModel);
                         // calculate new position for the proxy inports
                         groupPort.Center = CalculatePortPosition(groupPort, verticalPosition);
@@ -916,7 +920,7 @@ namespace Dynamo.ViewModels
                     else// just create the proxy ports. At this stage we don't know their vertical position
                     {
                         optionalPortViewModels.Add(portViewModel);
-                    }                    
+                    }
                 }
             }
 
@@ -952,6 +956,10 @@ namespace Dynamo.ViewModels
 
             foreach (var group in groupPortModels)
             {
+                // Subscribe (un-subscribe?) to PortModel PropertyChanges so that the proxy ports can move from unconnected to connected while the group is collapsed
+                // RELOCATE OnPortPropertyChanged!
+                group.PropertyChanged += OnPortConnectionChanged;
+
                 var originalPort = originalPortViewModels.FirstOrDefault(x => x.PortModel.GUID == group.GUID);
                 if (originalPort != null)
                 {
@@ -989,6 +997,75 @@ namespace Dynamo.ViewModels
 
             return (mainPortViewModels, unconnectedPortViewModels);
         }
+
+        // RELOCATE
+        // IS IT OKAY TO SUBSCRIBE HERE OR IN THE CONSTRUCTOR?
+        private void OnPortConnectionChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(PortModel.IsConnected))
+            {
+                var port = sender as PortModel;
+                if (port == null) return;
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var proxyPortVM = FindPortViewModel(port);
+                    if (proxyPortVM == null) return;
+
+                    // For input ports
+                    if (port.PortType == PortType.Input)
+                    {
+                        if (port.Connectors.Any())
+                        {
+                            if (OptionalInPorts.Contains(proxyPortVM))
+                            {
+                                OptionalInPorts.Remove(proxyPortVM);
+                                InPorts.Add(proxyPortVM);
+                            }
+                        }
+                        else
+                        {
+                            if (!OptionalInPorts.Contains(proxyPortVM))
+                            {
+                                InPorts.Remove(proxyPortVM);
+                                OptionalInPorts.Add(proxyPortVM);
+                            }
+                        }                        
+                    }
+
+                    // For output ports
+                    if (port.PortType == PortType.Output)
+                    {
+                        if (port.IsConnected)
+                        {
+                            if (UnconnectedOutPorts.Contains(proxyPortVM))
+                            {
+                                UnconnectedOutPorts.Remove(proxyPortVM);
+                                OutPorts.Add(proxyPortVM);
+                            }
+                        }
+                        else
+                        {
+                            if (!UnconnectedOutPorts.Contains(proxyPortVM))
+                            {
+                                OutPorts.Remove(proxyPortVM);
+                                UnconnectedOutPorts.Add(proxyPortVM);
+                            }
+                        }
+                    }
+                });
+
+                UpdateProxyPortsPosition();
+            }
+        }
+        private PortViewModel FindPortViewModel(PortModel model)
+        {
+            return OutPorts.Concat(UnconnectedOutPorts)
+                           .Concat(InPorts)
+                           .Concat(OptionalInPorts)
+                           .FirstOrDefault(pvm => pvm.PortModel == model);
+        }
+
 
         internal void UpdateProxyPortsPosition()
         {
