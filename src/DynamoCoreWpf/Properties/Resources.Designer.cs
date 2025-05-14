@@ -7979,6 +7979,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Collapsed Group.
+        /// </summary>
+        public static string PreferencesViewCollapsedGroupHeader {
+            get {
+                return ResourceManager.GetString("PreferencesViewCollapsedGroupHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Default Python Engine.
         /// </summary>
         public static string PreferencesViewDefaultPythonEngine {
@@ -8168,6 +8177,24 @@ namespace Dynamo.Wpf.Properties {
         public static string PreferencesViewGroupStylesHeader {
             get {
                 return ResourceManager.GetString("PreferencesViewGroupStylesHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hide optional input ports by default.
+        /// </summary>
+        public static string PreferencesViewHideInportsDescription {
+            get {
+                return ResourceManager.GetString("PreferencesViewHideInportsDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hide unconnected output ports by default.
+        /// </summary>
+        public static string PreferencesViewHideOutportsDescription {
+            get {
+                return ResourceManager.GetString("PreferencesViewHideOutportsDescription", resourceCulture);
             }
         }
         

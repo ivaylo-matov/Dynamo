@@ -191,6 +191,16 @@ namespace Dynamo.Configuration
         public bool ShowDefaultGroupDescription { get; set; }
 
         /// <summary>
+        /// Indicates if the optional input ports are hidden by default.
+        /// </summary>
+        public bool HideOptionalInputPorts { get; set; }
+
+        /// <summary>
+        /// Indicates if the unconnected output ports are hidden by default.
+        /// </summary>
+        public bool HideUnconnectedOutputPorts { get; set; }
+
+        /// <summary>
         /// Indicates if Host units should be used for graphic helpers for Dynamo Revit
         /// </summary>
         public bool UseHostScaleUnits { get; set; }
@@ -962,6 +972,8 @@ namespace Dynamo.Configuration
             DefaultRunType = RunType.Automatic;
             DefaultNodeAutocompleteSuggestion = NodeAutocompleteSuggestion.MLRecommendation;
             ShowDefaultGroupDescription = true;
+            HideOptionalInputPorts = false;
+            HideUnconnectedOutputPorts = false;
 
             BackupInterval = DefaultBackupInterval;
             BackupFilesCount = 1;

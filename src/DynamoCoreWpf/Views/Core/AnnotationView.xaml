@@ -31,6 +31,7 @@
         <controls:TextForegroundSaturationColorConverter x:Key="TextForegroundSaturationColorConverter"/>
         <controls:BackgroundConditionEvaluator x:Key="BackgroundConditionEvaluator"/>
         <controls:ZoomToVisibilityCollapsedConverter x:Key="ZoomToVisibilityCollapsedConverter" />
+        <controls:BooleanToAngleConverter x:Key="BooleanToAngleConverter" />
         <CornerRadius x:Key="ExpanderCornerRadius"
                       TopLeft="10"
                       TopRight="10" />
@@ -980,25 +981,142 @@
                 </Grid.RowDefinitions>
 
                 <!--INPUT PORTS-->
-                <ItemsControl Name="inputPortControl"
-                              Grid.Column="0"
-                              Grid.Row="0"
-                              Canvas.ZIndex="20"
-                              HorizontalContentAlignment="Left"
-                              ItemsSource="{Binding Path=InPorts}"
-                              Margin="-25,10">
-                </ItemsControl>
-
+                <Grid Name="inputPortsGrid"
+                      Grid.Column="0"
+                      Grid.Row="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="34" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <!--Main Input Ports-->
+                    <ItemsControl Name="inputPortControl"
+                                  Grid.Row="0"
+                                  Canvas.ZIndex="20"
+                                  HorizontalContentAlignment="Left"
+                                  ItemsSource="{Binding Path=InPorts}"
+                                  Margin="-25,10">
+                    </ItemsControl>
+                    <!--Expander-->
+                    <ToggleButton Grid.Row="1"
+                                  IsChecked="{Binding AreOptionalInPortsVisible, Mode=TwoWay}"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  Cursor="Hand"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
+                                  Margin="10,0">
+                        <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border Background="Transparent">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding OptionalInPorts.Count, StringFormat={}{0} Optional}"
+                                           VerticalAlignment="Center"
+                                           Foreground="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}}"/>
+                                        <Path Width="8" Height="6"
+                                              Margin="6,0,0,0"
+                                              VerticalAlignment="Center"
+                                              Fill="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}}"
+                                              Data="M0,0 L0,2 L4,6 L8,2 L8,0 L4,4 z"
+                                              Stretch="Fill">
+                                            <Path.RenderTransform>
+                                                <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BooleanToAngleConverter}}"
+                                                         CenterX="4" CenterY="3"/>
+                                            </Path.RenderTransform>
+                                        </Path>
+                                    </StackPanel>
+                                </Border>
+                            </ControlTemplate>
+                        </ToggleButton.Template>
+                    </ToggleButton>
+                    <!--Optional Input Ports-->
+                    <ItemsControl Name="optionalInputPortControl"
+                          Grid.Row="2"
+                          Canvas.ZIndex="20"
+                          HorizontalContentAlignment="Left"
+                          ItemsSource="{Binding Path=OptionalInPorts}"
+                          Margin="-25,0">
+                        <ItemsControl.Style>
+                            <Style TargetType="ItemsControl">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding AreOptionalInPortsVisible}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ItemsControl.Style>
+                    </ItemsControl>
+                </Grid>
                 <!--OUTPUT PORTS-->
-                <ItemsControl Name="outputPortControl"
-                              Grid.Column="2"
-                              Grid.Row="0"
-                              Canvas.ZIndex="20"
-                              HorizontalContentAlignment="Right"
-                              ItemsSource="{Binding Path=OutPorts}"
-                              Margin="-25,10">
-                </ItemsControl>
-
+                <Grid Name="outputPortsGrid"
+                      Grid.Column="2"
+                      Grid.Row="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <!--Main Output Ports-->
+                    <ItemsControl Name="outputPortControl"
+                                  Grid.Row="0"
+                                  Canvas.ZIndex="20"
+                                  HorizontalContentAlignment="Right"
+                                  ItemsSource="{Binding Path=OutPorts}"
+                                  Margin="-25,10">
+                    </ItemsControl>
+                    <!--Expander-->
+                    <ToggleButton Grid.Row="1"
+                          IsChecked="{Binding AreUnconnectedOutPortsVisible, Mode=TwoWay}"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          Cursor="Hand"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Center"
+                          Margin="0,0,10,0">
+                        <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border Background="Transparent">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding UnconnectedOutPorts.Count, StringFormat={}{0} Unconnected}"
+                                           VerticalAlignment="Center"
+                                           Foreground="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}}"/>
+                                        <Path Width="8" Height="6"
+                                      Margin="6,0,0,0"
+                                      VerticalAlignment="Center"
+                                      Fill="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}}"
+                                      Data="M0,0 L0,2 L4,6 L8,2 L8,0 L4,4 z"
+                                      Stretch="Fill">
+                                            <Path.RenderTransform>
+                                                <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BooleanToAngleConverter}}"
+                                                         CenterX="4" CenterY="3"/>
+                                            </Path.RenderTransform>
+                                        </Path>
+                                    </StackPanel>
+                                </Border>
+                            </ControlTemplate>
+                        </ToggleButton.Template>
+                    </ToggleButton>
+                    <!--Unconnected Output Ports-->
+                    <ItemsControl Name="unconnectedOutputPortControl"
+                                  Grid.Row="2"
+                                  Canvas.ZIndex="20"
+                                  HorizontalContentAlignment="Right"
+                                  ItemsSource="{Binding Path=UnconnectedOutPorts}"
+                                  Margin="-25,0">
+                        <ItemsControl.Style>
+                            <Style TargetType="ItemsControl">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding AreUnconnectedOutPortsVisible}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ItemsControl.Style>
+                    </ItemsControl>
+                </Grid>
+                
                 <Grid x:Name="GroupContent"
                       Grid.Row="1"
                       Grid.ColumnSpan="3">

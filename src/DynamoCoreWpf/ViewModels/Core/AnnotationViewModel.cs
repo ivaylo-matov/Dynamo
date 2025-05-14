@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -22,6 +23,11 @@ namespace Dynamo.ViewModels
 {
     public class AnnotationViewModel : ViewModelBase
     {
+        // ip code:
+        private List<PortViewModel> inPortsUsingDefault;
+        private List<PortViewModel> outPortsNotConnected;
+
+
         private AnnotationModel annotationModel;
         private IEnumerable<PortModel> originalInPorts;
         private IEnumerable<PortModel> originalOutPorts;
@@ -215,7 +221,6 @@ namespace Dynamo.ViewModels
         }
 
         private ObservableCollection<PortViewModel> inPorts;
-
         /// <summary>
         /// Collection of all input ports on this group.
         /// All nodes contained in the group which input port
@@ -233,6 +238,18 @@ namespace Dynamo.ViewModels
             }
         }
 
+        private ObservableCollection<PortViewModel> optionalInPorts;
+        // ADD XML SUMMARY
+        // REGISTER IN API
+        public ObservableCollection<PortViewModel> OptionalInPorts
+        {
+            get => optionalInPorts;
+            private set
+            {
+                optionalInPorts = value;
+            }
+        }
+
         private ObservableCollection<PortViewModel> outPorts;
         /// <summary>
         /// Collection of all output ports on this group.
@@ -247,6 +264,42 @@ namespace Dynamo.ViewModels
             private set
             {
                 outPorts = value;
+            }
+        }
+
+        private ObservableCollection<PortViewModel> unconnectedOutPorts;
+        // ADD XML SUMMARY
+        // REGISTER IN API
+        public ObservableCollection<PortViewModel> UnconnectedOutPorts
+        {
+            get => unconnectedOutPorts;
+            private set
+            {
+                unconnectedOutPorts = value;
+            }
+        }
+
+        private bool areOptionalInPortsVisible = true;
+        // WRITE XML SUMMARY
+        public bool AreOptionalInPortsVisible
+        {
+            get => areOptionalInPortsVisible;
+            set
+            {
+                areOptionalInPortsVisible = value;
+                RaisePropertyChanged(nameof(AreOptionalInPortsVisible));
+            }
+        }
+
+        private bool areUnconnectedOutPortsVisible = true;
+        // WRITE XML SUMMARY
+        public bool AreUnconnectedOutPortsVisible
+        {
+            get => areUnconnectedOutPortsVisible;
+            set
+            {
+                areUnconnectedOutPortsVisible = value;
+                RaisePropertyChanged(nameof(AreUnconnectedOutPortsVisible));
             }
         }
 
@@ -642,6 +695,8 @@ namespace Dynamo.ViewModels
 
             InPorts = new ObservableCollection<PortViewModel>();
             OutPorts = new ObservableCollection<PortViewModel>();
+            OptionalInPorts = new ObservableCollection<PortViewModel>();
+            UnconnectedOutPorts = new ObservableCollection<PortViewModel>();
 
             ViewModelBases = this.WorkspaceViewModel.GetViewModelsInternal(annotationModel.Nodes.Select(x => x.GUID));
 
@@ -677,7 +732,8 @@ namespace Dynamo.ViewModels
         /// </summary>
         private void SetGroupInputPorts()
         {
-            List<PortViewModel> newPortViewModels;
+            List<PortViewModel> mainPortViewModels;
+            List<PortViewModel> optionalPortViewModels;
 
             // we need to store the original ports here
             // as we need those later for when we
@@ -700,10 +756,16 @@ namespace Dynamo.ViewModels
             // visually add them to the group but they
             // should still reference their NodeModel
             // owner
-            newPortViewModels = CreateProxyInPorts(originalInPorts);
+            var newPortViewModels = CreateProxyInPorts(originalInPorts);
+            mainPortViewModels = newPortViewModels.Main;
+            optionalPortViewModels = newPortViewModels.Optional;
 
-            if (newPortViewModels == null) return;
-            InPorts.AddRange(newPortViewModels);
+            if (mainPortViewModels != null)
+                InPorts.AddRange(mainPortViewModels);
+
+            if (optionalPortViewModels != null)
+                OptionalInPorts.AddRange(optionalPortViewModels);
+
             return;
         }
 
@@ -714,10 +776,11 @@ namespace Dynamo.ViewModels
         /// </summary>
         private void SetGroupOutPorts()
         {
-            List<PortViewModel> newPortViewModels;
+            List<PortViewModel> mainPortViewModels;
+            List<PortViewModel> unconnectedPortViewModels;
 
             // we need to store the original ports here
-            // as we need thoese later for when we
+            // as we need those later for when we
             // need to collapse the groups content
             if (this.AnnotationModel.HasNestedGroups)
             {
@@ -737,10 +800,16 @@ namespace Dynamo.ViewModels
             // visually add them to the group but they
             // should still reference their NodeModel
             // owner
-            newPortViewModels = CreateProxyOutPorts(originalOutPorts);
+            var newPortViewModels = CreateProxyOutPorts(originalOutPorts);
+            mainPortViewModels = newPortViewModels.Main;
+            unconnectedPortViewModels = newPortViewModels.Unconnected;
 
-            if (newPortViewModels == null) return;
-            OutPorts.AddRange(newPortViewModels);
+            if (mainPortViewModels != null)
+                OutPorts.AddRange(mainPortViewModels);
+
+            if (unconnectedPortViewModels != null)
+                UnconnectedOutPorts.AddRange(unconnectedPortViewModels);
+
             return;
         }
 
@@ -816,53 +885,109 @@ namespace Dynamo.ViewModels
             return new Point2D();
         }
 
-        private List<PortViewModel> CreateProxyInPorts(IEnumerable<PortModel> groupPortModels)
+        private (List<PortViewModel> Main, List<PortViewModel> Optional) CreateProxyInPorts(IEnumerable<PortModel> groupPortModels)
         {
             var originalPortViewModels = WorkspaceViewModel.Nodes
                 .SelectMany(x => x.InPorts)
                 .Where(x => groupPortModels.Contains(x.PortModel))
                 .ToList();
 
-            var newPortViewModels = new List<PortViewModel>();
+            var mainPortViewModels = new List<PortViewModel>();
+            var optionalPortViewModels = new List<PortViewModel>();
+
             double verticalPosition = 0;
+
             foreach (var groupPort in groupPortModels)
             {
                 var originalPort = originalPortViewModels.FirstOrDefault(x => x.PortModel.GUID == groupPort.GUID);
                 if (originalPort != null)
                 {
                     var portViewModel = originalPort.CreateProxyPortViewModel(groupPort);
-                    newPortViewModels.Add(portViewModel);
-                    // calculate new position for the proxy outports
-                    groupPort.Center = CalculatePortPosition(groupPort, verticalPosition);
-                    verticalPosition += originalPort.Height;
+
+                    if (!originalPort.UsingDefaultValue)
+                    {                        
+                        mainPortViewModels.Add(portViewModel);
+                        // calculate new position for the proxy inports
+                        groupPort.Center = CalculatePortPosition(groupPort, verticalPosition);
+                        verticalPosition += originalPort.Height;
+
+                        Debug.WriteLine($"position mainInport : {groupPort.Center} {portViewModel.Center}");
+                    }
+                    else// just create the proxy ports. At this stage we don't know their vertical position
+                    {
+                        optionalPortViewModels.Add(portViewModel);
+                    }                    
                 }
             }
-            return newPortViewModels;
+
+
+            // shift the vertical position lower to free space for label/expander
+            verticalPosition += 34;
+
+            // now that all proxy inPorts are created we need to iterate again through the optional ones and set their position
+            // think about creating a separate CreateOptionalProxyInPorts() method? Less efficient but more straight forward?
+            foreach (var portViewModel in optionalPortViewModels)
+            {
+                var optionalGroupPort = portViewModel.PortModel;
+                optionalGroupPort.Center = CalculatePortPosition(optionalGroupPort, verticalPosition);
+                verticalPosition += optionalGroupPort.Height;
+
+                Debug.WriteLine($"position optionalInport : {optionalGroupPort.Center} {portViewModel.Center}");
+            }
+
+            return (mainPortViewModels, optionalPortViewModels);
         }
 
-        private List<PortViewModel> CreateProxyOutPorts(IEnumerable<PortModel> groupPortModels)
+        private (List<PortViewModel> Main, List<PortViewModel> Unconnected) CreateProxyOutPorts(IEnumerable<PortModel> groupPortModels)
         {
             var originalPortViewModels = WorkspaceViewModel.Nodes
                 .SelectMany(x => x.OutPorts)
                 .Where(x => groupPortModels.Contains(x.PortModel))
                 .ToList();
 
-            var newPortViewModels = new List<PortViewModel>();
+            var mainPortViewModels = new List<PortViewModel>();
+            var unconnectedPortViewModels = new List<PortViewModel>();
+
             double verticalPosition = 0;
+
             foreach (var group in groupPortModels)
             {
                 var originalPort = originalPortViewModels.FirstOrDefault(x => x.PortModel.GUID == group.GUID);
                 if (originalPort != null)
                 {
                     var portViewModel = originalPort.CreateProxyPortViewModel(group);
-                    newPortViewModels.Add(portViewModel);
-                    // calculate new position for the proxy outports
-                    group.Center = CalculatePortPosition(group, verticalPosition);
-                    verticalPosition += originalPort.Height;
+
+                    if (originalPort.IsConnected)
+                    {
+                        mainPortViewModels.Add(portViewModel);
+                        // calculate new position for the proxy outports
+                        group.Center = CalculatePortPosition(group, verticalPosition);
+                        verticalPosition += originalPort.Height;
+
+                        Debug.WriteLine($"position mainOutport : {group.Center} {portViewModel.Center}");
+                    }
+                    else// just create the proxy ports. At this stage we don't know their vertical position
+                    {
+                        unconnectedPortViewModels.Add(portViewModel);
+                    }
                 }
             }
 
-            return newPortViewModels;
+            // shift the vertical position lower to free space for label/expander
+            verticalPosition += 34;
+
+            // now that all proxy inPorts are created we need to iterate again through the optional ones and set their position
+            // think about creating a separate CreateOptionalProxyInPorts() method? Less efficient but more straight forward?
+            foreach (var portViewModel in unconnectedPortViewModels)
+            {
+                var unconnectedGroupPort = portViewModel.PortModel;
+                unconnectedGroupPort.Center = CalculatePortPosition(unconnectedGroupPort, verticalPosition);
+                verticalPosition += unconnectedGroupPort.Height;
+
+                Debug.WriteLine($"position unconnectedOutport : {unconnectedGroupPort.Center} {portViewModel.Center}");
+            }
+
+            return (mainPortViewModels, unconnectedPortViewModels);
         }
 
         internal void UpdateProxyPortsPosition()
@@ -873,6 +998,9 @@ namespace Dynamo.ViewModels
             if (parent != null && !parent.IsExpanded) return;
 
             double verticalPosition = 0;
+
+            //var allInPots = inPorts;
+            //allInPots.AddRange(optionalInPorts);
 
             for (int i = 0; i < inPorts.Count(); i++)
             {
@@ -885,6 +1013,21 @@ namespace Dynamo.ViewModels
                 }
             }
 
+            //ip code
+            for (int i = 0; i < optionalInPorts.Count(); i++)
+            {
+                var model = optionalInPorts[i]?.PortModel;
+                if (model != null && model.IsProxyPort)
+                {
+                    // calculate new position for the proxy inports.
+                    model.Center = CalculatePortPosition(model, verticalPosition);
+                    verticalPosition += model.Height;
+                }
+            }
+
+            //var allOutPorts = outPorts;
+            //allOutPorts.AddRange(unconnectedOutPorts); // Should we use the public or private property?
+
             verticalPosition = 0;
             for (int i = 0; i < outPorts.Count(); i++)
             {
@@ -892,6 +1035,18 @@ namespace Dynamo.ViewModels
                 if (model != null && model.IsProxyPort)
                 {
                     // calculate new position for the proxy outports.
+                    model.Center = CalculatePortPosition(model, verticalPosition);
+                    verticalPosition += model.Height;
+                }
+            }
+
+            //ip code
+            for (int i = 0; i < unconnectedOutPorts.Count(); i++)
+            {
+                var model = unconnectedOutPorts[i]?.PortModel;
+                if (model != null && model.IsProxyPort)
+                {
+                    // calculate new position for the proxy inports.
                     model.Center = CalculatePortPosition(model, verticalPosition);
                     verticalPosition += model.Height;
                 }
@@ -1060,10 +1215,12 @@ namespace Dynamo.ViewModels
         /// </summary>
         private void ManageAnnotationMVExpansionAndCollapse()
         {
-            if (InPorts.Any() || OutPorts.Any())
+            if (InPorts.Any() || OutPorts.Any() || OptionalInPorts.Any() || UnconnectedOutPorts.Any())
             {
                 InPorts.Clear();
                 OutPorts.Clear();
+                OptionalInPorts.Clear();
+                UnconnectedOutPorts.Clear();
             }
 
             if (annotationModel.IsExpanded)

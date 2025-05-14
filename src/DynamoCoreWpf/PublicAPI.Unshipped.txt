@@ -2827,6 +2827,10 @@ Dynamo.ViewModels.PreferencesViewModel.GroupStyleFontSizeList.set -> void
 Dynamo.ViewModels.PreferencesViewModel.HideAutocompleteMethodOptions.get -> bool
 Dynamo.ViewModels.PreferencesViewModel.HideNodesBelowSpecificConfidenceLevelIsChecked.get -> bool
 Dynamo.ViewModels.PreferencesViewModel.HideNodesBelowSpecificConfidenceLevelIsChecked.set -> void
+Dynamo.ViewModels.PreferencesViewModel.HideOptionalInputPorts.get -> bool
+Dynamo.ViewModels.PreferencesViewModel.HideOptionalInputPorts.set -> void
+Dynamo.ViewModels.PreferencesViewModel.HideUnconnectedOutputPorts.get -> bool
+Dynamo.ViewModels.PreferencesViewModel.HideUnconnectedOutputPorts.set -> void
 Dynamo.ViewModels.PreferencesViewModel.HostGenericScaleUnits.get -> string
 Dynamo.ViewModels.PreferencesViewModel.importSettings(string filePath) -> bool
 Dynamo.ViewModels.PreferencesViewModel.importSettingsContent(string content) -> bool

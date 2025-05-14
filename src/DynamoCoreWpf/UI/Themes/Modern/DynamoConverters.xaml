@@ -92,6 +92,7 @@
     <controls:ZoomToOpacityConverter x:Key="ZoomToOpacityConverter" />
     <controls:ZoomToBooleanConverter x:Key="ZoomToBooleanConverter" />
     <controls:ZoomToVisibilityCollapsedConverter x:Key="ZoomToVisibilityCollapsedConverter" />
+    <controls:BooleanToAngleConverter x:Key="BooleanToAngleConverter" />
     <controls:PortNameToWidthConverter x:Key="PortNameToWidthConverter" />
     <controls:TooltipLengthTruncater x:Key="TooltipLengthTruncater" />
     <controls:TabSizeConverter x:Key="TabSizeConverter" />

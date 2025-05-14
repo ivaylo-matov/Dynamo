@@ -33,6 +33,7 @@ using HorizontalAlignment = System.Windows.HorizontalAlignment;
 using Point = System.Windows.Point;
 using TabControl = System.Windows.Controls.TabControl;
 using Thickness = System.Windows.Thickness;
+using System.Diagnostics;
 
 namespace Dynamo.Controls
 {
@@ -4293,4 +4294,21 @@ namespace Dynamo.Controls
             return Binding.DoNothing;
         }
     }
+
+
+    // REGISTER IN API?
+    public class BooleanToAngleConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var c = (bool)value;
+            Debug.WriteLine($"Value : {c}");
+            return (bool)value ? 180 : 0; // 180° = up, 0° = down
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => Binding.DoNothing;
+    }
+
+
 }

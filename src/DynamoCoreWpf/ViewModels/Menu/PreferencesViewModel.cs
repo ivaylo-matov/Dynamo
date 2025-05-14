@@ -830,6 +830,43 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
+        /// Indicates if the optional input ports are hidden by default.
+        /// </summary>
+        public bool HideOptionalInputPorts
+        {
+            get
+            {
+                return preferenceSettings.HideOptionalInputPorts;
+            }
+            set
+            {
+                preferenceSettings.HideOptionalInputPorts = value;
+                RaisePropertyChanged(nameof(HideOptionalInputPorts));
+
+                //dynamoViewModel.RefreshAnnotationDescriptions();      REPLACE WITHI NEW LOGIC?
+            }
+        }
+
+
+        /// <summary>
+        /// Indicates if the unconnected output ports are hidden by default.
+        /// </summary>
+        public bool HideUnconnectedOutputPorts
+        {
+            get
+            {
+                return preferenceSettings.HideUnconnectedOutputPorts;
+            }
+            set
+            {
+                preferenceSettings.HideUnconnectedOutputPorts = value;
+                RaisePropertyChanged(nameof(HideUnconnectedOutputPorts));
+
+                //dynamoViewModel.RefreshAnnotationDescriptions();      REPLACE WITHI NEW LOGIC?
+            }
+        }
+
+        /// <summary>
         /// Indicates if Host units should be used for graphic helpers for Dynamo Revit
         /// Also toggles between Host and Dynamo units 
         /// </summary>
@@ -1848,6 +1885,12 @@ namespace Dynamo.ViewModels
                     goto default;
                 case nameof(ShowDefaultGroupDescription):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewShowDefaultGroupDescription), System.Globalization.CultureInfo.InvariantCulture);
+                    goto default;
+                case nameof(HideOptionalInputPorts):
+                    description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewHideInportsDescription), System.Globalization.CultureInfo.InvariantCulture);
+                    goto default;
+                case nameof(HideUnconnectedOutputPorts):
+                    description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewHideOutportsDescription), System.Globalization.CultureInfo.InvariantCulture);
                     goto default;
                 case nameof(ShowCodeBlockLineNumber):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewShowCodeBlockNodeLineNumber), System.Globalization.CultureInfo.InvariantCulture);
