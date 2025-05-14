@@ -528,7 +528,7 @@ namespace CoreNodeModels
                 if (dynamicCurve.IsYOutOfRange)
                     Info(Properties.Resources.CurveMapperInfoMessage, true);
                 else
-                    ClearInfoMessages();
+                    ClearInfoMessage(Properties.Resources.CurveMapperInfoMessage);
 
                 if (!IsResizing)
                     OnNodeModified();

@@ -1786,6 +1786,24 @@ namespace Dynamo.Graph.Nodes
         }
 
         /// <summary>
+        /// Removes a specific persistent info message from the node.
+        /// If the node has no remaining messages and is currently in the PersistentInfo state,
+        /// it resets the state to Active. The state is not changed if the node is in a higher state,
+        /// such as Warning or Error.
+        /// </summary>
+        /// <param name="message">The info message to remove.</param>
+        public void ClearInfoMessage(string message)
+        {
+            infos.RemoveWhere(x => x.State == ElementState.PersistentInfo && x.Message == message);
+
+            if (State == ElementState.PersistentInfo && infos.Count == 0)
+            {
+                State = ElementState.Active;
+            }
+            OnNodeInfoMessagesClearing();
+        }
+
+        /// <summary>
         /// Clears the transient warning only if the current state is ElementState.Warning.
         /// If an argument is specified, then the transient warning will be cleared only if it matches the argument value.
         /// If no argument is specified (i.e null or empty value), then the transient warning will be cleared no matter its value.

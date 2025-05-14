@@ -970,6 +970,7 @@ Dynamo.Graph.Nodes.NodeModel.CanUpdatePeriodically.set -> void
 Dynamo.Graph.Nodes.NodeModel.Category.get -> string
 Dynamo.Graph.Nodes.NodeModel.Category.set -> void
 Dynamo.Graph.Nodes.NodeModel.ClearDirtyFlag() -> void
+Dynamo.Graph.Nodes.NodeModel.ClearInfoMessage(string message) -> void
 Dynamo.Graph.Nodes.NodeModel.ConnectorAdded -> System.Action<Dynamo.Graph.Connectors.ConnectorModel>
 Dynamo.Graph.Nodes.NodeModel.Description.get -> string
 Dynamo.Graph.Nodes.NodeModel.Description.set -> void
