@@ -4164,4 +4164,10 @@ To make this file into a new template, save it to a different folder, then move 
   <data name="PreferencesViewCollapsedGroupHeader" xml:space="preserve">
     <value>Collapsed Group</value>
   </data>
+  <data name="GroupOptionalInportsText" xml:space="preserve">
+    <value>Optional</value>
+  </data>
+  <data name="GroupUnconnectedOutportsText" xml:space="preserve">
+    <value>Unconnected</value>
+  </data>
 </root>

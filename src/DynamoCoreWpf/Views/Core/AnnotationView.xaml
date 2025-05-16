@@ -1020,13 +1020,19 @@
                             <ControlTemplate TargetType="ToggleButton">
                                 <Border Background="Transparent">
                                     <StackPanel Orientation="Horizontal" Margin="0">
-                                        <TextBlock Text="{Binding OptionalInPorts.Count, StringFormat={}{0} Optional}"
-                                                   VerticalAlignment="Center"
-                                                   Foreground="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}}"/>
+                                        <TextBlock VerticalAlignment="Center"
+                                                   Foreground="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}, ConverterParameter=groupPortToggle}">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0} {1}">
+                                                    <Binding Path="OptionalInPorts.Count"/>
+                                                    <Binding Source="{x:Static p:Resources.GroupOptionalInportsText}" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
                                         <Path Width="8" Height="6"
                                               Margin="6,0,0,0"
                                               VerticalAlignment="Center"
-                                              Fill="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}}"
+                                              Fill="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}, ConverterParameter=groupPortToggle}"
                                               Data="M0,0 L0,2 L4,6 L8,2 L8,0 L4,4 z"
                                               Stretch="Fill">
                                             <Path.RenderTransform>
@@ -1041,11 +1047,11 @@
                     </ToggleButton>
                     <!--Optional Input Ports-->
                     <ItemsControl Name="optionalInputPortControl"
-                          Grid.Row="2"
-                          Canvas.ZIndex="20"
-                          HorizontalContentAlignment="Left"
-                          ItemsSource="{Binding Path=OptionalInPorts}"
-                          Margin="-25,0">
+                                  Grid.Row="2"
+                                  Canvas.ZIndex="20"
+                                  HorizontalContentAlignment="Left"
+                                  ItemsSource="{Binding Path=OptionalInPorts}"
+                                  Margin="-25,0">
                         <ItemsControl.Style>
                             <Style TargetType="ItemsControl">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -1058,6 +1064,7 @@
                         </ItemsControl.Style>
                     </ItemsControl>
                 </Grid>
+                
                 <!--OUTPUT PORTS-->
                 <Grid Name="outputPortsGrid"
                       Grid.Column="2"
@@ -1077,13 +1084,13 @@
                     </ItemsControl>
                     <!--Expander-->
                     <ToggleButton Grid.Row="1"
-                          IsChecked="{Binding AreUnconnectedOutPortsVisible, Mode=TwoWay}"
-                          Background="Transparent"
-                          BorderThickness="0"
-                          Cursor="Hand"
-                          HorizontalAlignment="Right"
-                          VerticalAlignment="Center"
-                          Margin="0,0,10,0">
+                                  IsChecked="{Binding AreUnconnectedOutPortsVisible, Mode=TwoWay}"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  Cursor="Hand"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,10,0">
                         <ToggleButton.Style>
                             <Style TargetType="ToggleButton">
                                 <Setter Property="Visibility" Value="Visible"/>
@@ -1098,15 +1105,21 @@
                             <ControlTemplate TargetType="ToggleButton">
                                 <Border Background="Transparent">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding UnconnectedOutPorts.Count, StringFormat={}{0} Unconnected}"
-                                           VerticalAlignment="Center"
-                                           Foreground="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}}"/>
+                                        <TextBlock VerticalAlignment="Center"
+                                                   Foreground="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}, ConverterParameter=groupPortToggle}">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0} {1}">
+                                                    <Binding Path="UnconnectedOutPorts.Count"/>
+                                                    <Binding Source="{x:Static p:Resources.GroupUnconnectedOutportsText}" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
                                         <Path Width="8" Height="6"
-                                      Margin="6,0,0,0"
-                                      VerticalAlignment="Center"
-                                      Fill="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}}"
-                                      Data="M0,0 L0,2 L4,6 L8,2 L8,0 L4,4 z"
-                                      Stretch="Fill">
+                                              Margin="6,0,0,0"
+                                              VerticalAlignment="Center"
+                                              Fill="{Binding Background, Converter={StaticResource TextForegroundSaturationColorConverter}, ConverterParameter=groupPortToggle}"
+                                              Data="M0,0 L0,2 L4,6 L8,2 L8,0 L4,4 z"
+                                              Stretch="Fill">
                                             <Path.RenderTransform>
                                                 <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BooleanToAngleConverter}}"
                                                          CenterX="4" CenterY="3"/>

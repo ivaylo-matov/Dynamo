@@ -3899,12 +3899,32 @@ namespace Dynamo.Controls
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            // Text and description colors
             var lightColor = (System.Windows.Media.Color)SharedDictionaryManager.DynamoColorsAndBrushesDictionary["WhiteColor"];
             var darkColor = (System.Windows.Media.Color)SharedDictionaryManager.DynamoColorsAndBrushesDictionary["DarkerGrey"];
+            // Port toggle colors
+            var lightToggleColor = (System.Windows.Media.Color)SharedDictionaryManager.DynamoColorsAndBrushesDictionary["Blue350"];
+            var darkToggleColor = (System.Windows.Media.Color)SharedDictionaryManager.DynamoColorsAndBrushesDictionary["Blue450"];
+            // Resize thumb colors .....
 
             var backgroundColor = (System.Windows.Media.Color)value;
-
             var contrastRatio = GetContrastRatio(darkColor, backgroundColor);
+
+            // Custom scheme override
+            if (parameter is string scheme)
+            {
+                switch (scheme)
+                {
+                    case "groupPortToggle":
+                        lightColor = lightToggleColor;
+                        darkColor = darkToggleColor;
+                        break;
+                    case "resizeThumb":
+                        lightColor = Colors.Yellow;
+                        darkColor = Colors.Brown;
+                        break;
+                }
+            }
 
             return contrastRatio < 4.5 ? new SolidColorBrush(lightColor) : new SolidColorBrush(darkColor);
         }

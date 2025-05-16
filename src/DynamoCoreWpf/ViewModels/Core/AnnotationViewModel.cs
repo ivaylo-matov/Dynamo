@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using Dynamo.Configuration;
@@ -926,7 +928,7 @@ namespace Dynamo.ViewModels
 
 
             // shift the vertical position lower to free space for label/expander
-            verticalPosition += 34;
+            verticalPosition += 31;
 
             // now that all proxy inPorts are created we need to iterate again through the optional ones and set their position
             // think about creating a separate CreateOptionalProxyInPorts() method? Less efficient but more straight forward?
@@ -982,7 +984,7 @@ namespace Dynamo.ViewModels
             }
 
             // shift the vertical position lower to free space for label/expander
-            verticalPosition += 34;
+            verticalPosition += 31;
 
             // now that all proxy inPorts are created we need to iterate again through the optional ones and set their position
             // think about creating a separate CreateOptionalProxyInPorts() method? Less efficient but more straight forward?
@@ -1030,7 +1032,11 @@ namespace Dynamo.ViewModels
                                 InPorts.Remove(proxyPortVM);
                                 OptionalInPorts.Add(proxyPortVM);
                             }
-                        }                        
+                        }
+
+                        UpdateProxyPortsPosition();
+                        RaisePropertyChanged(nameof(InPorts));
+                        RaisePropertyChanged(nameof(OptionalInPorts));
                     }
 
                     // For output ports
@@ -1052,10 +1058,12 @@ namespace Dynamo.ViewModels
                                 UnconnectedOutPorts.Add(proxyPortVM);
                             }
                         }
+
+                        UpdateProxyPortsPosition();
+                        RaisePropertyChanged(nameof(OutPorts));
+                        RaisePropertyChanged(nameof(UnconnectedOutPorts));
                     }
                 });
-
-                UpdateProxyPortsPosition();
             }
         }
         private PortViewModel FindPortViewModel(PortModel model)
@@ -1076,9 +1084,7 @@ namespace Dynamo.ViewModels
 
             double verticalPosition = 0;
 
-            //var allInPots = inPorts;
-            //allInPots.AddRange(optionalInPorts);
-
+            // Main input ports (connected/required)
             for (int i = 0; i < inPorts.Count(); i++)
             {
                 var model = inPorts[i]?.PortModel;
@@ -1090,7 +1096,10 @@ namespace Dynamo.ViewModels
                 }
             }
 
-            //ip code
+            // Space for the toggle button
+            verticalPosition += 31; // STANDARTISE THAT. MAYBE ADD HEIGHT TO TOGGLEBUTTON
+
+            // Optional input ports (unconnected/using default values)
             for (int i = 0; i < optionalInPorts.Count(); i++)
             {
                 var model = optionalInPorts[i]?.PortModel;
@@ -1102,10 +1111,10 @@ namespace Dynamo.ViewModels
                 }
             }
 
-            //var allOutPorts = outPorts;
-            //allOutPorts.AddRange(unconnectedOutPorts); // Should we use the public or private property?
-
+            // Reset for output ports
             verticalPosition = 0;
+
+            // Main output ports
             for (int i = 0; i < outPorts.Count(); i++)
             {
                 var model = outPorts[i]?.PortModel;
@@ -1117,7 +1126,10 @@ namespace Dynamo.ViewModels
                 }
             }
 
-            //ip code
+            // Space for the toggle button
+            verticalPosition += 31;
+
+            // Unconnected output ports
             for (int i = 0; i < unconnectedOutPorts.Count(); i++)
             {
                 var model = unconnectedOutPorts[i]?.PortModel;
@@ -1128,6 +1140,8 @@ namespace Dynamo.ViewModels
                     verticalPosition += model.Height;
                 }
             }
+
+            // RedrawConnectors();
         }
 
         internal void ClearSelection()

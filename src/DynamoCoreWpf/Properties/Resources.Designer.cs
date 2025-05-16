@@ -3732,6 +3732,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Optional.
+        /// </summary>
+        public static string GroupOptionalInportsText {
+            get {
+                return ResourceManager.GetString("GroupOptionalInportsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Group Style.
         /// </summary>
         public static string GroupStyleContextAnnotation {
@@ -3764,6 +3773,15 @@ namespace Dynamo.Wpf.Properties {
         public static string GroupStylesSaveButtonText {
             get {
                 return ResourceManager.GetString("GroupStylesSaveButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unconnected.
+        /// </summary>
+        public static string GroupUnconnectedOutportsText {
+            get {
+                return ResourceManager.GetString("GroupUnconnectedOutportsText", resourceCulture);
             }
         }
         

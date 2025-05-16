@@ -967,7 +967,7 @@ namespace Dynamo.ViewModels
         /// </summary>
         /// <param name="workspace"></param>
         /// <param name="port"></param>
-        public ConnectorViewModel(WorkspaceViewModel workspace, PortModel port)
+        public ConnectorViewModel(WorkspaceViewModel workspace, PortModel port) // this executes when the start is connected
         {
             this.workspaceViewModel = workspace;
             ConnectorPinViewCollection = new ObservableCollection<ConnectorPinViewModel>();
@@ -1003,7 +1003,7 @@ namespace Dynamo.ViewModels
         /// </summary>
         /// <param name="workspace"></param>
         /// <param name="connectorModel"></param>
-        public ConnectorViewModel(WorkspaceViewModel workspace, ConnectorModel connectorModel)
+        public ConnectorViewModel(WorkspaceViewModel workspace, ConnectorModel connectorModel) // this executes when the end is connected
         {
             this.workspaceViewModel = workspace;
             model = connectorModel;
