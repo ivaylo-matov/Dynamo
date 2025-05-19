@@ -522,10 +522,6 @@ namespace Dynamo.Graph.Annotations
             var noteModels = notes as NoteModel[] ?? notes.ToArray();
             var groupModels = groups as AnnotationModel[] ?? groups.ToArray();
 
-
-            // ip code
-            var c1 = Width;
-
             DeletedModelBases = new List<ModelBase>();
             this.Nodes = nodeModels
                 .Concat(noteModels.Cast<ModelBase>())
