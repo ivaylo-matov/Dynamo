@@ -444,6 +444,63 @@ namespace Dynamo.Graph.Annotations
             }
         }
 
+        private bool areOptionalInPortsVisible;
+        /// <summary>
+        /// Indicates whether optional input ports were manually expanded or collapsed when the graph was last saved.
+        /// Used only for serialization.
+        /// </summary>
+        public bool AreOptionalInPortsVisible
+        {
+            get => areOptionalInPortsVisible;
+            set
+            {
+                areOptionalInPortsVisible = value;
+            }
+        }
+
+        private bool areUnconnectedOutPortsVisible;
+        /// <summary>
+        /// Indicates whether unconnected output ports were manually expanded or collapsed when the graph was last saved.
+        /// Used only for serialization.
+        /// </summary>
+        public bool AreUnconnectedOutPortsVisible
+        {
+            get => areUnconnectedOutPortsVisible;
+            set
+            {
+                areUnconnectedOutPortsVisible = value;
+            }
+
+        }
+
+        private bool hasManualOptionalInPortsToggle;
+        /// <summary>
+        /// Indicates whether the user manually toggled the visibility of optional input ports.
+        /// If true, this overrides the global preference setting.
+        /// </summary>
+        public bool HasManualOptionalInPortsToggle
+        {
+            get => hasManualOptionalInPortsToggle;
+            set
+            {
+                hasManualOptionalInPortsToggle = value;
+            }
+        }
+
+        private bool hasManualUnconnectedOutPortsToggle;
+        /// <summary>
+        /// Indicates whether the user manually toggled the visibility of unconnected output ports.
+        /// If true, this overrides the global preference setting.
+        /// </summary>
+        public bool HasManualUnconnectedOutPortsToggle
+        {
+            get => hasManualUnconnectedOutPortsToggle;
+            set
+            {
+                hasManualUnconnectedOutPortsToggle = value;
+            }
+        }
+
         #endregion
 
         /// <summary>
@@ -757,9 +814,13 @@ namespace Dynamo.Graph.Annotations
             helper.SetAttribute("backgrouund", (this.Background == null ? "" : this.Background.ToString()));
             helper.SetAttribute(nameof(IsSelected), IsSelected);
             helper.SetAttribute(nameof(IsExpanded), this.IsExpanded);
+            helper.SetAttribute(nameof(AreOptionalInPortsVisible), this.AreOptionalInPortsVisible);
+            helper.SetAttribute(nameof(AreUnconnectedOutPortsVisible), this.AreUnconnectedOutPortsVisible);
+            helper.SetAttribute(nameof(HasManualOptionalInPortsToggle), this.HasManualOptionalInPortsToggle);
+            helper.SetAttribute(nameof(HasManualUnconnectedOutPortsToggle), this.HasManualUnconnectedOutPortsToggle);
 
             //Serialize Selected models
-            XmlDocument xmlDoc = element.OwnerDocument;            
+                XmlDocument xmlDoc = element.OwnerDocument;            
             foreach (var guids in this.Nodes.Select(x => x.GUID))
             {
                 if (xmlDoc != null)
@@ -790,6 +851,10 @@ namespace Dynamo.Graph.Annotations
             this.InitialHeight = helper.ReadDouble("InitialHeight", DoubleValue);
             this.IsSelected = helper.ReadBoolean(nameof(IsSelected), false);
             this.IsExpanded = helper.ReadBoolean(nameof(IsExpanded), true);
+            this.AreOptionalInPortsVisible = helper.ReadBoolean(nameof(AreOptionalInPortsVisible), true);
+            this.AreUnconnectedOutPortsVisible = helper.ReadBoolean(nameof(AreUnconnectedOutPortsVisible), true);
+            this.HasManualOptionalInPortsToggle = helper.ReadBoolean(nameof(HasManualOptionalInPortsToggle), false);
+            this.HasManualUnconnectedOutPortsToggle = helper.ReadBoolean(nameof(HasManualUnconnectedOutPortsToggle), false);
 
             if (IsSelected)
                 DynamoSelection.Instance.Selection.Add(this);
@@ -835,6 +900,8 @@ namespace Dynamo.Graph.Annotations
             RaisePropertyChanged(nameof(AnnotationText));
             RaisePropertyChanged(nameof(Nodes));
             RaisePropertyChanged(nameof(IsExpanded));
+            RaisePropertyChanged(nameof(AreOptionalInPortsVisible));
+            RaisePropertyChanged(nameof(AreUnconnectedOutPortsVisible));
             this.ReportPosition();
         }
 

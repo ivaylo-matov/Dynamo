@@ -144,6 +144,12 @@ namespace Dynamo.Graph.Workspaces
         public double WidthAdjustment;
         public double HeightAdjustment;
 
+
+        public bool AreOptionalInPortsVisible;
+        public bool AreUnconnectedOutPortsVisible;
+        public bool HasManualOptionalInPortsToggle;
+        public bool HasManualUnconnectedOutPortsToggle;
+
         // TODO, Determine if these are required
         public double Left;
         public double Top;
@@ -171,7 +177,11 @@ namespace Dynamo.Graph.Workspaces
                 this.GroupStyleId == other.GroupStyleId &&
                 this.Background == other.Background &&
                 this.WidthAdjustment == other.WidthAdjustment &&
-                this.HeightAdjustment == other.HeightAdjustment;
+                this.HeightAdjustment == other.HeightAdjustment &&
+                this.AreOptionalInPortsVisible == other.AreOptionalInPortsVisible &&
+                this.AreUnconnectedOutPortsVisible == other.AreUnconnectedOutPortsVisible &&
+                this.HasManualOptionalInPortsToggle == other.HasManualOptionalInPortsToggle &&
+                this.HasManualUnconnectedOutPortsToggle == other.HasManualUnconnectedOutPortsToggle;
 
             //TODO try to get rid of these if possible
             //needs investigation if we are okay letting them get 
@@ -2703,6 +2713,16 @@ namespace Dynamo.Graph.Workspaces
             annotationModel.GUID = annotationGuidValue;
             annotationModel.HeightAdjustment = annotationViewInfo.HeightAdjustment;
             annotationModel.WidthAdjustment = annotationViewInfo.WidthAdjustment;
+
+
+
+
+            annotationModel.AreOptionalInPortsVisible = annotationViewInfo.AreOptionalInPortsVisible;
+            annotationModel.AreUnconnectedOutPortsVisible = annotationViewInfo.AreUnconnectedOutPortsVisible;
+            annotationModel.HasManualOptionalInPortsToggle = annotationViewInfo.HasManualOptionalInPortsToggle;
+            annotationModel.HasManualUnconnectedOutPortsToggle = annotationViewInfo.HasManualUnconnectedOutPortsToggle;
+
+
             annotationModel.UpdateGroupFrozenStatus();
 
             annotationModel.ModelBaseRequested += annotationModel_GetModelBase;

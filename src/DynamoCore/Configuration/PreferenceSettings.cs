@@ -80,6 +80,8 @@ namespace Dynamo.Configuration
         private string backupLocation;
         private string templateFilePath;
         private bool isMLAutocompleteTOUApproved;
+        private bool areInputPortsCollapsed;
+        private bool areOutputPortsCollapsed;
 
         #region Constants
         /// <summary>
@@ -191,14 +193,30 @@ namespace Dynamo.Configuration
         public bool ShowDefaultGroupDescription { get; set; }
 
         /// <summary>
-        /// Indicates if the optional input ports are hidden by default.
+        /// Indicates if the optional input ports are collapsed by default.
         /// </summary>
-        public bool HideOptionalInputPorts { get; set; }
+        public bool AreInputPortsCollapsed
+        {
+            get => areInputPortsCollapsed;
+            set
+            {
+                areInputPortsCollapsed = value;
+                RaisePropertyChanged(nameof(AreInputPortsCollapsed));
+            }
+        }
 
         /// <summary>
         /// Indicates if the unconnected output ports are hidden by default.
         /// </summary>
-        public bool HideUnconnectedOutputPorts { get; set; }
+        public bool AreOutputPortsCollapsed
+        {
+            get => areOutputPortsCollapsed;
+            set
+            {
+                areOutputPortsCollapsed = value;
+                RaisePropertyChanged(nameof(AreOutputPortsCollapsed));
+            }
+        }
 
         /// <summary>
         /// Indicates if Host units should be used for graphic helpers for Dynamo Revit
@@ -972,8 +990,8 @@ namespace Dynamo.Configuration
             DefaultRunType = RunType.Automatic;
             DefaultNodeAutocompleteSuggestion = NodeAutocompleteSuggestion.MLRecommendation;
             ShowDefaultGroupDescription = true;
-            HideOptionalInputPorts = false;
-            HideUnconnectedOutputPorts = false;
+            AreInputPortsCollapsed = false;
+            AreOutputPortsCollapsed = false;
 
             BackupInterval = DefaultBackupInterval;
             BackupFilesCount = 1;

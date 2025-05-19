@@ -1742,6 +1742,10 @@ Dynamo.ViewModels.AnnotationViewModel.AnnotationModel.set -> void
 Dynamo.ViewModels.AnnotationViewModel.AnnotationText.get -> string
 Dynamo.ViewModels.AnnotationViewModel.AnnotationText.set -> void
 Dynamo.ViewModels.AnnotationViewModel.AnnotationViewModel(Dynamo.ViewModels.WorkspaceViewModel workspaceViewModel, Dynamo.Graph.Annotations.AnnotationModel model) -> void
+Dynamo.ViewModels.AnnotationViewModel.AreOptionalInPortsVisible.get -> bool
+Dynamo.ViewModels.AnnotationViewModel.AreOptionalInPortsVisible.set -> void
+Dynamo.ViewModels.AnnotationViewModel.AreUnconnectedOutPortsVisible.get -> bool
+Dynamo.ViewModels.AnnotationViewModel.AreUnconnectedOutPortsVisible.set -> void
 Dynamo.ViewModels.AnnotationViewModel.Background.get -> System.Windows.Media.Color
 Dynamo.ViewModels.AnnotationViewModel.Background.set -> void
 Dynamo.ViewModels.AnnotationViewModel.ChangeFontSize.get -> Dynamo.UI.Commands.DelegateCommand
@@ -1769,6 +1773,7 @@ Dynamo.ViewModels.AnnotationViewModel.NodeContentCount.get -> int
 Dynamo.ViewModels.AnnotationViewModel.NodeHoveringState.get -> bool
 Dynamo.ViewModels.AnnotationViewModel.NodeHoveringState.set -> void
 Dynamo.ViewModels.AnnotationViewModel.Nodes.get -> System.Collections.Generic.IEnumerable<Dynamo.Graph.ModelBase>
+Dynamo.ViewModels.AnnotationViewModel.OptionalInPorts.get -> System.Collections.ObjectModel.ObservableCollection<Dynamo.ViewModels.PortViewModel>
 Dynamo.ViewModels.AnnotationViewModel.OutPorts.get -> System.Collections.ObjectModel.ObservableCollection<Dynamo.ViewModels.PortViewModel>
 Dynamo.ViewModels.AnnotationViewModel.PreviewState.get -> Dynamo.ViewModels.PreviewState
 Dynamo.ViewModels.AnnotationViewModel.RemoveGroupFromGroupCommand.get -> Dynamo.UI.Commands.DelegateCommand
@@ -1776,6 +1781,7 @@ Dynamo.ViewModels.AnnotationViewModel.ToggleIsFrozenGroupCommand.get -> Dynamo.U
 Dynamo.ViewModels.AnnotationViewModel.ToggleIsVisibleGroupCommand.get -> Dynamo.UI.Commands.DelegateCommand
 Dynamo.ViewModels.AnnotationViewModel.Top.get -> double
 Dynamo.ViewModels.AnnotationViewModel.Top.set -> void
+Dynamo.ViewModels.AnnotationViewModel.UnconnectedOutPorts.get -> System.Collections.ObjectModel.ObservableCollection<Dynamo.ViewModels.PortViewModel>
 Dynamo.ViewModels.AnnotationViewModel.Width.get -> double
 Dynamo.ViewModels.AnnotationViewModel.Width.set -> void
 Dynamo.ViewModels.AnnotationViewModel.ZIndex.get -> double
@@ -2827,10 +2833,10 @@ Dynamo.ViewModels.PreferencesViewModel.GroupStyleFontSizeList.set -> void
 Dynamo.ViewModels.PreferencesViewModel.HideAutocompleteMethodOptions.get -> bool
 Dynamo.ViewModels.PreferencesViewModel.HideNodesBelowSpecificConfidenceLevelIsChecked.get -> bool
 Dynamo.ViewModels.PreferencesViewModel.HideNodesBelowSpecificConfidenceLevelIsChecked.set -> void
-Dynamo.ViewModels.PreferencesViewModel.HideOptionalInputPorts.get -> bool
-Dynamo.ViewModels.PreferencesViewModel.HideOptionalInputPorts.set -> void
-Dynamo.ViewModels.PreferencesViewModel.HideUnconnectedOutputPorts.get -> bool
-Dynamo.ViewModels.PreferencesViewModel.HideUnconnectedOutputPorts.set -> void
+Dynamo.ViewModels.PreferencesViewModel.AreInputPortsCollapsed.get -> bool
+Dynamo.ViewModels.PreferencesViewModel.AreInputPortsCollapsed.set -> void
+Dynamo.ViewModels.PreferencesViewModel.AreOutputPortsCollapsed.get -> bool
+Dynamo.ViewModels.PreferencesViewModel.AreOutputPortsCollapsed.set -> void
 Dynamo.ViewModels.PreferencesViewModel.HostGenericScaleUnits.get -> string
 Dynamo.ViewModels.PreferencesViewModel.importSettings(string filePath) -> bool
 Dynamo.ViewModels.PreferencesViewModel.importSettingsContent(string content) -> bool

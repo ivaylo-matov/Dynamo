@@ -158,6 +158,20 @@ namespace Dynamo.Wpf.ViewModels.Core.Converters
             writer.WriteValue(anno.InitialHeight);
             writer.WritePropertyName("TextblockHeight");
             writer.WriteValue(anno.TextBlockHeight);
+
+
+            writer.WritePropertyName(nameof(anno.AreOptionalInPortsVisible));
+            writer.WriteValue(anno.AreOptionalInPortsVisible);
+            writer.WritePropertyName(nameof(anno.AreUnconnectedOutPortsVisible));
+            writer.WriteValue(anno.AreUnconnectedOutPortsVisible);
+            writer.WritePropertyName(nameof(anno.HasManualOptionalInPortsToggle));
+            writer.WriteValue(anno.HasManualOptionalInPortsToggle);
+            writer.WritePropertyName(nameof(anno.HasManualUnconnectedOutPortsToggle));
+            writer.WriteValue(anno.HasManualUnconnectedOutPortsToggle);
+
+
+
+
             writer.WritePropertyName("Background");
             writer.WriteValue(anno.Background != null ? anno.Background : "");            
             if (anno.PinnedNode != null)

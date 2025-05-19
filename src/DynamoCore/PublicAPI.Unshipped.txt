@@ -172,10 +172,10 @@ Dynamo.Configuration.PreferenceSettings.HideAutocompleteMethodOptions.get -> boo
 Dynamo.Configuration.PreferenceSettings.HideAutocompleteMethodOptions.set -> void
 Dynamo.Configuration.PreferenceSettings.HideNodesBelowSpecificConfidenceLevel.get -> bool
 Dynamo.Configuration.PreferenceSettings.HideNodesBelowSpecificConfidenceLevel.set -> void
-Dynamo.Configuration.PreferenceSettings.HideOptionalInputPorts.get -> bool
-Dynamo.Configuration.PreferenceSettings.HideOptionalInputPorts.set -> void
-Dynamo.Configuration.PreferenceSettings.HideUnconnectedOutputPorts.get -> bool
-Dynamo.Configuration.PreferenceSettings.HideUnconnectedOutputPorts.set -> void
+Dynamo.Configuration.PreferenceSettings.AreInputPortsCollapsed.get -> bool
+Dynamo.Configuration.PreferenceSettings.AreInputPortsCollapsed.set -> void
+Dynamo.Configuration.PreferenceSettings.AreOutputPortsCollapsed.get -> bool
+Dynamo.Configuration.PreferenceSettings.AreOutputPortsCollapsed.set -> void
 Dynamo.Configuration.PreferenceSettings.HomePageSettings.get -> System.Collections.Generic.List<string>
 Dynamo.Configuration.PreferenceSettings.HomePageSettings.set -> void
 Dynamo.Configuration.PreferenceSettings.IronPythonResolveTargetVersion.get -> string
@@ -690,6 +690,10 @@ Dynamo.Graph.Annotations.AnnotationModel.AnnotationModel(System.Collections.Gene
 Dynamo.Graph.Annotations.AnnotationModel.AnnotationModel(System.Collections.Generic.IEnumerable<Dynamo.Graph.Nodes.NodeModel> nodes, System.Collections.Generic.IEnumerable<Dynamo.Graph.Notes.NoteModel> notes, System.Collections.Generic.IEnumerable<Dynamo.Graph.Annotations.AnnotationModel> groups) -> void
 Dynamo.Graph.Annotations.AnnotationModel.AnnotationText.get -> string
 Dynamo.Graph.Annotations.AnnotationModel.AnnotationText.set -> void
+Dynamo.Graph.Annotations.AnnotationModel.AreOptionalInPortsVisible.get -> bool
+Dynamo.Graph.Annotations.AnnotationModel.AreOptionalInPortsVisible.set -> void
+Dynamo.Graph.Annotations.AnnotationModel.AreUnconnectedOutPortsVisible.get -> bool
+Dynamo.Graph.Annotations.AnnotationModel.AreUnconnectedOutPortsVisible.set -> void
 Dynamo.Graph.Annotations.AnnotationModel.Background.get -> string
 Dynamo.Graph.Annotations.AnnotationModel.Background.set -> void
 Dynamo.Graph.Annotations.AnnotationModel.ContainsModel(Dynamo.Graph.ModelBase modelBase) -> bool
@@ -701,6 +705,10 @@ Dynamo.Graph.Annotations.AnnotationModel.GroupBackground -> string
 Dynamo.Graph.Annotations.AnnotationModel.GroupState.get -> Dynamo.Graph.Nodes.ElementState
 Dynamo.Graph.Annotations.AnnotationModel.GroupStyleId.get -> System.Guid
 Dynamo.Graph.Annotations.AnnotationModel.GroupStyleId.set -> void
+Dynamo.Graph.Annotations.AnnotationModel.HasManualOptionalInPortsToggle.get -> bool
+Dynamo.Graph.Annotations.AnnotationModel.HasManualOptionalInPortsToggle.set -> void
+Dynamo.Graph.Annotations.AnnotationModel.HasManualUnconnectedOutPortsToggle.get -> bool
+Dynamo.Graph.Annotations.AnnotationModel.HasManualUnconnectedOutPortsToggle.set -> void
 Dynamo.Graph.Annotations.AnnotationModel.HasNestedGroups.get -> bool
 Dynamo.Graph.Annotations.AnnotationModel.HeightAdjustment.get -> double
 Dynamo.Graph.Annotations.AnnotationModel.HeightAdjustment.set -> void
@@ -1573,6 +1581,10 @@ Dynamo.Interfaces.IPreferences.GraphChecksumItemsList.get -> System.Collections.
 Dynamo.Interfaces.IPreferences.GraphChecksumItemsList.set -> void
 Dynamo.Interfaces.IPreferences.GridScaleFactor.get -> float
 Dynamo.Interfaces.IPreferences.GridScaleFactor.set -> void
+Dynamo.Interfaces.IPreferences.AreInputPortsCollapsed.get -> bool
+Dynamo.Interfaces.IPreferences.AreInputPortsCollapsed.set -> void
+Dynamo.Interfaces.IPreferences.AreOutputPortsCollapsed.get -> bool
+Dynamo.Interfaces.IPreferences.AreOutputPortsCollapsed.set -> void
 Dynamo.Interfaces.IPreferences.IsADPAnalyticsReportingApproved.get -> bool
 Dynamo.Interfaces.IPreferences.IsADPAnalyticsReportingApproved.set -> void
 Dynamo.Interfaces.IPreferences.IsBackgroundGridVisible.get -> bool

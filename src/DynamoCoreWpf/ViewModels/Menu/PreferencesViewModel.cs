@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -830,20 +831,18 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        /// Indicates if the optional input ports are hidden by default.
+        /// Indicates if the optional input ports are collapsed by default.
         /// </summary>
-        public bool HideOptionalInputPorts
+        public bool AreInputPortsCollapsed
         {
             get
             {
-                return preferenceSettings.HideOptionalInputPorts;
+                return preferenceSettings.AreInputPortsCollapsed;
             }
             set
             {
-                preferenceSettings.HideOptionalInputPorts = value;
-                RaisePropertyChanged(nameof(HideOptionalInputPorts));
-
-                //dynamoViewModel.RefreshAnnotationDescriptions();      REPLACE WITHI NEW LOGIC?
+                preferenceSettings.AreInputPortsCollapsed = value;
+                RaisePropertyChanged(nameof(AreInputPortsCollapsed));
             }
         }
 
@@ -851,18 +850,16 @@ namespace Dynamo.ViewModels
         /// <summary>
         /// Indicates if the unconnected output ports are hidden by default.
         /// </summary>
-        public bool HideUnconnectedOutputPorts
+        public bool AreOutputPortsCollapsed
         {
             get
             {
-                return preferenceSettings.HideUnconnectedOutputPorts;
+                return preferenceSettings.AreOutputPortsCollapsed;
             }
             set
             {
-                preferenceSettings.HideUnconnectedOutputPorts = value;
-                RaisePropertyChanged(nameof(HideUnconnectedOutputPorts));
-
-                //dynamoViewModel.RefreshAnnotationDescriptions();      REPLACE WITHI NEW LOGIC?
+                preferenceSettings.AreOutputPortsCollapsed = value;
+                RaisePropertyChanged(nameof(AreOutputPortsCollapsed));
             }
         }
 
@@ -1886,10 +1883,10 @@ namespace Dynamo.ViewModels
                 case nameof(ShowDefaultGroupDescription):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewShowDefaultGroupDescription), System.Globalization.CultureInfo.InvariantCulture);
                     goto default;
-                case nameof(HideOptionalInputPorts):
+                case nameof(AreInputPortsCollapsed):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewHideInportsDescription), System.Globalization.CultureInfo.InvariantCulture);
                     goto default;
-                case nameof(HideUnconnectedOutputPorts):
+                case nameof(AreOutputPortsCollapsed):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewHideOutportsDescription), System.Globalization.CultureInfo.InvariantCulture);
                     goto default;
                 case nameof(ShowCodeBlockLineNumber):

@@ -471,5 +471,25 @@ namespace Dynamo.Nodes
             // Tracking loading group style items
             Logging.Analytics.TrackEvent(Actions.Load, Categories.GroupStyleOperations, nameof(GroupStyleItem) + "s");
         }
+
+        private void OptionalPortsToggle_Click(object sender, RoutedEventArgs e)
+        {
+            // Mark it as manually changed by user
+            if (!ViewModel.AnnotationModel.HasManualOptionalInPortsToggle)
+            {
+                ViewModel.AnnotationModel.HasManualOptionalInPortsToggle = true;
+                //ViewModel.AnnotationModel.AreUnconnectedOutPortsVisible = ViewModel.AreUnconnectedOutPortsVisible;
+            }
+        }
+
+        private void UnconnectedPortsToggle_Click(object sender, RoutedEventArgs e)
+        {
+            // Mark it as manually changed by user
+            if (!ViewModel.AnnotationModel.HasManualUnconnectedOutPortsToggle)
+            {
+                ViewModel.AnnotationModel.HasManualUnconnectedOutPortsToggle = true;
+                //ViewModel.AnnotationModel.AreUnconnectedOutPortsVisible = ViewModel.AreUnconnectedOutPortsVisible;
+            }
+        }
     }
 }

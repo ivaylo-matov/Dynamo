@@ -3903,9 +3903,11 @@ namespace Dynamo.Controls
             var lightColor = (System.Windows.Media.Color)SharedDictionaryManager.DynamoColorsAndBrushesDictionary["WhiteColor"];
             var darkColor = (System.Windows.Media.Color)SharedDictionaryManager.DynamoColorsAndBrushesDictionary["DarkerGrey"];
             // Port toggle colors
-            var lightToggleColor = (System.Windows.Media.Color)SharedDictionaryManager.DynamoColorsAndBrushesDictionary["Blue350"];
-            var darkToggleColor = (System.Windows.Media.Color)SharedDictionaryManager.DynamoColorsAndBrushesDictionary["Blue450"];
-            // Resize thumb colors .....
+            var lightColorToggle = (System.Windows.Media.Color)SharedDictionaryManager.DynamoColorsAndBrushesDictionary["Blue350"];
+            var darkColorToggle = (System.Windows.Media.Color)SharedDictionaryManager.DynamoColorsAndBrushesDictionary["Blue450"];
+            // Resize thumb colors
+            var lightColorThumb = (System.Windows.Media.Color)SharedDictionaryManager.DynamoColorsAndBrushesDictionary["WhiteColor"];
+            var darkColorThumb = (System.Windows.Media.Color)SharedDictionaryManager.DynamoColorsAndBrushesDictionary["MidGrey"];
 
             var backgroundColor = (System.Windows.Media.Color)value;
             var contrastRatio = GetContrastRatio(darkColor, backgroundColor);
@@ -3916,12 +3918,12 @@ namespace Dynamo.Controls
                 switch (scheme)
                 {
                     case "groupPortToggle":
-                        lightColor = lightToggleColor;
-                        darkColor = darkToggleColor;
+                        lightColor = lightColorToggle;
+                        darkColor = darkColorToggle;
                         break;
                     case "resizeThumb":
-                        lightColor = Colors.Yellow;
-                        darkColor = Colors.Brown;
+                        lightColor = lightColorThumb;
+                        darkColor = darkColorThumb;
                         break;
                 }
             }
@@ -4314,21 +4316,4 @@ namespace Dynamo.Controls
             return Binding.DoNothing;
         }
     }
-
-
-    // REGISTER IN API?
-    public class BooleanToAngleConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            var c = (bool)value;
-            Debug.WriteLine($"Value : {c}");
-            return (bool)value ? 180 : 0; // 180° = up, 0° = down
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => Binding.DoNothing;
-    }
-
-
 }

@@ -26,6 +26,16 @@ namespace Dynamo.Interfaces
         public bool ShowDefaultGroupDescription { get; set; }
 
         /// <summary>
+        /// Indicates if the optional input ports are hidden by default.
+        /// </summary>
+        public bool AreInputPortsCollapsed { get; set; }
+
+        /// <summary>
+        /// Indicates if the unconnected output ports are hidden by default.
+        /// </summary>
+        public bool AreOutputPortsCollapsed { get; set; }
+
+        /// <summary>
         /// Returns height of console
         /// </summary>
         int ConsoleHeight { get; set; }
