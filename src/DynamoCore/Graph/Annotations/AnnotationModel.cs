@@ -444,60 +444,60 @@ namespace Dynamo.Graph.Annotations
             }
         }
 
-        private bool areOptionalInPortsVisible;
+        private bool isOptionalInportsCollapsed;
         /// <summary>
         /// Indicates whether optional input ports were manually expanded or collapsed when the graph was last saved.
         /// Used only for serialization.
         /// </summary>
-        public bool AreOptionalInPortsVisible
+        public bool IsOptionalInportsCollapsed
         {
-            get => areOptionalInPortsVisible;
+            get => isOptionalInportsCollapsed;
             set
             {
-                areOptionalInPortsVisible = value;
+                isOptionalInportsCollapsed = value;
             }
         }
 
-        private bool areUnconnectedOutPortsVisible;
+        private bool isUnconnectedOutportsCollapsed;
         /// <summary>
         /// Indicates whether unconnected output ports were manually expanded or collapsed when the graph was last saved.
         /// Used only for serialization.
         /// </summary>
-        public bool AreUnconnectedOutPortsVisible
+        public bool IsUnconnectedOutportsCollapsed
         {
-            get => areUnconnectedOutPortsVisible;
+            get => isUnconnectedOutportsCollapsed;
             set
             {
-                areUnconnectedOutPortsVisible = value;
+                isUnconnectedOutportsCollapsed = value;
             }
 
         }
 
-        private bool hasManualOptionalInPortsToggle;
+        private bool hasToggledOptionalInports;
         /// <summary>
         /// Indicates whether the user manually toggled the visibility of optional input ports.
         /// If true, this overrides the global preference setting.
         /// </summary>
-        public bool HasManualOptionalInPortsToggle
+        public bool HasToggledOptionalInports
         {
-            get => hasManualOptionalInPortsToggle;
+            get => hasToggledOptionalInports;
             set
             {
-                hasManualOptionalInPortsToggle = value;
+                hasToggledOptionalInports = value;
             }
         }
 
-        private bool hasManualUnconnectedOutPortsToggle;
+        private bool hasToggledUnconnectedOutports;
         /// <summary>
         /// Indicates whether the user manually toggled the visibility of unconnected output ports.
         /// If true, this overrides the global preference setting.
         /// </summary>
-        public bool HasManualUnconnectedOutPortsToggle
+        public bool HasToggledUnconnectedOutports
         {
-            get => hasManualUnconnectedOutPortsToggle;
+            get => hasToggledUnconnectedOutports;
             set
             {
-                hasManualUnconnectedOutPortsToggle = value;
+                hasToggledUnconnectedOutports = value;
             }
         }
 
@@ -521,6 +521,10 @@ namespace Dynamo.Graph.Annotations
             var nodeModels = nodes as NodeModel[] ?? nodes.ToArray();
             var noteModels = notes as NoteModel[] ?? notes.ToArray();
             var groupModels = groups as AnnotationModel[] ?? groups.ToArray();
+
+
+            // ip code
+            var c1 = Width;
 
             DeletedModelBases = new List<ModelBase>();
             this.Nodes = nodeModels
@@ -814,13 +818,13 @@ namespace Dynamo.Graph.Annotations
             helper.SetAttribute("backgrouund", (this.Background == null ? "" : this.Background.ToString()));
             helper.SetAttribute(nameof(IsSelected), IsSelected);
             helper.SetAttribute(nameof(IsExpanded), this.IsExpanded);
-            helper.SetAttribute(nameof(AreOptionalInPortsVisible), this.AreOptionalInPortsVisible);
-            helper.SetAttribute(nameof(AreUnconnectedOutPortsVisible), this.AreUnconnectedOutPortsVisible);
-            helper.SetAttribute(nameof(HasManualOptionalInPortsToggle), this.HasManualOptionalInPortsToggle);
-            helper.SetAttribute(nameof(HasManualUnconnectedOutPortsToggle), this.HasManualUnconnectedOutPortsToggle);
+            helper.SetAttribute(nameof(IsOptionalInportsCollapsed), this.IsOptionalInportsCollapsed);
+            helper.SetAttribute(nameof(IsUnconnectedOutportsCollapsed), this.IsUnconnectedOutportsCollapsed);
+            helper.SetAttribute(nameof(HasToggledOptionalInports), this.HasToggledOptionalInports);
+            helper.SetAttribute(nameof(HasToggledUnconnectedOutports), this.HasToggledUnconnectedOutports);
 
             //Serialize Selected models
-                XmlDocument xmlDoc = element.OwnerDocument;            
+            XmlDocument xmlDoc = element.OwnerDocument;            
             foreach (var guids in this.Nodes.Select(x => x.GUID))
             {
                 if (xmlDoc != null)
@@ -851,10 +855,10 @@ namespace Dynamo.Graph.Annotations
             this.InitialHeight = helper.ReadDouble("InitialHeight", DoubleValue);
             this.IsSelected = helper.ReadBoolean(nameof(IsSelected), false);
             this.IsExpanded = helper.ReadBoolean(nameof(IsExpanded), true);
-            this.AreOptionalInPortsVisible = helper.ReadBoolean(nameof(AreOptionalInPortsVisible), true);
-            this.AreUnconnectedOutPortsVisible = helper.ReadBoolean(nameof(AreUnconnectedOutPortsVisible), true);
-            this.HasManualOptionalInPortsToggle = helper.ReadBoolean(nameof(HasManualOptionalInPortsToggle), false);
-            this.HasManualUnconnectedOutPortsToggle = helper.ReadBoolean(nameof(HasManualUnconnectedOutPortsToggle), false);
+            this.IsOptionalInportsCollapsed = helper.ReadBoolean(nameof(IsOptionalInportsCollapsed), true);
+            this.IsUnconnectedOutportsCollapsed = helper.ReadBoolean(nameof(IsUnconnectedOutportsCollapsed), true);
+            this.HasToggledOptionalInports = helper.ReadBoolean(nameof(HasToggledOptionalInports), false);
+            this.HasToggledUnconnectedOutports = helper.ReadBoolean(nameof(HasToggledUnconnectedOutports), false);
 
             if (IsSelected)
                 DynamoSelection.Instance.Selection.Add(this);
@@ -900,8 +904,8 @@ namespace Dynamo.Graph.Annotations
             RaisePropertyChanged(nameof(AnnotationText));
             RaisePropertyChanged(nameof(Nodes));
             RaisePropertyChanged(nameof(IsExpanded));
-            RaisePropertyChanged(nameof(AreOptionalInPortsVisible));
-            RaisePropertyChanged(nameof(AreUnconnectedOutPortsVisible));
+            RaisePropertyChanged(nameof(IsOptionalInportsCollapsed));
+            RaisePropertyChanged(nameof(IsUnconnectedOutportsCollapsed));
             this.ReportPosition();
         }
 

@@ -160,14 +160,14 @@ namespace Dynamo.Wpf.ViewModels.Core.Converters
             writer.WriteValue(anno.TextBlockHeight);
 
 
-            writer.WritePropertyName(nameof(anno.AreOptionalInPortsVisible));
-            writer.WriteValue(anno.AreOptionalInPortsVisible);
-            writer.WritePropertyName(nameof(anno.AreUnconnectedOutPortsVisible));
-            writer.WriteValue(anno.AreUnconnectedOutPortsVisible);
-            writer.WritePropertyName(nameof(anno.HasManualOptionalInPortsToggle));
-            writer.WriteValue(anno.HasManualOptionalInPortsToggle);
-            writer.WritePropertyName(nameof(anno.HasManualUnconnectedOutPortsToggle));
-            writer.WriteValue(anno.HasManualUnconnectedOutPortsToggle);
+            writer.WritePropertyName(nameof(anno.IsOptionalInportsCollapsed));
+            writer.WriteValue(anno.IsOptionalInportsCollapsed);
+            writer.WritePropertyName(nameof(anno.IsUnconnectedOutportsCollapsed));
+            writer.WriteValue(anno.IsUnconnectedOutportsCollapsed);
+            writer.WritePropertyName(nameof(anno.HasToggledOptionalInports));
+            writer.WriteValue(anno.HasToggledOptionalInports);
+            writer.WritePropertyName(nameof(anno.HasToggledUnconnectedOutports));
+            writer.WriteValue(anno.HasToggledUnconnectedOutports);
 
 
 

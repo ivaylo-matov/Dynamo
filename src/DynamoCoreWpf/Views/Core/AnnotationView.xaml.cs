@@ -475,20 +475,18 @@ namespace Dynamo.Nodes
         private void OptionalPortsToggle_Click(object sender, RoutedEventArgs e)
         {
             // Mark it as manually changed by user
-            if (!ViewModel.AnnotationModel.HasManualOptionalInPortsToggle)
+            if (!ViewModel.AnnotationModel.HasToggledOptionalInports)
             {
-                ViewModel.AnnotationModel.HasManualOptionalInPortsToggle = true;
-                //ViewModel.AnnotationModel.AreUnconnectedOutPortsVisible = ViewModel.AreUnconnectedOutPortsVisible;
+                ViewModel.AnnotationModel.HasToggledOptionalInports = true;
             }
         }
 
         private void UnconnectedPortsToggle_Click(object sender, RoutedEventArgs e)
         {
             // Mark it as manually changed by user
-            if (!ViewModel.AnnotationModel.HasManualUnconnectedOutPortsToggle)
+            if (!ViewModel.AnnotationModel.HasToggledUnconnectedOutports)
             {
-                ViewModel.AnnotationModel.HasManualUnconnectedOutPortsToggle = true;
-                //ViewModel.AnnotationModel.AreUnconnectedOutPortsVisible = ViewModel.AreUnconnectedOutPortsVisible;
+                ViewModel.AnnotationModel.HasToggledUnconnectedOutports = true;
             }
         }
     }

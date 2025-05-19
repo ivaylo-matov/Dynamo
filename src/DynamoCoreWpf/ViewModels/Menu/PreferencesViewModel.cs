@@ -833,16 +833,16 @@ namespace Dynamo.ViewModels
         /// <summary>
         /// Indicates if the optional input ports are collapsed by default.
         /// </summary>
-        public bool AreInputPortsCollapsed
+        public bool OptionalInputsCollapsed
         {
             get
             {
-                return preferenceSettings.AreInputPortsCollapsed;
+                return preferenceSettings.OptionalInputsCollapsed;
             }
             set
             {
-                preferenceSettings.AreInputPortsCollapsed = value;
-                RaisePropertyChanged(nameof(AreInputPortsCollapsed));
+                preferenceSettings.OptionalInputsCollapsed = value;
+                RaisePropertyChanged(nameof(OptionalInputsCollapsed));
             }
         }
 
@@ -850,16 +850,16 @@ namespace Dynamo.ViewModels
         /// <summary>
         /// Indicates if the unconnected output ports are hidden by default.
         /// </summary>
-        public bool AreOutputPortsCollapsed
+        public bool UnconnectedOutputsCollapsed
         {
             get
             {
-                return preferenceSettings.AreOutputPortsCollapsed;
+                return preferenceSettings.UnconnectedOutputsCollapsed;
             }
             set
             {
-                preferenceSettings.AreOutputPortsCollapsed = value;
-                RaisePropertyChanged(nameof(AreOutputPortsCollapsed));
+                preferenceSettings.UnconnectedOutputsCollapsed = value;
+                RaisePropertyChanged(nameof(UnconnectedOutputsCollapsed));
             }
         }
 
@@ -1883,10 +1883,10 @@ namespace Dynamo.ViewModels
                 case nameof(ShowDefaultGroupDescription):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewShowDefaultGroupDescription), System.Globalization.CultureInfo.InvariantCulture);
                     goto default;
-                case nameof(AreInputPortsCollapsed):
+                case nameof(OptionalInputsCollapsed):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewHideInportsDescription), System.Globalization.CultureInfo.InvariantCulture);
                     goto default;
-                case nameof(AreOutputPortsCollapsed):
+                case nameof(UnconnectedOutputsCollapsed):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewHideOutportsDescription), System.Globalization.CultureInfo.InvariantCulture);
                     goto default;
                 case nameof(ShowCodeBlockLineNumber):

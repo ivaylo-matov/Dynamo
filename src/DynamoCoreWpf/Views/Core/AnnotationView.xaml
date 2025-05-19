@@ -1049,7 +1049,7 @@
                         Margin="5,0,-20,0"
                         HorizontalAlignment="Left"
                         Content="{x:Static p:Resources.GroupOptionalInportsText}"
-                        IsChecked="{Binding AreOptionalInPortsVisible, Mode=TwoWay}"
+                        IsChecked="{Binding IsOptionalInportsCollapsed, Mode=TwoWay}"
                         Tag="{Binding OptionalInPorts.Count}" Click="OptionalPortsToggle_Click">
                         <ToggleButton.Style>
                             <Style BasedOn="{StaticResource BaseCollapsedPortToggleStyle}" TargetType="ToggleButton">
@@ -1073,7 +1073,7 @@
                             <Style TargetType="ItemsControl">
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding AreOptionalInPortsVisible}" Value="True">
+                                    <DataTrigger Binding="{Binding IsOptionalInportsCollapsed}" Value="False">
                                         <Setter Property="Visibility" Value="Visible" />
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -1106,7 +1106,7 @@
                         Margin="0,0,5,0"
                         HorizontalAlignment="Right"
                         Content="{x:Static p:Resources.GroupUnconnectedOutportsText}"
-                        IsChecked="{Binding AreUnconnectedOutPortsVisible, Mode=TwoWay}"
+                        IsChecked="{Binding IsUnconnectedOutportsCollapsed, Mode=TwoWay}"
                         Tag="{Binding UnconnectedOutPorts.Count}" Click="UnconnectedPortsToggle_Click">
                         <ToggleButton.Style>
                             <Style BasedOn="{StaticResource BaseCollapsedPortToggleStyle}" TargetType="ToggleButton">
@@ -1130,7 +1130,7 @@
                             <Style TargetType="ItemsControl">
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding AreUnconnectedOutPortsVisible}" Value="True">
+                                    <DataTrigger Binding="{Binding IsUnconnectedOutportsCollapsed}" Value="False">
                                         <Setter Property="Visibility" Value="Visible" />
                                     </DataTrigger>
                                 </Style.Triggers>

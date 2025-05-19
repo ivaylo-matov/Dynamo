@@ -80,8 +80,8 @@ namespace Dynamo.Configuration
         private string backupLocation;
         private string templateFilePath;
         private bool isMLAutocompleteTOUApproved;
-        private bool areInputPortsCollapsed;
-        private bool areOutputPortsCollapsed;
+        private bool optionalInputsCollapsed;
+        private bool unconnectedOutputsCollapsed;
 
         #region Constants
         /// <summary>
@@ -195,26 +195,26 @@ namespace Dynamo.Configuration
         /// <summary>
         /// Indicates if the optional input ports are collapsed by default.
         /// </summary>
-        public bool AreInputPortsCollapsed
+        public bool OptionalInputsCollapsed
         {
-            get => areInputPortsCollapsed;
+            get => optionalInputsCollapsed;
             set
             {
-                areInputPortsCollapsed = value;
-                RaisePropertyChanged(nameof(AreInputPortsCollapsed));
+                optionalInputsCollapsed = value;
+                RaisePropertyChanged(nameof(OptionalInputsCollapsed));
             }
         }
 
         /// <summary>
         /// Indicates if the unconnected output ports are hidden by default.
         /// </summary>
-        public bool AreOutputPortsCollapsed
+        public bool UnconnectedOutputsCollapsed
         {
-            get => areOutputPortsCollapsed;
+            get => unconnectedOutputsCollapsed;
             set
             {
-                areOutputPortsCollapsed = value;
-                RaisePropertyChanged(nameof(AreOutputPortsCollapsed));
+                unconnectedOutputsCollapsed = value;
+                RaisePropertyChanged(nameof(UnconnectedOutputsCollapsed));
             }
         }
 
@@ -990,8 +990,8 @@ namespace Dynamo.Configuration
             DefaultRunType = RunType.Automatic;
             DefaultNodeAutocompleteSuggestion = NodeAutocompleteSuggestion.MLRecommendation;
             ShowDefaultGroupDescription = true;
-            AreInputPortsCollapsed = false;
-            AreOutputPortsCollapsed = false;
+            OptionalInputsCollapsed = false;
+            UnconnectedOutputsCollapsed = false;
 
             BackupInterval = DefaultBackupInterval;
             BackupFilesCount = 1;

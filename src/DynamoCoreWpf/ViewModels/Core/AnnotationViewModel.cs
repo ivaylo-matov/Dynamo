@@ -283,36 +283,34 @@ namespace Dynamo.ViewModels
             }
         }
 
-        private bool areOptionalInPortsVisible = true;
+        private bool isOptionalInportsCollapsed;
         /// <summary>
         /// Controls visibility of optional input ports in the group.
         /// </summary>
         [JsonIgnore]
-        public bool AreOptionalInPortsVisible
+        public bool IsOptionalInportsCollapsed
         {
-            get => areOptionalInPortsVisible;
+            get => isOptionalInportsCollapsed;
             set
             {
-                areOptionalInPortsVisible = value;
-                //annotationModel.HasManualOptionalInPortsToggle = true;
-                annotationModel.AreOptionalInPortsVisible = value;
-                RaisePropertyChanged(nameof(AreOptionalInPortsVisible));
+                isOptionalInportsCollapsed = value;
+                annotationModel.IsOptionalInportsCollapsed = value;
+                RaisePropertyChanged(nameof(IsOptionalInportsCollapsed));
             }
         }
 
-        private bool areUnconnectedOutPortsVisible = true;
+        private bool isUnconnectedOutportsCollapsed = true;
         /// <summary>
         /// Controls visibility of unconnected output ports in the group.
         /// </summary>
-        public bool AreUnconnectedOutPortsVisible
+        public bool IsUnconnectedOutportsCollapsed
         {
-            get => areUnconnectedOutPortsVisible;
+            get => isUnconnectedOutportsCollapsed;
             set
             {
-                areUnconnectedOutPortsVisible = value;
-                //annotationModel.HasManualUnconnectedOutPortsToggle = true;
-                annotationModel.AreUnconnectedOutPortsVisible = value;
-                RaisePropertyChanged(nameof(AreUnconnectedOutPortsVisible));
+                isUnconnectedOutportsCollapsed = value;
+                annotationModel.IsUnconnectedOutportsCollapsed = value;
+                RaisePropertyChanged(nameof(IsUnconnectedOutportsCollapsed));
             }
         }
 
@@ -684,18 +682,21 @@ namespace Dynamo.ViewModels
 
         public AnnotationViewModel(WorkspaceViewModel workspaceViewModel, AnnotationModel model)
         {
+            var c1 = Width;
+
             annotationModel = model;
 
             this.WorkspaceViewModel = workspaceViewModel;
             this.preferenceSettings = WorkspaceViewModel.DynamoViewModel.PreferenceSettings;
             preferenceSettings.PropertyChanged += OnPreferenceChanged;
-            AreOptionalInPortsVisible = annotationModel.HasManualOptionalInPortsToggle
-                ? annotationModel.AreOptionalInPortsVisible
-                : !preferenceSettings.AreInputPortsCollapsed;
 
-            AreUnconnectedOutPortsVisible = annotationModel.HasManualUnconnectedOutPortsToggle
-                ? annotationModel.AreUnconnectedOutPortsVisible
-                : !preferenceSettings.AreOutputPortsCollapsed;
+            IsOptionalInportsCollapsed = annotationModel.HasToggledOptionalInports
+                ? annotationModel.IsOptionalInportsCollapsed
+                : preferenceSettings.OptionalInputsCollapsed;
+
+            IsUnconnectedOutportsCollapsed = annotationModel.HasToggledUnconnectedOutports
+                ? annotationModel.IsUnconnectedOutportsCollapsed
+                : preferenceSettings.UnconnectedOutputsCollapsed;
 
             model.PropertyChanged += model_PropertyChanged;
             model.RemovedFromGroup += OnModelRemovedFromGroup;
@@ -747,18 +748,18 @@ namespace Dynamo.ViewModels
 
         private void OnPreferenceChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(IPreferences.AreInputPortsCollapsed))
+            if (e.PropertyName == nameof(IPreferences.OptionalInputsCollapsed))
             {
-                if (!annotationModel.HasManualOptionalInPortsToggle)
+                if (!annotationModel.HasToggledOptionalInports)
                 {
-                    AreOptionalInPortsVisible = !preferenceSettings.AreInputPortsCollapsed;
+                    IsOptionalInportsCollapsed = preferenceSettings.OptionalInputsCollapsed;
                 }                
             }
-            else if (e.PropertyName == nameof(IPreferences.AreOutputPortsCollapsed))
+            else if (e.PropertyName == nameof(IPreferences.UnconnectedOutputsCollapsed))
             {
-                if (!annotationModel.HasManualUnconnectedOutPortsToggle)
+                if (!annotationModel.HasToggledUnconnectedOutports)
                 {
-                    AreUnconnectedOutPortsVisible = !preferenceSettings.AreOutputPortsCollapsed;
+                    IsUnconnectedOutportsCollapsed = preferenceSettings.UnconnectedOutputsCollapsed;
                 }
             }
         }

@@ -3354,10 +3354,10 @@ namespace Dynamo.Models
                 GroupStyleId = model.GroupStyleId,
 
 
-                AreOptionalInPortsVisible = model.AreOptionalInPortsVisible,
-                AreUnconnectedOutPortsVisible = model.AreUnconnectedOutPortsVisible,
-                HasManualOptionalInPortsToggle = model.HasManualOptionalInPortsToggle,
-                HasManualUnconnectedOutPortsToggle = model.HasManualUnconnectedOutPortsToggle,
+                IsOptionalInportsCollapsed = model.IsOptionalInportsCollapsed,
+                IsUnconnectedOutportsCollapsed = model.IsUnconnectedOutportsCollapsed,
+                HasToggledOptionalInports = model.HasToggledOptionalInports,
+                HasToggledUnconnectedOutports = model.HasToggledUnconnectedOutports,
             };
 
             modelLookup.Add(model.GUID, annotationModel);

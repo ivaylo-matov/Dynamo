@@ -145,10 +145,10 @@ namespace Dynamo.Graph.Workspaces
         public double HeightAdjustment;
 
 
-        public bool AreOptionalInPortsVisible;
-        public bool AreUnconnectedOutPortsVisible;
-        public bool HasManualOptionalInPortsToggle;
-        public bool HasManualUnconnectedOutPortsToggle;
+        public bool IsOptionalInportsCollapsed;
+        public bool IsUnconnectedOutportsCollapsed;
+        public bool hasToggledOptionalInports;
+        public bool HasToggledUnconnectedOutports;
 
         // TODO, Determine if these are required
         public double Left;
@@ -178,10 +178,10 @@ namespace Dynamo.Graph.Workspaces
                 this.Background == other.Background &&
                 this.WidthAdjustment == other.WidthAdjustment &&
                 this.HeightAdjustment == other.HeightAdjustment &&
-                this.AreOptionalInPortsVisible == other.AreOptionalInPortsVisible &&
-                this.AreUnconnectedOutPortsVisible == other.AreUnconnectedOutPortsVisible &&
-                this.HasManualOptionalInPortsToggle == other.HasManualOptionalInPortsToggle &&
-                this.HasManualUnconnectedOutPortsToggle == other.HasManualUnconnectedOutPortsToggle;
+                this.IsOptionalInportsCollapsed == other.IsOptionalInportsCollapsed &&
+                this.IsUnconnectedOutportsCollapsed == other.IsUnconnectedOutportsCollapsed &&
+                this.hasToggledOptionalInports == other.hasToggledOptionalInports &&
+                this.HasToggledUnconnectedOutports == other.HasToggledUnconnectedOutports;
 
             //TODO try to get rid of these if possible
             //needs investigation if we are okay letting them get 
@@ -2717,10 +2717,10 @@ namespace Dynamo.Graph.Workspaces
 
 
 
-            annotationModel.AreOptionalInPortsVisible = annotationViewInfo.AreOptionalInPortsVisible;
-            annotationModel.AreUnconnectedOutPortsVisible = annotationViewInfo.AreUnconnectedOutPortsVisible;
-            annotationModel.HasManualOptionalInPortsToggle = annotationViewInfo.HasManualOptionalInPortsToggle;
-            annotationModel.HasManualUnconnectedOutPortsToggle = annotationViewInfo.HasManualUnconnectedOutPortsToggle;
+            annotationModel.IsOptionalInportsCollapsed = annotationViewInfo.IsOptionalInportsCollapsed;
+            annotationModel.IsUnconnectedOutportsCollapsed = annotationViewInfo.IsUnconnectedOutportsCollapsed;
+            annotationModel.HasToggledOptionalInports = annotationViewInfo.hasToggledOptionalInports;
+            annotationModel.HasToggledUnconnectedOutports = annotationViewInfo.HasToggledUnconnectedOutports;
 
 
             annotationModel.UpdateGroupFrozenStatus();

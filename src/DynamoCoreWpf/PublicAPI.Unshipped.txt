@@ -1742,10 +1742,10 @@ Dynamo.ViewModels.AnnotationViewModel.AnnotationModel.set -> void
 Dynamo.ViewModels.AnnotationViewModel.AnnotationText.get -> string
 Dynamo.ViewModels.AnnotationViewModel.AnnotationText.set -> void
 Dynamo.ViewModels.AnnotationViewModel.AnnotationViewModel(Dynamo.ViewModels.WorkspaceViewModel workspaceViewModel, Dynamo.Graph.Annotations.AnnotationModel model) -> void
-Dynamo.ViewModels.AnnotationViewModel.AreOptionalInPortsVisible.get -> bool
-Dynamo.ViewModels.AnnotationViewModel.AreOptionalInPortsVisible.set -> void
-Dynamo.ViewModels.AnnotationViewModel.AreUnconnectedOutPortsVisible.get -> bool
-Dynamo.ViewModels.AnnotationViewModel.AreUnconnectedOutPortsVisible.set -> void
+Dynamo.ViewModels.AnnotationViewModel.IsOptionalInportsCollapsed.get -> bool
+Dynamo.ViewModels.AnnotationViewModel.IsOptionalInportsCollapsed.set -> void
+Dynamo.ViewModels.AnnotationViewModel.IsUnconnectedOutportsCollapsed.get -> bool
+Dynamo.ViewModels.AnnotationViewModel.IsUnconnectedOutportsCollapsed.set -> void
 Dynamo.ViewModels.AnnotationViewModel.Background.get -> System.Windows.Media.Color
 Dynamo.ViewModels.AnnotationViewModel.Background.set -> void
 Dynamo.ViewModels.AnnotationViewModel.ChangeFontSize.get -> Dynamo.UI.Commands.DelegateCommand
@@ -2833,10 +2833,10 @@ Dynamo.ViewModels.PreferencesViewModel.GroupStyleFontSizeList.set -> void
 Dynamo.ViewModels.PreferencesViewModel.HideAutocompleteMethodOptions.get -> bool
 Dynamo.ViewModels.PreferencesViewModel.HideNodesBelowSpecificConfidenceLevelIsChecked.get -> bool
 Dynamo.ViewModels.PreferencesViewModel.HideNodesBelowSpecificConfidenceLevelIsChecked.set -> void
-Dynamo.ViewModels.PreferencesViewModel.AreInputPortsCollapsed.get -> bool
-Dynamo.ViewModels.PreferencesViewModel.AreInputPortsCollapsed.set -> void
-Dynamo.ViewModels.PreferencesViewModel.AreOutputPortsCollapsed.get -> bool
-Dynamo.ViewModels.PreferencesViewModel.AreOutputPortsCollapsed.set -> void
+Dynamo.ViewModels.PreferencesViewModel.OptionalInputsCollapsed.get -> bool
+Dynamo.ViewModels.PreferencesViewModel.OptionalInputsCollapsed.set -> void
+Dynamo.ViewModels.PreferencesViewModel.UnconnectedOutputsCollapsed.get -> bool
+Dynamo.ViewModels.PreferencesViewModel.UnconnectedOutputsCollapsed.set -> void
 Dynamo.ViewModels.PreferencesViewModel.HostGenericScaleUnits.get -> string
 Dynamo.ViewModels.PreferencesViewModel.importSettings(string filePath) -> bool
 Dynamo.ViewModels.PreferencesViewModel.importSettingsContent(string content) -> bool
