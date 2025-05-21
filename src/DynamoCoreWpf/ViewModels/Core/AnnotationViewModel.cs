@@ -8,6 +8,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using CoreNodeModels.Logic;
 using Dynamo.Configuration;
 using Dynamo.Graph;
 using Dynamo.Graph.Annotations;
@@ -283,34 +284,34 @@ namespace Dynamo.ViewModels
             }
         }
 
-        private bool isOptionalInportsCollapsed;
+        private bool isOptionalInPortsCollapsed;
         /// <summary>
         /// Controls visibility of optional input ports in the group.
         /// </summary>
         [JsonIgnore]
-        public bool IsOptionalInportsCollapsed
+        public bool IsOptionalInPortsCollapsed
         {
-            get => isOptionalInportsCollapsed;
+            get => isOptionalInPortsCollapsed;
             set
             {
-                isOptionalInportsCollapsed = value;
-                annotationModel.IsOptionalInportsCollapsed = value;
-                RaisePropertyChanged(nameof(IsOptionalInportsCollapsed));
+                isOptionalInPortsCollapsed = value;
+                annotationModel.IsOptionalInPortsCollapsed = value;
+                RaisePropertyChanged(nameof(IsOptionalInPortsCollapsed));
             }
         }
 
-        private bool isUnconnectedOutportsCollapsed = true;
+        private bool isUnconnectedOutPortsCollapsed = true;
         /// <summary>
         /// Controls visibility of unconnected output ports in the group.
         /// </summary>
-        public bool IsUnconnectedOutportsCollapsed
+        public bool IsUnconnectedOutPortsCollapsed
         {
-            get => isUnconnectedOutportsCollapsed;
+            get => isUnconnectedOutPortsCollapsed;
             set
             {
-                isUnconnectedOutportsCollapsed = value;
-                annotationModel.IsUnconnectedOutportsCollapsed = value;
-                RaisePropertyChanged(nameof(IsUnconnectedOutportsCollapsed));
+                isUnconnectedOutPortsCollapsed = value;
+                annotationModel.IsUnconnectedOutPortsCollapsed = value;
+                RaisePropertyChanged(nameof(IsUnconnectedOutPortsCollapsed));
             }
         }
 
@@ -682,21 +683,19 @@ namespace Dynamo.ViewModels
 
         public AnnotationViewModel(WorkspaceViewModel workspaceViewModel, AnnotationModel model)
         {
-            var c1 = Width;
-
             annotationModel = model;
 
             this.WorkspaceViewModel = workspaceViewModel;
             this.preferenceSettings = WorkspaceViewModel.DynamoViewModel.PreferenceSettings;
             preferenceSettings.PropertyChanged += OnPreferenceChanged;
 
-            IsOptionalInportsCollapsed = annotationModel.HasToggledOptionalInports
-                ? annotationModel.IsOptionalInportsCollapsed
-                : preferenceSettings.OptionalInputsCollapsed;
+            IsOptionalInPortsCollapsed = annotationModel.HasToggledOptionalInPorts
+                ? annotationModel.IsOptionalInPortsCollapsed
+                : preferenceSettings.OptionalInPortsCollapsed;
 
-            IsUnconnectedOutportsCollapsed = annotationModel.HasToggledUnconnectedOutports
-                ? annotationModel.IsUnconnectedOutportsCollapsed
-                : preferenceSettings.UnconnectedOutputsCollapsed;
+            IsUnconnectedOutPortsCollapsed = annotationModel.HasToggledUnconnectedOutPorts
+                ? annotationModel.IsUnconnectedOutPortsCollapsed
+                : preferenceSettings.UnconnectedOutPortsCollapsed;
 
             model.PropertyChanged += model_PropertyChanged;
             model.RemovedFromGroup += OnModelRemovedFromGroup;
@@ -739,28 +738,45 @@ namespace Dynamo.ViewModels
             {
                 SetGroupInputPorts();
                 SetGroupOutPorts();
-                CollapseGroupContents(true);
+                CollapseGroupContents(true);    
             }
             groupStyleList = new ObservableCollection<Configuration.StyleItem>();
             //This will add the GroupStyles created in Preferences panel to the Group Style Context menu.
             LoadGroupStylesFromPreferences(preferenceSettings.GroupStyleItemsList);
+
+            // Passes the CollapseToMinSize from PreferenceSettings to the model
+            if (preferenceSettings.CollapseToMinSize)
+            {
+                annotationModel.IsCollapsedToMinSize = true;
+            }
+
         }
 
         private void OnPreferenceChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(IPreferences.OptionalInputsCollapsed))
+            if (e.PropertyName == nameof(IPreferences.OptionalInPortsCollapsed))
             {
-                if (!annotationModel.HasToggledOptionalInports)
+                if (!annotationModel.HasToggledOptionalInPorts)
                 {
-                    IsOptionalInportsCollapsed = preferenceSettings.OptionalInputsCollapsed;
+                    IsOptionalInPortsCollapsed = preferenceSettings.OptionalInPortsCollapsed;
                 }                
             }
-            else if (e.PropertyName == nameof(IPreferences.UnconnectedOutputsCollapsed))
+            else if (e.PropertyName == nameof(IPreferences.UnconnectedOutPortsCollapsed))
             {
-                if (!annotationModel.HasToggledUnconnectedOutports)
+                if (!annotationModel.HasToggledUnconnectedOutPorts)
                 {
-                    IsUnconnectedOutportsCollapsed = preferenceSettings.UnconnectedOutputsCollapsed;
+                    IsUnconnectedOutPortsCollapsed = preferenceSettings.UnconnectedOutPortsCollapsed;
                 }
+            }
+            else if (e.PropertyName == nameof(IPreferences.CollapseToMinSize))
+            {
+                annotationModel.IsCollapsedToMinSize = preferenceSettings.CollapseToMinSize;
+
+                // Update the boundary only if the group is collapsed
+                if (!IsExpanded)
+                {
+                    annotationModel.UpdateBoundaryFromSelection();
+                }                
             }
         }
 

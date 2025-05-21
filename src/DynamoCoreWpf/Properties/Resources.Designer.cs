@@ -8006,6 +8006,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Collapse to minimal size by default.
+        /// </summary>
+        public static string PreferencesViewCollapseToMinSizeDescription {
+            get {
+                return ResourceManager.GetString("PreferencesViewCollapseToMinSizeDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Default Python Engine.
         /// </summary>
         public static string PreferencesViewDefaultPythonEngine {

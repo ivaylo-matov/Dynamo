@@ -82,6 +82,7 @@ namespace Dynamo.Configuration
         private bool isMLAutocompleteTOUApproved;
         private bool optionalInputsCollapsed;
         private bool unconnectedOutputsCollapsed;
+        private bool collapseToMinSize;
 
         #region Constants
         /// <summary>
@@ -195,26 +196,39 @@ namespace Dynamo.Configuration
         /// <summary>
         /// Indicates if the optional input ports are collapsed by default.
         /// </summary>
-        public bool OptionalInputsCollapsed
+        public bool OptionalInPortsCollapsed
         {
             get => optionalInputsCollapsed;
             set
             {
                 optionalInputsCollapsed = value;
-                RaisePropertyChanged(nameof(OptionalInputsCollapsed));
+                RaisePropertyChanged(nameof(OptionalInPortsCollapsed));
             }
         }
 
         /// <summary>
         /// Indicates if the unconnected output ports are hidden by default.
         /// </summary>
-        public bool UnconnectedOutputsCollapsed
+        public bool UnconnectedOutPortsCollapsed
         {
             get => unconnectedOutputsCollapsed;
             set
             {
                 unconnectedOutputsCollapsed = value;
-                RaisePropertyChanged(nameof(UnconnectedOutputsCollapsed));
+                RaisePropertyChanged(nameof(UnconnectedOutPortsCollapsed));
+            }
+        }
+
+        /// <summary>
+        /// Indicates if the groups should be collapsed to minimal size by default.
+        /// </summary>
+        public bool CollapseToMinSize
+        {
+            get => collapseToMinSize;
+            set
+            {
+                collapseToMinSize = value;
+                RaisePropertyChanged(nameof(CollapseToMinSize));
             }
         }
 
@@ -990,8 +1004,9 @@ namespace Dynamo.Configuration
             DefaultRunType = RunType.Automatic;
             DefaultNodeAutocompleteSuggestion = NodeAutocompleteSuggestion.MLRecommendation;
             ShowDefaultGroupDescription = true;
-            OptionalInputsCollapsed = false;
-            UnconnectedOutputsCollapsed = false;
+            OptionalInPortsCollapsed = true;
+            UnconnectedOutPortsCollapsed = true;
+            CollapseToMinSize = true;
 
             BackupInterval = DefaultBackupInterval;
             BackupFilesCount = 1;

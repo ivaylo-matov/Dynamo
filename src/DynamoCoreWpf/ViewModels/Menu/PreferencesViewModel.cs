@@ -837,15 +837,14 @@ namespace Dynamo.ViewModels
         {
             get
             {
-                return preferenceSettings.OptionalInputsCollapsed;
+                return preferenceSettings.OptionalInPortsCollapsed;
             }
             set
             {
-                preferenceSettings.OptionalInputsCollapsed = value;
+                preferenceSettings.OptionalInPortsCollapsed = value;
                 RaisePropertyChanged(nameof(OptionalInputsCollapsed));
             }
         }
-
 
         /// <summary>
         /// Indicates if the unconnected output ports are hidden by default.
@@ -854,12 +853,28 @@ namespace Dynamo.ViewModels
         {
             get
             {
-                return preferenceSettings.UnconnectedOutputsCollapsed;
+                return preferenceSettings.UnconnectedOutPortsCollapsed;
             }
             set
             {
-                preferenceSettings.UnconnectedOutputsCollapsed = value;
+                preferenceSettings.UnconnectedOutPortsCollapsed = value;
                 RaisePropertyChanged(nameof(UnconnectedOutputsCollapsed));
+            }
+        }
+
+        /// <summary>
+        /// Indicates if the groups should be collapsed to minimal size by default.
+        /// </summary>
+        public bool CollapseToMinSize
+        {
+            get
+            {
+                return preferenceSettings.CollapseToMinSize;
+            }
+            set
+            {
+                preferenceSettings.CollapseToMinSize = value;
+                RaisePropertyChanged(nameof(CollapseToMinSize));
             }
         }
 
@@ -1888,6 +1903,9 @@ namespace Dynamo.ViewModels
                     goto default;
                 case nameof(UnconnectedOutputsCollapsed):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewHideOutportsDescription), System.Globalization.CultureInfo.InvariantCulture);
+                    goto default;
+                case nameof(CollapseToMinSize):
+                    description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewCollapseToMinSizeDescription), System.Globalization.CultureInfo.InvariantCulture);
                     goto default;
                 case nameof(ShowCodeBlockLineNumber):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewShowCodeBlockNodeLineNumber), System.Globalization.CultureInfo.InvariantCulture);

@@ -17,6 +17,8 @@ using Dynamo.Wpf.Utilities;
 using Dynamo.Graph.Annotations;
 using Dynamo.Logging;
 using Dynamo.Configuration;
+using System.Diagnostics;
+using System.ComponentModel;
 
 namespace Dynamo.Nodes
 {
@@ -49,6 +51,50 @@ namespace Dynamo.Nodes
             this.CollapsedAnnotationRectangle.IsVisibleChanged += CollapsedAnnotationRectangle_IsVisibleChanged;
         }
 
+        private void ViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (ViewModel.IsExpanded) return;
+
+            if (e.PropertyName == nameof(ViewModel.IsUnconnectedOutPortsCollapsed) ||
+                e.PropertyName == nameof(ViewModel.IsOptionalInPortsCollapsed))
+            {
+
+                var model = ViewModel.AnnotationModel;
+
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    model.MinWidthOnCollapsed = GetMinWidthOnCollapsed();
+                    model.UpdateBoundaryFromSelection();
+                }),
+                System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            }
+        }
+
+        private double GetMinWidthOnCollapsed()
+        {
+            var model = ViewModel.AnnotationModel;
+
+            double inPortWidth = MeasureMaxPortWidth(inputPortControl);
+            double inToggleWidth = inputToggleControl.ActualWidth;
+            double optionalInPortWidth = model.IsOptionalInPortsCollapsed ? 0 : MeasureMaxPortWidth(optionalInputPortControl);
+            double outPortWidth = MeasureMaxPortWidth(outputPortControl);
+            double outToggleWidth = outputToggleControl.ActualWidth;
+            double unconnectedOutPortWidth = model.IsUnconnectedOutPortsCollapsed ? 0 : MeasureMaxPortWidth(unconnectedOutputPortControl);
+
+            double maxInPortWidth = Math.Max(inPortWidth, Math.Max(inToggleWidth, optionalInPortWidth));
+            double maxOutPortWidth = Math.Max(outPortWidth, Math.Max(outToggleWidth, unconnectedOutPortWidth));
+
+            return maxInPortWidth + maxOutPortWidth;
+        }
+
+        private double GetMinCollapsedPortAreaHeight()
+        {
+            double totalInPortHeight = MeasureCombinedPortHeight(inputPortControl);
+            double totalOutPortHeight = MeasureCombinedPortHeight(outputPortControl);
+
+            return Math.Max(totalInPortHeight, totalOutPortHeight);
+        }
+
         private void AnnotationView_Unloaded(object sender, RoutedEventArgs e)
         {
             Loaded -= AnnotationView_Loaded;
@@ -56,6 +102,7 @@ namespace Dynamo.Nodes
             this.GroupTextBlock.SizeChanged -= GroupTextBlock_SizeChanged;
             this.CollapsedAnnotationRectangle.SizeChanged -= CollapsedAnnotationRectangle_SizeChanged;
             this.CollapsedAnnotationRectangle.IsVisibleChanged -= CollapsedAnnotationRectangle_IsVisibleChanged;
+            ViewModel.PropertyChanged -= ViewModel_PropertyChanged;
         }
 
         private void AnnotationView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -74,6 +121,8 @@ namespace Dynamo.Nodes
             ViewModel = this.DataContext as AnnotationViewModel;
             if (ViewModel != null)
             {
+                ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+
                 //Set the height and width of Textblock based on the content.
                 if (!ViewModel.AnnotationModel.loadFromXML)
                 {
@@ -145,6 +194,7 @@ namespace Dynamo.Nodes
                     ViewModel.Background = brush.Color;
             }
         }
+
         /// <summary>
         /// This function will clear the selection and then select only the annotation node to delete it for ungrouping.
         /// </summary>
@@ -382,7 +432,18 @@ namespace Dynamo.Nodes
 
         private void CollapsedAnnotationRectangle_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            SetModelAreaHeight();
+            var model = ViewModel.AnnotationModel;
+            if (!model.IsExpanded)
+            {                
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    model.MinWidthOnCollapsed = GetMinWidthOnCollapsed();
+                    model.MinCollapsedPortAreaHeight = GetMinCollapsedPortAreaHeight();
+
+                    model.UpdateBoundaryFromSelection();
+                }),
+                System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            }
         }
 
         private void SetModelAreaHeight()
@@ -475,19 +536,51 @@ namespace Dynamo.Nodes
         private void OptionalPortsToggle_Click(object sender, RoutedEventArgs e)
         {
             // Mark it as manually changed by user
-            if (!ViewModel.AnnotationModel.HasToggledOptionalInports)
+            if (!ViewModel.AnnotationModel.HasToggledOptionalInPorts)
             {
-                ViewModel.AnnotationModel.HasToggledOptionalInports = true;
+                ViewModel.AnnotationModel.HasToggledOptionalInPorts = true;
             }
         }
 
         private void UnconnectedPortsToggle_Click(object sender, RoutedEventArgs e)
         {
             // Mark it as manually changed by user
-            if (!ViewModel.AnnotationModel.HasToggledUnconnectedOutports)
+            if (!ViewModel.AnnotationModel.HasToggledUnconnectedOutPorts)
             {
-                ViewModel.AnnotationModel.HasToggledUnconnectedOutports = true;
+                ViewModel.AnnotationModel.HasToggledUnconnectedOutPorts = true;
             }
+        }
+
+        private double MeasureMaxPortWidth(ItemsControl portControl)
+        {
+            portControl.UpdateLayout();
+
+            double max = 0;
+            foreach (var item in portControl.Items)
+            {
+                if (portControl.ItemContainerGenerator.ContainerFromItem(item) is FrameworkElement container)
+                {
+                    container.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    max = Math.Max(max, container.DesiredSize.Width);
+                }
+            }
+            return max;
+        }
+
+        private double MeasureCombinedPortHeight(ItemsControl portControl)
+        {
+            portControl.UpdateLayout();
+
+            double total = 0;
+            foreach (var item in portControl.Items)
+            {
+                if (portControl.ItemContainerGenerator.ContainerFromItem(item) is FrameworkElement container && container.IsVisible)
+                {
+                    container.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    total += container.DesiredSize.Height;
+                }
+            }
+            return total;
         }
     }
 }

@@ -1742,10 +1742,10 @@ Dynamo.ViewModels.AnnotationViewModel.AnnotationModel.set -> void
 Dynamo.ViewModels.AnnotationViewModel.AnnotationText.get -> string
 Dynamo.ViewModels.AnnotationViewModel.AnnotationText.set -> void
 Dynamo.ViewModels.AnnotationViewModel.AnnotationViewModel(Dynamo.ViewModels.WorkspaceViewModel workspaceViewModel, Dynamo.Graph.Annotations.AnnotationModel model) -> void
-Dynamo.ViewModels.AnnotationViewModel.IsOptionalInportsCollapsed.get -> bool
-Dynamo.ViewModels.AnnotationViewModel.IsOptionalInportsCollapsed.set -> void
-Dynamo.ViewModels.AnnotationViewModel.IsUnconnectedOutportsCollapsed.get -> bool
-Dynamo.ViewModels.AnnotationViewModel.IsUnconnectedOutportsCollapsed.set -> void
+Dynamo.ViewModels.AnnotationViewModel.IsOptionalInPortsCollapsed.get -> bool
+Dynamo.ViewModels.AnnotationViewModel.IsOptionalInPortsCollapsed.set -> void
+Dynamo.ViewModels.AnnotationViewModel.IsUnconnectedOutPortsCollapsed.get -> bool
+Dynamo.ViewModels.AnnotationViewModel.IsUnconnectedOutPortsCollapsed.set -> void
 Dynamo.ViewModels.AnnotationViewModel.Background.get -> System.Windows.Media.Color
 Dynamo.ViewModels.AnnotationViewModel.Background.set -> void
 Dynamo.ViewModels.AnnotationViewModel.ChangeFontSize.get -> Dynamo.UI.Commands.DelegateCommand
@@ -2808,6 +2808,8 @@ Dynamo.ViewModels.PreferencesViewModel.BackupLocation.get -> string
 Dynamo.ViewModels.PreferencesViewModel.BackupLocation.set -> void
 Dynamo.ViewModels.PreferencesViewModel.CanResetBackupLocation.get -> bool
 Dynamo.ViewModels.PreferencesViewModel.CanResetTemplateLocation.get -> bool
+Dynamo.ViewModels.PreferencesViewModel.CollapseToMinSize.get -> bool
+Dynamo.ViewModels.PreferencesViewModel.CollapseToMinSize.set -> void
 Dynamo.ViewModels.PreferencesViewModel.CopyToClipboardCommand.get -> Dynamo.UI.Commands.DelegateCommand
 Dynamo.ViewModels.PreferencesViewModel.CopyToClipboardCommand.set -> void
 Dynamo.ViewModels.PreferencesViewModel.CurrentWarningMessage.get -> string
