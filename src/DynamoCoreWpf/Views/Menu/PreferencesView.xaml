@@ -869,7 +869,7 @@
                                                 Click="ReloadPythonNet3_Click"
                                                 Content="{x:Static p:Resources.ResetPythonNet3ButtonText}">
                                         <Button.ToolTip>
-                                                <ToolTip Content="{x:Static p:Resources.ResetPythonNet3ButtonToolTip}" Style="{StaticResource GenericToolTipLight}"/>
+                                            <ToolTip Content="{x:Static p:Resources.ResetPythonNet3ButtonToolTip}" Style="{StaticResource GenericToolTipLight}"/>
                                         </Button.ToolTip>
                                     </Button>
                                     
