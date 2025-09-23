@@ -127,6 +127,9 @@
       <Project>{c0d6dee5-5532-4345-9c66-4c00d7fdb8be}</Project>
       <Name>DesignScriptBuiltin</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\src\Libraries\DSPythonNet3\DSPythonNet3.csproj">
+      <Private>True</Private>
+    </ProjectReference>
     <ProjectReference Include="..\..\src\Libraries\DynamoConVersions\DynamoConVersions.csproj">
       <Project>{C5ADC05B-34E8-47BF-8E78-9C7BF96418C2}</Project>
       <Name>DynamoConVersions</Name>
