@@ -263,7 +263,7 @@ clr.setPreload(True)
                     }
                 }
             }
-            catch { }
+            catch {}
 
             // If unable to find matching results and expand was set to false,
             // try again using the full namespace (set expand to true)
@@ -311,7 +311,7 @@ clr.setPreload(True)
         /// </summary>
         /// <param name="dynamoCorePath"></param>
         public override void Initialize(string dynamoCorePath)
-        { }
+        {}
         #endregion
 
         #region PythonCodeCompletionProviderCommon protected methods implementations
@@ -454,7 +454,7 @@ clr.setPreload(True)
                     basicPyObjects[typeof(PyDict)] = new PyDict();
                 }
             }
-            catch { }
+            catch {}
         }
         #endregion
 
@@ -485,7 +485,7 @@ clr.setPreload(True)
                         Scope.Dispose();
                     }
                 }
-                catch { }
+                catch {}
             }
         }
         #endregion
