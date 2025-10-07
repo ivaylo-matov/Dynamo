@@ -17,80 +17,54 @@ namespace DSPythonTests
         [OneTimeSetUp]
         public void LoadPythonNet3()
         {
-            // 1) Locate the engine folder (prefer 'extra' per your screenshot)
-            var roots = new[]
-            {
-                @"C:\Users\IvoAutodesk\source\repos\Dynamo\bin\AnyCPU\Debug\Built-In Packages\packages\PythonNet3Engine",
-                Path.Combine(
-                    Path.GetDirectoryName(typeof(PythonEvalTests).Assembly.Location) ?? ".",
-                    @"..\..\..\..\bin\AnyCPU\Debug\Built-In Packages\packages\PythonNet3Engine")
-            };
+            //var loadDir_ = @"C:\__Work\GitHub\Dynamo\bin\AnyCPU\Debug\Built-In Packages\packages\PythonNet3Engine\extra";
 
-            string engineRoot = roots.FirstOrDefault(Directory.Exists)
-                ?? throw new DirectoryNotFoundException("Could not find PythonNet3Engine folder.");
+            //// Optional but harmless: ensure siblings resolve from the same folder
+            //AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
+            //{
+            //    var name = new System.Reflection.AssemblyName(e.Name).Name + ".dll";
+            //    var p = System.IO.Path.Combine(loadDir_, name);
+            //    return System.IO.File.Exists(p) ? System.Reflection.Assembly.LoadFrom(p) : null;
+            //};
 
-            string[] candidates = {
-                Path.Combine(engineRoot, "extra"),
-                Path.Combine(engineRoot, "bin")
-            };
-            string loadDir = candidates.FirstOrDefault(Directory.Exists)
-                ?? throw new DirectoryNotFoundException("Could not find 'extra' or 'bin' under PythonNet3Engine.");
+            //// Only need to load the engine; its deps will resolve from 'extra'
+            //System.Reflection.Assembly.LoadFrom(System.IO.Path.Combine(loadDir_, "DSPythonNet3.dll"));
 
-            // 2) Print diagnostics so we know exactly where we are loading from
-            Debug.WriteLine($"PythonNet3 load directory: {loadDir}");
-            foreach (var f in Directory.EnumerateFiles(loadDir, "*.dll"))
-                Debug.WriteLine("  found: " + Path.GetFileName(f));
 
-            // 3) Ensure the test is 64-bit (Python.Runtime is x64 in Dynamo)
-            Debug.WriteLine($"Process is 64-bit: {Environment.Is64BitProcess}");
 
-            // 4) Resolve ALL managed deps from the same folder
+
+
+
+            var loadDir = System.IO.Path.Combine(System.AppContext.BaseDirectory, "PythonNet3Engine", "extra");
+
             AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
             {
                 var name = new System.Reflection.AssemblyName(e.Name).Name + ".dll";
-                var path = Path.Combine(loadDir, name);
-                if (File.Exists(path))
-                {
-                    Debug.WriteLine($"AssemblyResolve → {name} → {path}");
-                    return System.Reflection.Assembly.LoadFrom(path);
-                }
-                return null;
+                var p = System.IO.Path.Combine(loadDir, name);
+                return System.IO.File.Exists(p) ? System.Reflection.Assembly.LoadFrom(p) : null;
             };
 
-            // 5) PRELOAD dependencies explicitly (reduces “FileNotFound” surprises)
-            string[] deps =
-            {
+            // IMPORTANT: ensure no other Python.Runtime loaded first
+            var already = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "Python.Runtime");
+            if (already != null)
+                throw new InvalidOperationException($"Another Python.Runtime is already loaded: {already.FullName} @ {already.Location}");
+
+            // Load dependencies first (locks versions)
+            foreach (var d in new[] {
                 "Python.Runtime.dll",
                 "Python.Included.dll",
                 "Python.Deployment.dll",
                 "DSPythonNet3Wheels.dll",
                 "DSPythonNet3Extension.dll"
-            };
-            foreach (var dep in deps)
+            })
             {
-                var p = Path.Combine(loadDir, dep);
-                if (File.Exists(p))
-                {
-                    Debug.WriteLine("Preloading: " + dep);
-                    System.Reflection.Assembly.LoadFrom(p);
-                }
-                else
-                {
-                    Debug.WriteLine("Missing (ok if not needed): " + dep);
-                }
+                var path = System.IO.Path.Combine(loadDir, d);
+                if (System.IO.File.Exists(path)) System.Reflection.Assembly.LoadFrom(path);
             }
 
-            // 6) Finally, load the engine itself
-            var enginePath = Path.Combine(loadDir, "DSPythonNet3.dll");
-            if (!File.Exists(enginePath))
-                throw new FileNotFoundException("DSPythonNet3.dll not found", enginePath);
-
-            var asm = System.Reflection.Assembly.LoadFrom(enginePath);
-            Debug.WriteLine($"Loaded engine: {asm.FullName} from {asm.Location}");
-
-            // 7) Optional: assert the type exists so we fail early if wrong DLL
-            var t = asm.GetType("DSPythonNet3.DSPythonNet3Evaluator", throwOnError: false);
-            Assert.IsNotNull(t, "Could not find DSPythonNet3Evaluator in the loaded assembly.");
+            // Load the engine
+            System.Reflection.Assembly.LoadFrom(System.IO.Path.Combine(loadDir, "DSPythonNet3.dll"));
         }
 
 

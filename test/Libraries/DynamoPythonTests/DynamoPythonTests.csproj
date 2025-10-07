@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <UILib>true</UILib>
     </PropertyGroup>
@@ -28,10 +28,12 @@
         <SpecificVersion>false</SpecificVersion>
       <HintPath>..\..\..\extern\PythonNet3Engine\extra\DSPythonNet3.dll</HintPath>
     </Reference>
+      
     <Reference Include="Python.Runtime">
-      <HintPath>..\..\..\extern\Python\Python.Runtime.dll</HintPath>
+      <HintPath>..\..\..\bin\AnyCPU\$(Configuration)\Built-In Packages\packages\PythonNet3Engine\extra\Python.Runtime.dll</HintPath>
       <SpecificVersion>False</SpecificVersion>
     </Reference>
+      
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\DynamoCoreWpf\DynamoCoreWpf.csproj">

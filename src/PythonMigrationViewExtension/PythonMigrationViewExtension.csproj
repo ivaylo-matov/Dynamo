@@ -16,11 +16,13 @@
     <ItemGroup>
         <PackageReference Include="DiffPlex" Version="1.6.3" CopyMetaData="true" />
         <PackageReference Include="FontAwesome5" Version="2.1.11" />
-        <Reference Include="Python.Runtime, Version=2.5.2.4265, Culture=neutral, processorArchitecture=MSIL">
+        
+        <Reference Include="Python.Runtime">
             <SpecificVersion>False</SpecificVersion>
-            <HintPath>..\..\extern\Python\Python.Runtime.dll</HintPath>
+            <HintPath>..\..\bin\AnyCPU\$(Configuration)\Built-In Packages\packages\PythonNet3Engine\extra\Python.Runtime.dll</HintPath>
             <Private>False</Private>
         </Reference>
+        
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\DynamoCoreWpf\DynamoCoreWpf.csproj">
