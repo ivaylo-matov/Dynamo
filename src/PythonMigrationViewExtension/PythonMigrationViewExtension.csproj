@@ -17,11 +17,13 @@
         <PackageReference Include="DiffPlex" Version="1.6.3" CopyMetaData="true" />
         <PackageReference Include="FontAwesome5" Version="2.1.11" />
         
+        
         <Reference Include="Python.Runtime">
             <SpecificVersion>False</SpecificVersion>
             <HintPath>..\..\bin\AnyCPU\$(Configuration)\Built-In Packages\packages\PythonNet3Engine\extra\Python.Runtime.dll</HintPath>
             <Private>False</Private>
         </Reference>
+        
         
     </ItemGroup>
     <ItemGroup>
@@ -35,7 +37,11 @@
             <Name>DynamoCore</Name>
             <Private>False</Private>
         </ProjectReference>
-        <ProjectReference Include="..\Libraries\DSCPython\DSCPython.csproj" />
+        
+        
+        <!--<ProjectReference Include="..\Libraries\DSCPython\DSCPython.csproj" />-->
+
+        
         <ProjectReference Include="..\Libraries\PythonNodeModels\PythonNodeModels.csproj">
             <Project>{8872ca17-c10d-43b9-8393-5c5a57065eb0}</Project>
             <Name>PythonNodeModels</Name>

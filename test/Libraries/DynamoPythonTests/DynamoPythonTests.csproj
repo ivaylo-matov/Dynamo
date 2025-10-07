@@ -29,10 +29,12 @@
       <HintPath>..\..\..\extern\PythonNet3Engine\extra\DSPythonNet3.dll</HintPath>
     </Reference>
       
+      
     <Reference Include="Python.Runtime">
       <HintPath>..\..\..\bin\AnyCPU\$(Configuration)\Built-In Packages\packages\PythonNet3Engine\extra\Python.Runtime.dll</HintPath>
       <SpecificVersion>False</SpecificVersion>
     </Reference>
+      
       
   </ItemGroup>
   <ItemGroup>
@@ -51,11 +53,16 @@
       <Name>ProtoCore</Name>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\src\Libraries\DSCPython\DSCPython.csproj">
+
+      
+    <!--<ProjectReference Include="..\..\..\src\Libraries\DSCPython\DSCPython.csproj">
       <Project>{f1541c2d-80a9-4fe7-8d9e-75a8b9ff3479}</Project>
       <Name>DSCPython</Name>
       <Private>False</Private>
-    </ProjectReference>
+    </ProjectReference>-->
+
+
+      
     <ProjectReference Include="..\..\..\src\Libraries\PythonNodeModelsWpf\PythonNodeModelsWpf.csproj">
       <Project>{01DE9B06-0BCB-4D8A-862E-E8170F5D6B4F}</Project>
       <Name>PythonNodeModelsWpf</Name>
