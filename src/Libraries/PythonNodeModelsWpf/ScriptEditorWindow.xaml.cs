@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Xml;
@@ -612,6 +613,25 @@ namespace PythonNodeModelsWpf
             {
                 this.MaximizeButton.Visibility = Visibility.Visible;
                 this.NormalizeButton.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void ResizeGripThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
+        {
+            if (WindowState != WindowState.Normal)
+                return;
+
+            var newWidth = Width + e.HorizontalChange;
+            var newHeight = Height + e.VerticalChange;
+
+            if (newWidth >= MinWidth)
+            {
+                Width = newWidth;
+            }
+
+            if (newHeight >= MinHeight)
+            {
+                Height = newHeight;
             }
         }
 
