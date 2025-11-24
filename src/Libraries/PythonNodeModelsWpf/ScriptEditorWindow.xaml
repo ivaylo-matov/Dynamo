@@ -13,7 +13,7 @@
                          Width="600"
                          MinWidth="500"
                          MinHeight="450"
-                         ResizeMode="CanResize"
+                         ResizeMode="CanResizeWithGrip"
                          Style="{DynamicResource DynamoWindowStyle}"
                          AllowsTransparency="True"
                          Background="Transparent"
@@ -424,24 +424,5 @@
                 </Grid>
             </Grid>
         </Border>
-        <Thumb x:Name="ResizeGripThumb"
-               Width="18"
-               Height="18"
-               HorizontalAlignment="Right"
-               VerticalAlignment="Bottom"
-               Margin="0,0,4,4"
-               Cursor="SizeNWSE"
-               DragDelta="ResizeGripThumb_OnDragDelta">
-            <Thumb.Template>
-                <ControlTemplate TargetType="Thumb">
-                    <Grid Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
-                        <Rectangle Fill="Transparent"/>
-                        <Path Stroke="#77000000" StrokeThickness="1" Data="M4,12 L12,4" />
-                        <Path Stroke="#AFFFFFFF" StrokeThickness="1" Data="M6,12 L12,6" />
-                        <Path Stroke="#55FFFFFF" StrokeThickness="1" Data="M8,12 L12,8" />
-                    </Grid>
-                </ControlTemplate>
-            </Thumb.Template>
-        </Thumb>
     </Grid>
 </dww:ModelessChildWindow>
