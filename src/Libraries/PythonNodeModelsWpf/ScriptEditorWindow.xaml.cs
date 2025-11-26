@@ -657,16 +657,9 @@ namespace PythonNodeModelsWpf
 
         private void MaximizeButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if ((sender as System.Windows.Controls.Button).Name.Equals("MaximizeButton"))
-            {
-                this.WindowState = WindowState.Maximized;
-                ToggleButtons(true);
-            }
-            else
-            {
-                this.WindowState = WindowState.Normal;
-                ToggleButtons(false);
-            }
+            var button = sender as System.Windows.Controls.Button;
+            var maximize = button != null && button.Name.Equals("MaximizeButton");
+            SetWindowState(maximize);
         }
 
         /// <summary>
@@ -687,6 +680,18 @@ namespace PythonNodeModelsWpf
             }
         }
 
+        private void ToggleWindowState()
+        {
+            var maximize = this.WindowState != WindowState.Maximized;
+            SetWindowState(maximize);
+        }
+
+        private void SetWindowState(bool maximize)
+        {
+            this.WindowState = maximize ? WindowState.Maximized : WindowState.Normal;
+            ToggleButtons(maximize);
+        }
+
         /// <summary>
         /// Lets the user drag this window around with their left mouse button.
         /// </summary>
@@ -695,7 +700,24 @@ namespace PythonNodeModelsWpf
         private void UIElement_OnMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton != MouseButton.Left) return;
-            DragMove();
+
+            if (e.ClickCount == 2)
+            {
+                ToggleWindowState();
+                e.Handled = true;
+                return;
+            }
+
+            if (WindowState == WindowState.Maximized) return;
+
+            try
+            {
+                DragMove();
+            }
+            catch (InvalidOperationException)
+            {
+                // DragMove can throw if invoked during state transitions; swallow to avoid crashing.
+            }
         }
 
         // Handles Close button 'X' 
