@@ -457,12 +457,22 @@
                         </Grid>
                     </Border>
                 </Grid>
-                <ResizeGrip  x:Name="WindowResizeGrip"
-                            Grid.Row="4"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Bottom"
-                            Margin="0, 0, 2, 2"
-                            Cursor="SizeNWSE" PreviewMouseLeftButtonDown="WindowResizeGrip_OnPreviewMouseLeftButtonDown" />                
+                <Border x:Name="WindowResizeGrip"
+                        Grid.Row="4"
+                        Width="18"
+                        Height="18"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,2,2"
+                        Background="Transparent"
+                        Cursor="SizeNWSE"
+                        PreviewMouseLeftButtonDown="WindowResizeGrip_OnPreviewMouseLeftButtonDown">
+                    <Canvas Width="18" Height="18">
+                        <Line X1="3" Y1="15" X2="15" Y2="3" Stroke="#747474" StrokeThickness="1" />
+                        <Line X1="7" Y1="17" X2="17" Y2="7" Stroke="#8C8C8C" StrokeThickness="1" />
+                        <Line X1="1" Y1="11" X2="11" Y2="1" Stroke="#5E5E5E" StrokeThickness="1" />
+                    </Canvas>
+                </Border>                
             </Grid>
         </Border>
     </Grid>
