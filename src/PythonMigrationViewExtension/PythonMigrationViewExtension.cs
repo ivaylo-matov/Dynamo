@@ -9,7 +9,6 @@ using Dynamo.PythonMigration.Controls;
 using Dynamo.PythonMigration.MigrationAssistant;
 using Dynamo.PythonMigration.Properties;
 using Dynamo.PythonServices;
-using DynamoUtilities;
 using Dynamo.ViewModels;
 using Dynamo.Wpf.Extensions;
 using PythonNodeModels;
@@ -278,11 +277,7 @@ namespace Dynamo.PythonMigration
             if (!string.IsNullOrEmpty(filePath))
             {
                 var backupDir = LoadedParams.StartupParams.PathManager.BackupDirectory;
-                var workspaceDirectory = Path.GetDirectoryName(filePath);
-                var isInsideBackupDirectory = !string.IsNullOrEmpty(backupDir)
-                    && !string.IsNullOrEmpty(workspaceDirectory)
-                    && (PathHelper.AreDirectoryPathsEqual(workspaceDirectory, backupDir)
-                        || PathHelper.IsSubDirectoryOfDirectory(workspaceDirectory, backupDir));
+                var isInsideBackupDirectory = IsPathInsideDirectory(filePath, backupDir);
 
                 if (!isInsideBackupDirectory)
                 {
@@ -385,6 +380,40 @@ namespace Dynamo.PythonMigration
 
             // Show the notification only once
             CurrentWorkspace.HasShownPythonAutoMigrationNotification = true;
+        }
+
+        /// <summary>
+        /// Returns true when <paramref name="path"/> points to a file/directory that lives inside
+        /// <paramref name="directoryPath"/> (or the directory itself). Handles path normalization
+        /// to avoid simple string prefix bugs, e.g. C:\backup vs. C:\backup-old.
+        /// </summary>
+        private static bool IsPathInsideDirectory(string path, string directoryPath)
+        {
+            if (string.IsNullOrEmpty(path) || string.IsNullOrEmpty(directoryPath))
+            {
+                return false;
+            }
+
+            try
+            {
+                var normalizedDirectory = Path.GetFullPath(directoryPath);
+                if (!normalizedDirectory.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal))
+                {
+                    normalizedDirectory += Path.DirectorySeparatorChar;
+                }
+
+                var normalizedPath = Path.GetFullPath(path);
+                var comparison = Path.DirectorySeparatorChar == '/'
+                    ? StringComparison.Ordinal
+                    : StringComparison.OrdinalIgnoreCase;
+
+                return normalizedPath.StartsWith(normalizedDirectory, comparison);
+            }
+            catch (Exception)
+            {
+                // If normalization fails, play it safe and assume the file is not inside the backup directory.
+                return false;
+            }
         }
 
         private void SubscribeToDynamoEvents()
