@@ -9,6 +9,7 @@ using Dynamo.PythonMigration.Controls;
 using Dynamo.PythonMigration.MigrationAssistant;
 using Dynamo.PythonMigration.Properties;
 using Dynamo.PythonServices;
+using DynamoUtilities;
 using Dynamo.ViewModels;
 using Dynamo.Wpf.Extensions;
 using PythonNodeModels;
@@ -16,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -272,17 +274,24 @@ namespace Dynamo.PythonMigration
                 return;
             }
 
-            var backupDir = LoadedParams.StartupParams.PathManager.BackupDirectory;
             var filePath = CurrentWorkspace.FileName;
-
-            if (!string.IsNullOrEmpty(filePath)
-                && !filePath.StartsWith(backupDir, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(filePath))
             {
-                upgradeService.SaveMigrationBackup(
-                    CurrentWorkspace,
-                    filePath,
-                    PythonEngineManager.CPython3EngineName);
-            }            
+                var backupDir = LoadedParams.StartupParams.PathManager.BackupDirectory;
+                var workspaceDirectory = Path.GetDirectoryName(filePath);
+                var isInsideBackupDirectory = !string.IsNullOrEmpty(backupDir)
+                    && !string.IsNullOrEmpty(workspaceDirectory)
+                    && (PathHelper.AreDirectoryPathsEqual(workspaceDirectory, backupDir)
+                        || PathHelper.IsSubDirectoryOfDirectory(workspaceDirectory, backupDir));
+
+                if (!isInsideBackupDirectory)
+                {
+                    upgradeService.SaveMigrationBackup(
+                        CurrentWorkspace,
+                        filePath,
+                        PythonEngineManager.CPython3EngineName);
+                }
+            }
 
             if (CurrentWorkspace is HomeWorkspaceModel hws)
             {
