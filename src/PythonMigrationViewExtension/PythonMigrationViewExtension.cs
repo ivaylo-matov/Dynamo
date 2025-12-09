@@ -486,27 +486,41 @@ namespace Dynamo.PythonMigration
                     SetEngine);
             }
 
-            // Prepare custom node definitions that contain CPython nodes
-            foreach (var defId in usage.CustomNodeDefIdsWithPython)
-            {
-                var workspace = upgradeService.TryGetFunctionWorkspace(DynamoViewModel.Model, defId) as WorkspaceModel;
-                if (workspace != null)
-                {
-                    var inner = upgradeService.DetectPythonUsage(workspace, IsCPythonNode);
+            //// Prepare custom node definitions that contain CPython nodes
+            //foreach (var defId in usage.CustomNodeDefIdsWithPython)
+            //{
+            //    var workspace = upgradeService.TryGetFunctionWorkspace(DynamoViewModel.Model, defId) as WorkspaceModel;
+            //    if (workspace != null)
+            //    {
+            //        var inner = upgradeService.DetectPythonUsage(workspace, IsCPythonNode);
 
-                    if (inner.DirectPythonNodes.Any())
-                    {
-                        upgradeService.TempMigratedCustomDefs.Add(defId);
-                        upgradeService.UpgradeNodesInMemory(
-                        inner.DirectPythonNodes,
-                        workspace,
-                        SetEngine);
-                    }
-                }
+            //        if (inner.DirectPythonNodes.Any())
+            //        {
+            //            upgradeService.TempMigratedCustomDefs.Add(defId);
+            //            upgradeService.UpgradeNodesInMemory(
+            //            inner.DirectPythonNodes,
+            //            workspace,
+            //            SetEngine);
+            //        }
+            //    }
+            //}
+
+            HashSet<Guid> upgradedDefs = null;
+
+            if (usage.CustomNodeDefIdsWithPython.Any())
+            {
+                upgradedDefs = new HashSet<Guid>();
+
+                upgradeService.UpgradeCustomNodesRecursivelyInMemory(
+                    usage.CustomNodeDefIdsWithPython,
+                    IsCPythonNode,
+                    SetEngine,
+                    upgradedDefs);
             }
 
             var directCount = usage.DirectPythonNodes.Count();
-            var customCount = usage.CustomNodeDefIdsWithPython.Count();
+            //var customCount = usage.CustomNodeDefIdsWithPython.Count();
+            var customCount = upgradedDefs?.Count ?? usage.CustomNodeDefIdsWithPython.Count();
             var workspaceModified = directCount > 0 || customCount > 0;
 
             if (workspaceModified)
