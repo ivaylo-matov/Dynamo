@@ -486,41 +486,30 @@ namespace Dynamo.PythonMigration
                     SetEngine);
             }
 
-            //// Prepare custom node definitions that contain CPython nodes
-            //foreach (var defId in usage.CustomNodeDefIdsWithPython)
-            //{
-            //    var workspace = upgradeService.TryGetFunctionWorkspace(DynamoViewModel.Model, defId) as WorkspaceModel;
-            //    if (workspace != null)
-            //    {
-            //        var inner = upgradeService.DetectPythonUsage(workspace, IsCPythonNode);
-
-            //        if (inner.DirectPythonNodes.Any())
-            //        {
-            //            upgradeService.TempMigratedCustomDefs.Add(defId);
-            //            upgradeService.UpgradeNodesInMemory(
-            //            inner.DirectPythonNodes,
-            //            workspace,
-            //            SetEngine);
-            //        }
-            //    }
-            //}
-
-            HashSet<Guid> upgradedDefs = null;
-
-            if (usage.CustomNodeDefIdsWithPython.Any())
+            // Prepare custom node definitions that contain CPython nodes
+            var upgradedDefs = new HashSet<Guid>();
+            foreach (var defId in usage.CustomNodeDefIdsWithPython)
             {
-                upgradedDefs = new HashSet<Guid>();
+                var workspace = upgradeService.TryGetFunctionWorkspace(DynamoViewModel.Model, defId) as WorkspaceModel;
+                if (workspace != null)
+                {
+                    var inner = upgradeService.DetectPythonUsage(workspace, IsCPythonNode);
 
-                upgradeService.UpgradeCustomNodesRecursivelyInMemory(
-                    usage.CustomNodeDefIdsWithPython,
-                    IsCPythonNode,
-                    SetEngine,
-                    upgradedDefs);
+                    if (inner.DirectPythonNodes.Any())
+                    {
+                        upgradeService.TempMigratedCustomDefs.Add(defId);
+                        upgradeService.UpgradeNodesInMemory(
+                        inner.DirectPythonNodes,
+                        workspace,
+                        SetEngine);
+
+                        upgradedDefs.Add(defId);
+                    }
+                }
             }
 
             var directCount = usage.DirectPythonNodes.Count();
-            //var customCount = usage.CustomNodeDefIdsWithPython.Count();
-            var customCount = upgradedDefs?.Count ?? usage.CustomNodeDefIdsWithPython.Count();
+            var customCount = upgradedDefs.Count;
             var workspaceModified = directCount > 0 || customCount > 0;
 
             if (workspaceModified)
