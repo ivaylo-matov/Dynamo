@@ -178,17 +178,30 @@ namespace Dynamo.PythonMigration
                     {
                         var usageInside = upgradeService.DetectPythonUsage(workspace, IsCPythonNode);
 
+                        var upgradedDefs = new HashSet<Guid>();
+                        var visitedDefs = new HashSet<Guid> { defId };
+
                         if (usageInside.DirectPythonNodes.Any())
                         {
                             // Track this def as temp-migrated for the session
                             upgradeService.TempMigratedCustomDefs.Add(defId);
 
-                            var count = upgradeService.UpgradeNodesInMemory(
+                            upgradeService.UpgradeNodesInMemory(
                                 usageInside.DirectPythonNodes,
                                 workspace,
                                 SetEngine);
 
-                            ShowPythonEngineUpgradeToast(0, count);
+                            upgradedDefs.Add(defId);
+                        }
+
+                        UpgradeCustomNodeDefinitions(
+                            usageInside.CustomNodeDefIdsWithPython,
+                            visitedDefs,
+                            upgradedDefs);
+
+                        if (upgradedDefs.Count > 0)
+                        {
+                            ShowPythonEngineUpgradeToast(0, upgradedDefs.Count);
                         }
                     }
                 }
@@ -487,23 +500,11 @@ namespace Dynamo.PythonMigration
             }
 
             // Prepare custom node definitions that contain CPython nodes
-            foreach (var defId in usage.CustomNodeDefIdsWithPython)
-            {
-                var workspace = upgradeService.TryGetFunctionWorkspace(DynamoViewModel.Model, defId) as WorkspaceModel;
-                if (workspace != null)
-                {
-                    var inner = upgradeService.DetectPythonUsage(workspace, IsCPythonNode);
-
-                    if (inner.DirectPythonNodes.Any())
-                    {
-                        upgradeService.TempMigratedCustomDefs.Add(defId);
-                        upgradeService.UpgradeNodesInMemory(
-                        inner.DirectPythonNodes,
-                        workspace,
-                        SetEngine);
-                    }
-                }
-            }
+            var upgradedCustomDefs = new HashSet<Guid>();
+            UpgradeCustomNodeDefinitions(
+                usage.CustomNodeDefIdsWithPython,
+                new HashSet<Guid>(),
+                upgradedCustomDefs);
 
             var directCount = usage.DirectPythonNodes.Count();
             var customCount = usage.CustomNodeDefIdsWithPython.Count();
@@ -541,6 +542,49 @@ namespace Dynamo.PythonMigration
                     py.ShowAutoUpgradedBar = workspace is HomeWorkspaceModel;
                 }
             }
+        }
+
+        private void UpgradeCustomNodeDefinitions(
+            IEnumerable<Guid> defIds,
+            HashSet<Guid> visited,
+            HashSet<Guid> upgraded)
+        {
+            if (upgradeService == null || defIds == null) return;
+            visited ??= new HashSet<Guid>();
+            upgraded ??= new HashSet<Guid>();
+
+            foreach (var defId in defIds.Where(id => id != Guid.Empty))
+            {
+                UpgradeCustomNodeDefinition(defId, visited, upgraded);
+            }
+        }
+
+        private void UpgradeCustomNodeDefinition(
+            Guid defId,
+            HashSet<Guid> visited,
+            HashSet<Guid> upgraded)
+        {
+            if (upgradeService == null || defId == Guid.Empty) return;
+            if (!visited.Add(defId)) return;
+
+            var workspace = upgradeService.TryGetFunctionWorkspace(DynamoViewModel.Model, defId) as WorkspaceModel;
+            if (workspace == null) return;
+
+            var usage = upgradeService.DetectPythonUsage(workspace, IsCPythonNode);
+
+            if (usage.DirectPythonNodes.Any())
+            {
+                upgradeService.TempMigratedCustomDefs.Add(defId);
+
+                upgradeService.UpgradeNodesInMemory(
+                    usage.DirectPythonNodes,
+                    workspace,
+                    SetEngine);
+
+                upgraded.Add(defId);
+            }
+
+            UpgradeCustomNodeDefinitions(usage.CustomNodeDefIdsWithPython, visited, upgraded);
         }
 
         #endregion
