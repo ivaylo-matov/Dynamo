@@ -28,6 +28,7 @@ namespace Dynamo.PythonMigration
         private bool hasCPython3Engine;
         private bool enginesSubscribed;
         private Guid lastWorkspaceGuid = Guid.Empty;
+        private string lastWorkspaceFileName = string.Empty;
         private PythonEngineUpgradeService upgradeService;
 
         internal ViewLoadedParams LoadedParams { get; set; }
@@ -287,9 +288,13 @@ namespace Dynamo.PythonMigration
                     // In test mode, do not toggle RunType or we’ll break auto-run expectations
                     MigrateCPythonNodesForWorkspace();
                 }
-                else if (lastWorkspaceGuid != hws.Guid)
+                else if (lastWorkspaceGuid != hws.Guid
+                    || !string.Equals(lastWorkspaceFileName ?? string.Empty,
+                        hws.FileName ?? string.Empty,
+                        StringComparison.OrdinalIgnoreCase))
                 {
                     lastWorkspaceGuid = hws.Guid;
+                    lastWorkspaceFileName = hws.FileName;
 
                     // Temporarily switch to Manual to avoid mutating during evaluation
                     var oldRunType = hws.RunSettings.RunType;
@@ -343,6 +348,7 @@ namespace Dynamo.PythonMigration
             // Close the CPython toast notification when workspace is cleared/closed
             DynamoViewModel.ToastManager?.CloseRealTimeInfoWindow();
             lastWorkspaceGuid = Guid.Empty;
+            lastWorkspaceFileName = string.Empty;
             CurrentWorkspace.ShowPythonAutoMigrationNotifications = false;
         }
 
