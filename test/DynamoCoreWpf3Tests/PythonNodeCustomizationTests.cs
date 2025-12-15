@@ -18,6 +18,7 @@ using Dynamo.Tests;
 using Dynamo.Utilities;
 using DynamoCoreWpfTests.Utility;
 using ICSharpCode.AvalonEdit.Document;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using PythonNodeModels;
 using PythonNodeModelsWpf;
@@ -102,6 +103,10 @@ namespace DynamoCoreWpfTests
             Assert.IsTrue(File.Exists(childPath), "Missing test file: " + childPath);
             Assert.IsTrue(File.Exists(parentPath), "Missing test file: " + parentPath);
 
+            // Sanity check test inputs: both custom nodes are expected to contain CPython3 python nodes before migration.
+            AssertDyfContainsPythonNodesWithEngine(childPath, "CPython3");
+            AssertDyfContainsPythonNodesWithEngine(parentPath, "CPython3");
+
             Assert.IsTrue(ViewModel.Model.CustomNodeManager.AddUninitializedCustomNode(childPath, true, out _));
             Assert.IsTrue(ViewModel.Model.CustomNodeManager.AddUninitializedCustomNode(parentPath, true, out _));
 
@@ -116,6 +121,28 @@ namespace DynamoCoreWpfTests
             var watch = Model.CurrentWorkspace.NodeFromWorkspace<Watch>("3b2be8477f5a4ec5a6dc23d9f88a7b7e");
             Assert.IsNotNull(watch);
             Assert.AreEqual("20", watch.CachedValue?.ToString());
+        }
+
+        private static void AssertDyfContainsPythonNodesWithEngine(string dyfPath, string expectedEngine)
+        {
+            Assert.IsTrue(File.Exists(dyfPath), "Missing .dyf file: " + dyfPath);
+
+            var root = JObject.Parse(File.ReadAllText(dyfPath));
+            var nodes = root["Nodes"] as JArray;
+            Assert.IsNotNull(nodes, "Invalid .dyf JSON: missing 'Nodes' array in " + dyfPath);
+
+            // Python nodes in .dyf/.dyn are identified by ConcreteType starting with PythonNodeModels.
+            // Engine can appear as \"Engine\" (JSON graphs) or \"EngineName\" (some legacy/alternate serializers).
+            bool match = nodes
+                .OfType<JObject>()
+                .Where(n => (n.Value<string>("ConcreteType") ?? string.Empty)
+                    .StartsWith("PythonNodeModels", StringComparison.Ordinal))
+                .Select(n => n.Value<string>("Engine") ?? n.Value<string>("EngineName"))
+                .Any(engine => string.Equals(engine, expectedEngine, StringComparison.Ordinal));
+
+            Assert.IsTrue(
+                match,
+                $"Expected at least one Python node with engine '{expectedEngine}' in '{Path.GetFileName(dyfPath)}'.");
         }
 
         /// <summary>
