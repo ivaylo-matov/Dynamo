@@ -200,38 +200,62 @@ namespace DynamoCoreWpfTests
         [TearDown]
         public void Exit()
         {
-            testDiagnostics.BeforeCleanupDiagnostics();
-
-            //Ensure that we leave the workspace marked as
-            //not having changes.
-            ViewModel.HomeSpace.HasUnsavedChanges = false;
-
-            if (View != null && View.IsLoaded)
-                View.Close();
-
-            if (ViewModel != null)
-            {
-                var shutdownParams = new DynamoViewModel.ShutdownParams(
-                    shutdownHost: false, allowCancellation: false);
-
-                ViewModel.PerformShutdownSequence(shutdownParams);
-                ViewModel = null;
-            }
-
-            View = null;
-            Model = null;
-            preloader = null;
-
+            // TearDown should never throw, otherwise it can mask the real test failure
+            // (for example failures during SetUp or workspace open/run).
             try
             {
-                var directory = new DirectoryInfo(TempFolder);
-                directory.Delete(true);
+                testDiagnostics.BeforeCleanupDiagnostics();
+
+                // Ensure that we leave the workspace marked as not having changes.
+                // ViewModel can be null if SetUp failed.
+                if (ViewModel?.HomeSpace != null)
+                {
+                    ViewModel.HomeSpace.HasUnsavedChanges = false;
+                }
+
+                if (View != null && View.IsLoaded)
+                {
+                    View.Close();
+                }
+
+                if (ViewModel != null)
+                {
+                    var shutdownParams = new DynamoViewModel.ShutdownParams(
+                        shutdownHost: false, allowCancellation: false);
+
+                    ViewModel.PerformShutdownSequence(shutdownParams);
+                    ViewModel = null;
+                }
+
+                View = null;
+                Model = null;
+                preloader = null;
+
+                try
+                {
+                    if (!string.IsNullOrEmpty(TempFolder))
+                    {
+                        var directory = new DirectoryInfo(TempFolder);
+                        if (directory.Exists)
+                        {
+                            directory.Delete(true);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.StackTrace);
+                // Never rethrow from TearDown.
+                Console.WriteLine(ex);
             }
-            testDiagnostics.AfterCleanupDiagnostics();
+            finally
+            {
+                testDiagnostics.AfterCleanupDiagnostics();
+            }
         }
 
         protected virtual void GetLibrariesToPreload(List<string> libraries)
