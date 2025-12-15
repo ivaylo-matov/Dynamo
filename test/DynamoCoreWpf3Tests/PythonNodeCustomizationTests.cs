@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -12,7 +11,6 @@ using Autodesk.DesignScript.Runtime;
 using CoreNodeModels;
 using Dynamo.Controls;
 using Dynamo.DocumentationBrowser;
-using Dynamo.Wpf.Extensions;
 using Dynamo.Graph.Workspaces;
 using Dynamo.PythonServices;
 using Dynamo.PythonServices.EventHandlers;
@@ -91,7 +89,9 @@ namespace DynamoCoreWpfTests
             RaiseLoadedEvent(View);
             DispatcherUtil.DoEvents();
 
-            EnsurePythonMigrationViewExtensionLoaded();
+            Assert.IsTrue(
+                View.viewExtensionManager.ViewExtensions.Any(e => e != null && e.Name == "Python Migration"),
+                "Python Migration view extension is not loaded. Ensure PythonMigration_ViewExtensionDefinition.xml is present in the test output 'viewExtensions' folder.");
 
             // Load custom node definitions into the manager first.
             var testDir = GetTestDirectory(ExecutingDirectory);
@@ -116,38 +116,6 @@ namespace DynamoCoreWpfTests
             var watch = Model.CurrentWorkspace.NodeFromWorkspace<Watch>("3b2be8477f5a4ec5a6dc23d9f88a7b7e");
             Assert.IsNotNull(watch);
             Assert.AreEqual("20", watch.CachedValue?.ToString());
-        }
-
-        private void EnsurePythonMigrationViewExtensionLoaded()
-        {
-            // If already loaded by the view extension loader, do nothing.
-            if (View.viewExtensionManager.ViewExtensions.Any(e => e != null && e.Name == "Python Migration"))
-            {
-                return;
-            }
-
-            // Load the extension assembly (it is referenced by the test project and should be copied to output).
-            var binDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? string.Empty;
-            var extDllPath = Path.Combine(binDir, "PythonMigrationViewExtension.dll");
-            Assert.IsTrue(File.Exists(extDllPath), "PythonMigrationViewExtension.dll not found next to test binaries: " + extDllPath);
-
-            var asm = Assembly.LoadFrom(extDllPath);
-            var extType = asm.GetType("Dynamo.PythonMigration.PythonMigrationViewExtension", throwOnError: true);
-
-            // The view extension class is internal; instantiate via reflection.
-            var ext = Activator.CreateInstance(extType, nonPublic: true) as IViewExtension;
-            Assert.IsNotNull(ext, "Failed to create PythonMigrationViewExtension via reflection.");
-
-            // Startup + Loaded need internal constructors, but DynamoCoreWpf exposes InternalsVisibleTo to this test assembly.
-            var startupParams = new ViewStartupParams(ViewModel);
-            ext.Startup(startupParams);
-
-            var loadedParams = new ViewLoadedParams(View, ViewModel);
-            ext.Loaded(loadedParams);
-
-            View.viewExtensionManager.Add(ext);
-
-            Assert.IsTrue(View.viewExtensionManager.ViewExtensions.Any(e => e != null && e.Name == "Python Migration"));
         }
 
         /// <summary>

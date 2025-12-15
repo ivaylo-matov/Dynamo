@@ -210,6 +210,14 @@
       <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Ensure PythonMigrationViewExtension is discoverable by DynamoView's ViewExtensionLoader during UI tests. -->
+    <None Include="..\..\src\PythonMigrationViewExtension\PythonMigration_ViewExtensionDefinition.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>viewExtensions\PythonMigration_ViewExtensionDefinition.xml</TargetPath>
+    </None>
+  </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
