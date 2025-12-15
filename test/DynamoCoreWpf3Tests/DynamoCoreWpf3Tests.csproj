@@ -150,6 +150,7 @@
       <Name>UnitsUI</Name>
       <Private>False</Private>
     </ProjectReference>
+    <ProjectReference Include="..\..\src\PythonMigrationViewExtension\PythonMigrationViewExtension.csproj" />
     <ProjectReference Include="..\..\src\NodeAutoCompleteViewExtension\NodeAutoCompleteViewExtension.csproj">
       <Project>{51511AFD-F326-4995-8E27-5D711419EF6F}</Project>
       <Name>NodeAutoCompleteViewExtension</Name>
