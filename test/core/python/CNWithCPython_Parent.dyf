@@ -1,0 +1,213 @@
+{
+  "Uuid": "1edfa7ce-91b8-4dc9-a1f6-5ed9e8c1325b",
+  "IsCustomNode": true,
+  "Category": "Testing",
+  "Description": "Parent custom node calling the child custom node twice (nested dependency).",
+  "Name": "CNWithCPython_Parent",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Symbol, DynamoCore",
+      "NodeType": "InputNode",
+      "Parameter": {
+        "Name": "x",
+        "TypeName": "var",
+        "TypeRank": -1,
+        "DefaultValue": null,
+        "Description": ""
+      },
+      "Id": "88d8d10c4af54d458d7d6c1a4f5b0f1a",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "6b2a74d1788a4a0db7c8a9f6d8c0e3a1",
+          "Name": "",
+          "Description": "Symbol",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "A function parameter, use with custom nodes."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Function, DynamoCore",
+      "FunctionSignature": "d1b1a0c3-9ad3-4e91-a424-8aa800fa4ef2",
+      "FunctionType": "Graph",
+      "NodeType": "FunctionNode",
+      "Id": "4a7d1b9d0db84d45b2855e48d3a2f2d6",
+      "Inputs": [
+        {
+          "Id": "11b2f9e7a63b4e41b1a4d6a0b3c2d1e0",
+          "Name": "x",
+          "Description": "var[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "d9b0c9c0b5ff4afabbdad1c4c0c06d5e",
+          "Name": "OUT",
+          "Description": "return value",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "CNWithCPython_Child"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Function, DynamoCore",
+      "FunctionSignature": "d1b1a0c3-9ad3-4e91-a424-8aa800fa4ef2",
+      "FunctionType": "Graph",
+      "NodeType": "FunctionNode",
+      "Id": "5b4d0e2a7c1f4a2bb6d7e8f9a0b1c2d3",
+      "Inputs": [
+        {
+          "Id": "2a1b0c9d8e7f4a6b5c4d3e2f1a0b9c8d",
+          "Name": "x",
+          "Description": "var[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c0d9e8f7a6b54c3d2e1f0a9b8c7d6e5f",
+          "Name": "OUT",
+          "Description": "return value",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "CNWithCPython_Child"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CustomNodes.Output, DynamoCore",
+      "NodeType": "OutputNode",
+      "ElementResolver": null,
+      "Symbol": "OUT",
+      "Id": "b1c2d3e4f5a6478899aabbccddeeff00",
+      "Inputs": [
+        {
+          "Id": "aa11bb22cc33dd44ee55ff6677889900",
+          "Name": "",
+          "Description": "",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [],
+      "Replication": "Disabled",
+      "Description": "A function output, use with custom nodes"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "6b2a74d1788a4a0db7c8a9f6d8c0e3a1",
+      "End": "11b2f9e7a63b4e41b1a4d6a0b3c2d1e0",
+      "Id": "9c0b1a2d3e4f5061728394a5b6c7d8e9"
+    },
+    {
+      "Start": "d9b0c9c0b5ff4afabbdad1c4c0c06d5e",
+      "End": "2a1b0c9d8e7f4a6b5c4d3e2f1a0b9c8d",
+      "Id": "1e2d3c4b5a69788796a5b4c3d2e1f0a9"
+    },
+    {
+      "Start": "c0d9e8f7a6b54c3d2e1f0a9b8c7d6e5f",
+      "End": "aa11bb22cc33dd44ee55ff6677889900",
+      "Id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0"
+    }
+  ],
+  "Dependencies": [
+    "d1b1a0c3-9ad3-4e91-a424-8aa800fa4ef2"
+  ],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "3.0.0.0",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "Input",
+        "Id": "88d8d10c4af54d458d7d6c1a4f5b0f1a",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 120.0,
+        "Y": 100.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "CNWithCPython_Child",
+        "Id": "4a7d1b9d0db84d45b2855e48d3a2f2d6",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 320.0,
+        "Y": 100.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "CNWithCPython_Child",
+        "Id": "5b4d0e2a7c1f4a2bb6d7e8f9a0b1c2d3",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 520.0,
+        "Y": 100.0
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "Output",
+        "Id": "b1c2d3e4f5a6478899aabbccddeeff00",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 740.0,
+        "Y": 100.0
+      }
+    ],
+    "Annotations": [],
+    "X": 0.0,
+    "Y": 0.0,
+    "Zoom": 1.0
+  }
+}
