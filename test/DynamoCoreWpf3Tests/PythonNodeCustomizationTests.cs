@@ -94,7 +94,8 @@ namespace DynamoCoreWpfTests
             EnsurePythonMigrationViewExtensionLoaded();
 
             // Load custom node definitions into the manager first.
-            var pythonDir = Path.Combine(TestDirectory, "core", "python");
+            var testDir = GetTestDirectory(ExecutingDirectory);
+            var pythonDir = Path.Combine(testDir, "core", "python");
             var childPath = Path.Combine(pythonDir, "CNWithCPython_Child.dyf");
             var parentPath = Path.Combine(pythonDir, "CNWithCPython_Parent.dyf");
 
