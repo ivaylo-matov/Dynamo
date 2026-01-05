@@ -12,6 +12,7 @@ using Dynamo.Models;
 using Dynamo.PackageManager;
 using Dynamo.Wpf.Properties;
 using Dynamo.Wpf.Utilities;
+using Greg.Requests;
 using Prism.Commands;
 using NotificationObject = Dynamo.Core.NotificationObject;
 
@@ -453,6 +454,14 @@ namespace Dynamo.ViewModels
             var vm = PublishPackageViewModel.FromLocalPackage(dynamoViewModel, Model, true);
             vm.IsNewVersion = true;
 
+            // Auto-populate compatibility from the latest published version (server-cached),
+            // falling back to local package data if unavailable.
+            var latestPublishedCompatibility = TryGetLatestPublishedCompatibilityMatrix(Model.Name);
+            if (latestPublishedCompatibility != null && latestPublishedCompatibility.Any())
+            {
+                vm.CompatibilityMatrix = latestPublishedCompatibility.ToList();
+            }
+
             dynamoViewModel.OnRequestPackagePublishDialog(vm);
         }
 
@@ -487,6 +496,60 @@ namespace Dynamo.ViewModels
             var package = this.packageManagerClientViewModel.CachedPackageList.FirstOrDefault(x => x.Name == packageName);
 
             return package;
+        }
+
+        /// <summary>
+        /// Returns the compatibility matrix from the latest published package version
+        /// available in the cached package list (downloaded from the package manager).
+        /// </summary>
+        private IEnumerable<PackageCompatibility> TryGetLatestPublishedCompatibilityMatrix(string packageName)
+        {
+            var cached = GetPackageVersionInformationFromCached(packageName);
+            var versions = cached?.Header?.versions;
+            if (versions == null || versions.Count == 0) return null;
+
+            // Prefer the highest semantic version (major.minor.patch). If parsing fails, fall back to list order.
+            var latest = versions
+                .Select(v => new { Version = v, Parsed = TryParseThreePartVersion(v.version) })
+                .OrderByDescending(x => x.Parsed != null) // parsed versions first
+                .ThenByDescending(x => x.Parsed)          // then by numeric order
+                .Select(x => x.Version)
+                .FirstOrDefault();
+
+            var matrix = latest?.compatibility_matrix;
+            if (matrix == null) return null;
+
+            return matrix.Select(entry => new PackageCompatibility(
+                entry.name,
+                entry.versions != null ? new List<string>(entry.versions) : null,
+                entry.min,
+                entry.max));
+        }
+
+        /// <summary>
+        /// Parses a semantic-like "major.minor.patch" version string into System.Version.
+        /// Strips any pre-release/build metadata (e.g. "1.2.3-alpha+1" -> "1.2.3").
+        /// </summary>
+        private static Version TryParseThreePartVersion(string version)
+        {
+            if (string.IsNullOrWhiteSpace(version)) return null;
+            var cleaned = version.Split('-', '+')[0];
+            var parts = cleaned.Split('.');
+            if (parts.Length < 3) return null;
+
+            // System.Version allows 2-4 components; use first 3 to avoid surprises.
+            if (!int.TryParse(parts[0], out var major)) return null;
+            if (!int.TryParse(parts[1], out var minor)) return null;
+            if (!int.TryParse(parts[2], out var patch)) return null;
+
+            try
+            {
+                return new Version(major, minor, patch);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private bool IsPackageDeprecated(string packageName)
