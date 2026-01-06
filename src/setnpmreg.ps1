@@ -17,9 +17,15 @@ try {
     $response = Invoke-WebRequest -Uri $adskNpmRegistry -TimeoutSec 20 -ErrorAction Stop
 
     if ($response.StatusCode -eq 200) {
-        Write-Host "adsk npm registry is reachable" -ForegroundColor Green
-        createNpmrcFile -registry $adskNpmRegistry
-        Write-Output "//npm.autodesk.com/artifactory/api/npm/:_authToken=`${NPM_TOKEN}" | Out-File -FilePath .npmrc -Encoding UTF8 -Append
+        if ([string]::IsNullOrWhiteSpace($env:NPM_TOKEN)) {
+            Write-Host "adsk npm registry is reachable, but NPM_TOKEN is not set; using public npm registry" -ForegroundColor Yellow
+            createNpmrcFile -registry $npmRegistry
+        }
+        else {
+            Write-Host "adsk npm registry is reachable" -ForegroundColor Green
+            createNpmrcFile -registry $adskNpmRegistry
+            Write-Output "//npm.autodesk.com/artifactory/api/npm/:_authToken=`${NPM_TOKEN}" | Out-File -FilePath .npmrc -Encoding UTF8 -Append
+        }
     }
     else {
         Write-Host "adsk npm registry is not reachable" -ForegroundColor Red
