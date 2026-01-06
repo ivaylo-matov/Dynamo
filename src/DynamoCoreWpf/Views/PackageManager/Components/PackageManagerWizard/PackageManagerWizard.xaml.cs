@@ -24,6 +24,7 @@ using Greg.Requests;
 using Newtonsoft.Json.Linq;
 using Dynamo.Models;
 using System.Globalization;
+using Greg.Responses; // ADDED: to access PackageHeader/versions when building previous version list
 
 namespace Dynamo.UI.Views
 {
@@ -206,6 +207,10 @@ namespace Dynamo.UI.Views
                 if (publishPackageViewModel.PreviewPackageContents?.Count > 0) UpdatePreviewPackageContents();
                 if (publishPackageViewModel.CompatibilityMatrix?.Count > 0) SendCompatibilityMatrix(publishPackageViewModel.CompatibilityMatrix);
                 if (publishPackageViewModel.RetainFolderStructureOverride) UpdateRetainFolderStructureFlag(publishPackageViewModel.RetainFolderStructureOverride);
+
+                // ADDED: send previous published versions so the wizard can show/hide "Copy from"
+                var previousVersions = GetPublishedPackageVersions(publishPackageViewModel);
+                SendPublishedPackageVersions(previousVersions);
             }
         }
 
@@ -415,6 +420,58 @@ namespace Dynamo.UI.Views
                     await dynWebView.CoreWebView2.ExecuteScriptAsync($"window.receiveCompatibilityMatrix({jsonPayload})");
                 }
             }
+        }
+
+        // ADDED: send list of published versions for the selected package
+        private async void SendPublishedPackageVersions(IEnumerable<string> versions)
+        {
+            var safeVersions = versions?.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().ToList() ?? new List<string>();
+            var payload = new { versions = safeVersions };
+
+            string jsonPayload = JsonSerializer.Serialize(payload);
+
+            if (dynWebView?.CoreWebView2 != null)
+            {
+                // Wizard front-end should implement: window.receivePublishedPackageVersions({ versions: [...] })
+                await dynWebView.CoreWebView2.ExecuteScriptAsync($"window.receivePublishedPackageVersions({jsonPayload});");
+            }
+        }
+
+        // ADDED: gather published versions from the cached package list (server data)
+        private static IEnumerable<string> GetPublishedPackageVersions(PublishPackageViewModel vm)
+        {
+            if (vm?.DynamoViewModel?.PackageManagerClientViewModel?.CachedPackageList == null) return Enumerable.Empty<string>();
+            if (string.IsNullOrWhiteSpace(vm.Name)) return Enumerable.Empty<string>();
+
+            // Find the package header from the package manager cache.
+            var cached = vm.DynamoViewModel.PackageManagerClientViewModel.CachedPackageList
+                .FirstOrDefault(x => string.Equals(x?.Name, vm.Name, StringComparison.OrdinalIgnoreCase));
+
+            var versions = cached?.Header?.versions;
+            if (versions == null || versions.Count == 0) return Enumerable.Empty<string>();
+
+            // Return all published version strings (sorted best-effort).
+            return versions
+                .Select(v => v?.version)
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .OrderByDescending(TryParseThreePartVersionForSort)
+                .ThenByDescending(v => v);
+        }
+
+        // ADDED: best-effort semantic-ish sort key; unparsable versions sort last.
+        private static Version TryParseThreePartVersionForSort(string version)
+        {
+            if (string.IsNullOrWhiteSpace(version)) return new Version(0, 0, 0);
+            var cleaned = version.Split('-', '+')[0];
+            var parts = cleaned.Split('.');
+            if (parts.Length < 3) return new Version(0, 0, 0);
+
+            if (!int.TryParse(parts[0], out var major)) return new Version(0, 0, 0);
+            if (!int.TryParse(parts[1], out var minor)) return new Version(0, 0, 0);
+            if (!int.TryParse(parts[2], out var patch)) return new Version(0, 0, 0);
+
+            try { return new Version(major, minor, patch); }
+            catch { return new Version(0, 0, 0); }
         }
 
         private async void SendUpdatedPackageContents(object frontendData, string type)
