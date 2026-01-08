@@ -1533,8 +1533,14 @@ namespace Dynamo.Controls
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            if ((bool)value)
-                return Visibility.Visible;
+            // Be defensive: bindings can yield null/UnsetValue during template load.
+            // Returning Collapsed avoids repeated exceptions that can degrade UI performance.
+            if (value is bool b)
+                return b ? Visibility.Visible : Visibility.Collapsed;
+
+            if (value is bool? nb)
+                return nb.GetValueOrDefault(false) ? Visibility.Visible : Visibility.Collapsed;
+
             return Visibility.Collapsed;
         }
 
