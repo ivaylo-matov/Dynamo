@@ -660,6 +660,60 @@ namespace Dynamo.Controls
         }
     }
 
+    /// <summary>
+    /// Subtracts a numeric parameter from a numeric binding value.
+    /// Useful for computing MaxWidth/MinWidth values in XAML.
+    /// </summary>
+    public class SubtractDoubleConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == null) return 0d;
+
+            if (!TryGetDouble(value, culture, out var baseValue))
+                return 0d;
+
+            if (parameter == null)
+                return baseValue;
+
+            if (!TryGetDouble(parameter, CultureInfo.InvariantCulture, out var subtractValue) &&
+                !TryGetDouble(parameter, culture, out subtractValue))
+            {
+                return baseValue;
+            }
+
+            var result = baseValue - subtractValue;
+            return result < 0 ? 0d : result;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotSupportedException();
+        }
+
+        private static bool TryGetDouble(object value, CultureInfo culture, out double result)
+        {
+            switch (value)
+            {
+                case double d:
+                    result = d;
+                    return true;
+                case float f:
+                    result = f;
+                    return true;
+                case int i:
+                    result = i;
+                    return true;
+                case string s when double.TryParse(s, NumberStyles.Float | NumberStyles.AllowThousands, culture, out var parsed):
+                    result = parsed;
+                    return true;
+                default:
+                    result = 0d;
+                    return false;
+            }
+        }
+    }
+
     public class PathToFileNameConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
