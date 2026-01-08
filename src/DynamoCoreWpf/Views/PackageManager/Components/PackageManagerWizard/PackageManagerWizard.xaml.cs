@@ -24,6 +24,7 @@ using Greg.Requests;
 using Newtonsoft.Json.Linq;
 using Dynamo.Models;
 using System.Globalization;
+using Greg.Responses;
 
 namespace Dynamo.UI.Views
 {
@@ -58,6 +59,7 @@ namespace Dynamo.UI.Views
         internal Action<string> RequestToggleNodeLibraryOnItem;
         internal Action<string> RequestOpenFolder;
         internal Action<string> RequestUpdateCompatibilityMatrix;
+        internal Action<string> RequestCopyCompatibilityFromVersion; // ADDED
         internal Action RequestLoadMarkdownContent;
         internal Action RequestClearMarkdownContent;
         internal Action<string> RequestLogMessage;
@@ -99,6 +101,7 @@ namespace Dynamo.UI.Views
             RequestToggleNodeLibraryOnItem = ToggleNodeLibraryOnItem;
             RequestOpenFolder = OpenFolder;
             RequestUpdateCompatibilityMatrix = UpdateCompatibilityMatrix;
+            RequestCopyCompatibilityFromVersion = CopyCompatibilityFromVersion; // ADDED
             RequestLoadMarkdownContent = LoadMarkdownContent;
             RequestClearMarkdownContent = ClearMarkdownContent;
             RequestLogMessage = LogMessage;
@@ -206,6 +209,10 @@ namespace Dynamo.UI.Views
                 if (publishPackageViewModel.PreviewPackageContents?.Count > 0) UpdatePreviewPackageContents();
                 if (publishPackageViewModel.CompatibilityMatrix?.Count > 0) SendCompatibilityMatrix(publishPackageViewModel.CompatibilityMatrix);
                 if (publishPackageViewModel.RetainFolderStructureOverride) UpdateRetainFolderStructureFlag(publishPackageViewModel.RetainFolderStructureOverride);
+
+                // ADDED: send previous published versions so the wizard can show/hide "Copy from"
+                var previousversions = GetPublishedPackageVersions(publishPackageViewModel);
+                SendPublishedPackageVersions(previousversions);
             }
         }
 
@@ -264,6 +271,7 @@ namespace Dynamo.UI.Views
                             RequestToggleNodeLibraryOnItem,
                             RequestOpenFolder,
                             RequestUpdateCompatibilityMatrix,
+                            RequestCopyCompatibilityFromVersion, // ADDED
                             RequestLoadMarkdownContent,
                             RequestClearMarkdownContent,
                             RequestLogMessage,
@@ -415,6 +423,40 @@ namespace Dynamo.UI.Views
                     await dynWebView.CoreWebView2.ExecuteScriptAsync($"window.receiveCompatibilityMatrix({jsonPayload})");
                 }
             }
+        }
+
+        // ADDED: send list of published versions for the selected package
+        private async void SendPublishedPackageVersions(IEnumerable<string> versions)
+        {
+            var safeVersions = versions?.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().ToList() ?? new List<string>();
+            var payload = new {versions = safeVersions };
+            string jsonPayload = JsonSerializer.Serialize(payload);
+            if (dynWebView?.CoreWebView2 != null)
+            {
+                await dynWebView.CoreWebView2.ExecuteScriptAsync($"window.receivePublishedPackageVersions({jsonPayload})");
+            }
+        }
+
+        // ADDED: gather published versions from the cached package list (server data)
+        private static IEnumerable<string> GetPublishedPackageVersions(PublishPackageViewModel vm)
+        {
+            if (vm?.DynamoViewModel?.PackageManagerClientViewModel?.CachedPackageList == null)
+                return Enumerable.Empty<string>();
+            if (string.IsNullOrWhiteSpace(vm.Name))
+                return Enumerable.Empty<string>();
+
+            // Find the package header from the cached package list
+            var cached = vm.DynamoViewModel.PackageManagerClientViewModel.CachedPackageList.FirstOrDefault(x => string.Equals(x?.Name, vm.Name, StringComparison.OrdinalIgnoreCase));
+
+            var versions = cached?.Header?.versions;
+            if (versions == null ||  versions.Count == 0)
+                return Enumerable.Empty<string>();
+
+            // Return all published strings
+            return versions
+                .Select(v => v.version)
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .OrderByDescending(v => v);
         }
 
         private async void SendUpdatedPackageContents(object frontendData, string type)
@@ -814,6 +856,55 @@ namespace Dynamo.UI.Views
             }
         }
 
+
+
+        // ADDED: Wizard requested to copy compatibility from a previously published version.
+        // This updates the Dynamo-side PublishPackageViewModel AND pushes the matrix back to the wizard UI.
+        internal void CopyCompatibilityFromVersion(string version)
+        {
+            if (publishPackageViewModel == null) return;
+            if (string.IsNullOrWhiteSpace(version)) return;
+
+            try
+            {
+                var pkgName = publishPackageViewModel.Name;
+                if (string.IsNullOrWhiteSpace(pkgName)) return;
+
+                var cachedPackage = publishPackageViewModel.DynamoViewModel?.PackageManagerClientViewModel?.CachedPackageList
+                    ?.FirstOrDefault(x => string.Equals(x?.Name, pkgName, StringComparison.OrdinalIgnoreCase));
+
+                var selectedVersion = cachedPackage?.Header?.versions?
+                    .FirstOrDefault(v => string.Equals(v?.version, version, StringComparison.OrdinalIgnoreCase));
+
+                var matrix = selectedVersion?.compatibility_matrix?
+                    .Select(entry => new PackageCompatibility(
+                        entry.name,
+                        entry.versions != null ? new List<string>(entry.versions) : null,
+                        entry.min,
+                        entry.max))
+                    .ToList();
+
+                if (matrix == null || matrix.Count == 0)
+                {
+                    LogMessage($"No compatibility matrix found for '{pkgName}' version '{version}'.");
+                    return;
+                }
+
+                publishPackageViewModel.CompatibilityMatrix = matrix;
+                SendCompatibilityMatrix(publishPackageViewModel.CompatibilityMatrix);
+                LogMessage($"Copied compatibility matrix from '{pkgName}' version '{version}'.");
+            }
+            catch (Exception ex)
+            {
+                LogMessage(ex);
+            }
+        }
+
+
+
+
+
+
         internal void LoadMarkdownContent()
         {
             if (publishPackageViewModel == null)
@@ -1189,6 +1280,7 @@ namespace Dynamo.UI.Views
         readonly Action<string> RequestToggleNodeLibraryOnItem;
         readonly Action<string> RequestOpenFolder;
         readonly Action<string> RequestUpdateCompatibilityMatrix;
+        readonly Action<string> RequestCopyCompatibilityFromVersion; // ADDED
         readonly Action RequestLoadMarkdownContent;
         readonly Action RequestClearMarkdownContent;
         readonly Action<string> RequestLogMessage;
@@ -1208,6 +1300,7 @@ namespace Dynamo.UI.Views
             Action<string> requestToggleNodeLibraryOnItem,
             Action<string> requestOpenFolder,
             Action<string> requestUpdateCompatibilityMatrix,
+            Action<string> requestCopyCompatibilityFromVersion, // ADDED
             Action requestLoadMarkdownContent,
             Action requestClearMarkdownContent,
             Action<string> requestLogMessage,
@@ -1226,6 +1319,7 @@ namespace Dynamo.UI.Views
             RequestToggleNodeLibraryOnItem = requestToggleNodeLibraryOnItem;
             RequestOpenFolder = requestOpenFolder;
             RequestUpdateCompatibilityMatrix = requestUpdateCompatibilityMatrix;
+            RequestCopyCompatibilityFromVersion = requestCopyCompatibilityFromVersion; // ADDED
             RequestLoadMarkdownContent = requestLoadMarkdownContent;
             RequestClearMarkdownContent = requestClearMarkdownContent;
             RequestLogMessage = requestLogMessage;
@@ -1271,6 +1365,13 @@ namespace Dynamo.UI.Views
         public void UpdateCompatibilityMatrix(string jsonPayload)
         {
             RequestUpdateCompatibilityMatrix(jsonPayload);
+        }
+
+        // ADDED: Called by the wizard when user selects "Copy from" version.
+        [DynamoJSInvokable]
+        public void CopyCompatibilityFromVersion(string version)
+        {
+            RequestCopyCompatibilityFromVersion(version);
         }
 
         [DynamoJSInvokable]
