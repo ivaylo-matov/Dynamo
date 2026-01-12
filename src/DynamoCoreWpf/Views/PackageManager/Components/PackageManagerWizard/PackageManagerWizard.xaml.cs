@@ -562,19 +562,10 @@ namespace Dynamo.UI.Views
                     var rootObj = JObject.Parse(jsonPayload);
                     if (rootObj["payload"] is JObject payloadObj)
                     {
-                        // Prefer server/header values for package identity & history; keep major/minor/patch fields too.
-                        payloadObj["_id"] = header._id ?? string.Empty;
-                        payloadObj["downloads"] = header.downloads;
-                        payloadObj["votes"] = header.votes;
-                        payloadObj["engine"] = header.engine ?? "dynamo";
-                        payloadObj["used_by"] = header.used_by != null ? JToken.FromObject(header.used_by) : new JArray();
-                        payloadObj["maintainers"] = header.maintainers != null ? JToken.FromObject(header.maintainers) : new JArray();
+                        // Keep the original publish payload shape to avoid regressions,
+                        // and ONLY add the package version history so the compatibility editor
+                        // can populate the "Copy from" dropdown (versions[*].compatibility_matrix).
                         payloadObj["versions"] = header.versions != null ? JToken.FromObject(header.versions) : new JArray();
-                        payloadObj["num_versions"] = header.num_versions != 0 ? header.num_versions : (header.versions?.Count ?? 0);
-
-                        // Best-effort: these are part of ExtendedPackage shape on the front-end.
-                        payloadObj["created"] = header.versions?.FirstOrDefault()?.created ?? string.Empty;
-                        payloadObj["latest_version_update"] = $"{vm.MajorVersion}.{vm.MinorVersion}.{vm.BuildVersion}";
                     }
 
                     jsonPayload = rootObj.ToString(Newtonsoft.Json.Formatting.None);
