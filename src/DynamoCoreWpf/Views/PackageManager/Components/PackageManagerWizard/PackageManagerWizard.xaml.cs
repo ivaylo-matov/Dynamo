@@ -417,125 +417,10 @@ namespace Dynamo.UI.Views
             }
         }
 
-        /// <summary>
-        /// Sends the selected package information (including all versions and their compatibility matrices)
-        /// using the cached package list (server metadata) if present.
-        ///
-        /// This payload is intended to match the shape expected by the compatibility editor, e.g.:
-        /// { timestamp, success, message, content: { name, _id, versions: [ { version, compatibility_matrix, host_dependencies, ... } ] } }
-        ///
-        /// This is a best-effort call and is guarded so older front-ends without the handler do not throw.
-        /// </summary>
-        private async void SendSelectedPackageFromCache()
-        {
-            try
-            {
-                var pkg = publishPackageViewModel?.Package;
-                if (pkg == null) return;
-
-                var cachedList = publishPackageViewModel?.DynamoViewModel?.PackageManagerClientViewModel?.CachedPackageList;
-                var pmClientVm = publishPackageViewModel?.DynamoViewModel?.PackageManagerClientViewModel;
-
-                // Prefer a direct server call (best-effort) to fetch complete version history
-                // over relying on a potentially stale/partial cache.
-                Greg.Responses.PackageHeader header = null;
-                try
-                {
-                    if (pmClientVm?.Model != null && !pmClientVm.Model.NoNetworkMode)
-                    {
-                        header = await Task.Run(() =>
-                            pmClientVm.Model.GetPackageMaintainers(new PackageInfo(pkg.Name, new Version(pkg.VersionName))));
-                    }
-                }
-                catch
-                {
-                    // Fall back to cached list below.
-                }
-
-                if (header == null)
-                {
-                    if (cachedList == null) return;
-                    var cached = cachedList.FirstOrDefault(x => x.Name == pkg.Name);
-                    header = cached?.Header;
-                }
-
-                var versions = header?.versions;
-                if (header == null || versions == null || versions.Count == 0) return;
-
-                var versionsPayload = versions
-                    .Where(v => v != null)
-                    .Select(v => new
-                    {
-                        version = v.version,
-                        created = v.created,
-                        engine_version = v.engine_version,
-                        host_dependencies = v.host_dependencies?.ToList(),
-                        compatibility_matrix = v.compatibility_matrix?.Select(c => new
-                        {
-                            name = c.name,
-                            versions = c.versions,
-                            min = c.min,
-                            max = c.max
-                        }).ToList()
-                    })
-                    .ToList();
-
-                // Only useful if there's at least one compatibility matrix present.
-                if (!versionsPayload.Any(v => (v.compatibility_matrix?.Count ?? 0) > 0)) return;
-
-                var contentPayload = new
-                {
-                    repository_url = header.repository_url,
-                    downloads = header.downloads,
-                    site_url = header.site_url,
-                    license = header.license,
-                    maintainers = header.maintainers?.Select(m => new { _id = m._id, username = m.username }).ToList(),
-                    keywords = header.keywords?.ToList(),
-                    description = header.description,
-                    engine = header.engine,
-                    used_by = header.used_by,
-                    versions = versionsPayload,
-                    _id = header._id,
-                    name = header.name,
-                    group = header.group,
-                    num_versions = header.num_versions
-                };
-
-                var selectedPackagePayload = new
-                {
-                    timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                    success = true,
-                    message = "Found package",
-                    content = contentPayload
-                };
-
-                // Best-effort: use a computed version string for the current publish VM, fallback to installed package version.
-                var selectedVersion = $"{publishPackageViewModel?.MajorVersion}.{publishPackageViewModel?.MinorVersion}.{publishPackageViewModel?.BuildVersion}";
-                if (string.IsNullOrWhiteSpace(publishPackageViewModel?.MajorVersion) ||
-                    string.IsNullOrWhiteSpace(publishPackageViewModel?.MinorVersion) ||
-                    string.IsNullOrWhiteSpace(publishPackageViewModel?.BuildVersion))
-                {
-                    selectedVersion = pkg.VersionName;
-                }
-
-                string selectedPackageJson = Newtonsoft.Json.JsonConvert.SerializeObject(selectedPackagePayload, Formatting.None);
-                string selectedVersionJson = Newtonsoft.Json.JsonConvert.SerializeObject(new { version = selectedVersion }, Formatting.None);
-
-                if (dynWebView?.CoreWebView2 != null)
-                {
-                    // Guarded calls: do nothing if the handler is missing on older front-ends.
-                    await dynWebView.CoreWebView2.ExecuteScriptAsync(
-                        $"window.receiveSelectedPackage && window.receiveSelectedPackage({selectedPackageJson});");
-
-                    await dynWebView.CoreWebView2.ExecuteScriptAsync(
-                        $"window.receiveSelectedPackageVersion && window.receiveSelectedPackageVersion({selectedVersionJson});");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogMessage(ex);
-            }
-        }
+        // NOTE:
+        // Previous iterations used a separate "selected package" side-channel message for version history.
+        // The current front-end architecture populates state.selectedPackage ONLY via
+        // window.receiveUpdatedPackageDetails({ payload }), so version history is now injected there instead.
 
         private async void SendUpdatedPackageContents(object frontendData, string type)
         {
@@ -656,60 +541,49 @@ namespace Dynamo.UI.Views
                 ReleaseNotesUrl = vm.ReleaseNotesUrl ?? string.Empty
             };
 
-            // IMPORTANT:
-            // The front-end uses receiveUpdatedPackageDetails({ payload }) to populate state.selectedPackage.
-            // To enable the "Copy from" dropdown in the compatibility editor, this payload must include
-            // package version history: payload.versions[*].compatibility_matrix.
-            var header = await TryGetPackageHeaderAsync(vm);
-            if (header != null)
-            {
-                packageDetails.Id = header._id ?? string.Empty;
-                packageDetails.Downloads = header.downloads;
-                packageDetails.Votes = header.votes;
-                packageDetails.UsedBy = header.used_by;
-
-                // Best-effort: use earliest version created date as package created date.
-                packageDetails.Created = header.versions?.FirstOrDefault()?.created ?? string.Empty;
-
-                packageDetails.Maintainers = header.maintainers?
-                    .Select(m => new PackageMaintainer
-                    {
-                        Id = m._id,
-                        Username = m.username
-                    })
-                    .ToList() ?? new List<PackageMaintainer>();
-
-                packageDetails.Versions = header.versions?
-                    .Where(v => v != null)
-                    .Select(v => new PackageVersionInfo
-                    {
-                        Version = v.version,
-                        Created = v.created,
-                        EngineVersion = v.engine_version,
-                        HostDependencies = v.host_dependencies?.ToList() ?? new List<string>(),
-                        CompatibilityMatrix = v.compatibility_matrix?
-                            .Where(c => c != null)
-                            .Select(c => new PackageCompatibilityEntry
-                            {
-                                Name = c.name,
-                                Versions = c.versions?.ToList(),
-                                Min = c.min,
-                                Max = c.max
-                            })
-                            .ToList() ?? new List<PackageCompatibilityEntry>()
-                    })
-                    .ToList() ?? new List<PackageVersionInfo>();
-
-                packageDetails.NumVersions = packageDetails.Versions.Count;
-            }
-
             var payload = new { payload = packageDetails };
             var options = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             };
 
-            string jsonPayload = JsonSerializer.Serialize(payload, options);
+            // Base payload for receiveUpdatedPackageDetails({ payload })
+            var jsonPayload = JsonSerializer.Serialize(payload, options);
+
+            // IMPORTANT:
+            // The front-end stores state.selectedPackage = payload (UPDATE_PACKAGE action).
+            // To populate the compatibility "Copy from" dropdown, this payload must include:
+            // payload.versions[*].compatibility_matrix (historical).
+            try
+            {
+                var header = await TryGetPackageHeaderAsync(vm);
+                if (header != null)
+                {
+                    var rootObj = JObject.Parse(jsonPayload);
+                    if (rootObj["payload"] is JObject payloadObj)
+                    {
+                        // Prefer server/header values for package identity & history; keep major/minor/patch fields too.
+                        payloadObj["_id"] = header._id ?? string.Empty;
+                        payloadObj["downloads"] = header.downloads;
+                        payloadObj["votes"] = header.votes;
+                        payloadObj["engine"] = header.engine ?? "dynamo";
+                        payloadObj["used_by"] = header.used_by != null ? JToken.FromObject(header.used_by) : new JArray();
+                        payloadObj["maintainers"] = header.maintainers != null ? JToken.FromObject(header.maintainers) : new JArray();
+                        payloadObj["versions"] = header.versions != null ? JToken.FromObject(header.versions) : new JArray();
+                        payloadObj["num_versions"] = header.num_versions != 0 ? header.num_versions : (header.versions?.Count ?? 0);
+
+                        // Best-effort: these are part of ExtendedPackage shape on the front-end.
+                        payloadObj["created"] = header.versions?.FirstOrDefault()?.created ?? string.Empty;
+                        payloadObj["latest_version_update"] = $"{vm.MajorVersion}.{vm.MinorVersion}.{vm.BuildVersion}";
+                    }
+
+                    jsonPayload = rootObj.ToString(Newtonsoft.Json.Formatting.None);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogMessage(ex);
+            }
 
             if (dynWebView?.CoreWebView2 != null)   
             {
@@ -723,22 +597,25 @@ namespace Dynamo.UI.Views
             var pkgName = vm?.Package?.Name ?? vm?.Name;
             if (string.IsNullOrWhiteSpace(pkgName) || pmClientVm == null) return null;
 
-            // Best-effort: prefer direct server call (one package) over cache.
-            // This call returns a PackageHeader that includes versions[*].compatibility_matrix.
+            // Prefer cached header if available; otherwise, fetch from server via ListAll (best-effort).
+            // ListAll returns PackageHeader objects with versions[*].compatibility_matrix included (when present).
+            var cachedHeader = pmClientVm.CachedPackageList?.FirstOrDefault(x => x.Name == pkgName)?.Header;
+            if (cachedHeader != null) return cachedHeader;
+
             if (pmClientVm.Model != null && !pmClientVm.Model.NoNetworkMode)
             {
                 try
                 {
-                    return await Task.Run(() =>
-                        pmClientVm.Model.GetPackageMaintainers(new PackageInfo(pkgName, new Version(0, 0, 0))));
+                    await Task.Run(() => pmClientVm.ListAll());
+                    return pmClientVm.CachedPackageList?.FirstOrDefault(x => x.Name == pkgName)?.Header;
                 }
                 catch
                 {
-                    // Fall back to cached list below.
+                    // ignore
                 }
             }
 
-            return pmClientVm.CachedPackageList?.FirstOrDefault(x => x.Name == pkgName)?.Header;
+            return null;
         }
 
         private async void UpdateRetainFolderStructureFlag(bool flag)
