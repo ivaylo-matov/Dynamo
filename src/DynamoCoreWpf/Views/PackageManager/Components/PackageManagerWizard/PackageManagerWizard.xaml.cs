@@ -206,8 +206,9 @@ namespace Dynamo.UI.Views
                 if (publishPackageViewModel.PreviewPackageContents?.Count > 0) UpdatePreviewPackageContents();
                 if (publishPackageViewModel.CompatibilityMatrix?.Count > 0) SendCompatibilityMatrix(publishPackageViewModel.CompatibilityMatrix);
                 // If this publish flow is based on an existing local package, attempt to also send
-                // server-cached per-version compatibility/host dependency info (if available).
-                SendCompatibilityAndHostsByVersionFromCache();
+                // server-cached package/version info (including per-version compatibility matrices)
+                // in the format expected by the compatibility editor.
+                SendSelectedPackageFromCache();
                 if (publishPackageViewModel.RetainFolderStructureOverride) UpdateRetainFolderStructureFlag(publishPackageViewModel.RetainFolderStructureOverride);
             }
         }
@@ -421,11 +422,15 @@ namespace Dynamo.UI.Views
         }
 
         /// <summary>
-        /// Sends per-version compatibility matrices (and host dependencies) for the current package,
-        /// using the cached package list (server metadata) if present. This is a best-effort call:
-        /// it is guarded so older front-ends without the handler do not throw.
+        /// Sends the selected package information (including all versions and their compatibility matrices)
+        /// using the cached package list (server metadata) if present.
+        ///
+        /// This payload is intended to match the shape expected by the compatibility editor, e.g.:
+        /// { timestamp, success, message, content: { name, _id, versions: [ { version, compatibility_matrix, host_dependencies, ... } ] } }
+        ///
+        /// This is a best-effort call and is guarded so older front-ends without the handler do not throw.
         /// </summary>
-        private async void SendCompatibilityAndHostsByVersionFromCache()
+        private async void SendSelectedPackageFromCache()
         {
             try
             {
@@ -436,20 +441,19 @@ namespace Dynamo.UI.Views
                 if (cachedList == null) return;
 
                 var cached = cachedList.FirstOrDefault(x => x.Name == pkg.Name);
-                var versions = cached?.Header?.versions;
-                if (versions == null || versions.Count == 0) return;
+                var header = cached?.Header;
+                var versions = header?.versions;
+                if (header == null || versions == null || versions.Count == 0) return;
 
-                // Normalize to a stable JSON shape for the front-end.
-                var versionData = versions
+                var versionsPayload = versions
                     .Where(v => v != null)
                     .Select(v => new
                     {
                         version = v.version,
                         created = v.created,
-                        hostDependencies = v.host_dependencies?.ToList(),
-                        // compatibility_matrix is a list of Greg.Responses.Compatibility objects.
-                        // Normalize fields to avoid relying on implementation-specific serialization details.
-                        compatibilityMatrix = v.compatibility_matrix?.Select(c => new
+                        engine_version = v.engine_version,
+                        host_dependencies = v.host_dependencies?.ToList(),
+                        compatibility_matrix = v.compatibility_matrix?.Select(c => new
                         {
                             name = c.name,
                             versions = c.versions,
@@ -459,24 +463,57 @@ namespace Dynamo.UI.Views
                     })
                     .ToList();
 
-                // Only send if there's meaningful per-version data.
-                if (!versionData.Any(d => (d.compatibilityMatrix?.Count ?? 0) > 0 || (d.hostDependencies?.Count ?? 0) > 0))
-                    return;
+                // Only useful if there's at least one compatibility matrix present.
+                if (!versionsPayload.Any(v => (v.compatibility_matrix?.Count ?? 0) > 0)) return;
 
-                var payload = new
+                var contentPayload = new
                 {
-                    packageName = cached?.Name ?? pkg.Name,
-                    installedVersion = pkg.VersionName,
-                    versions = versionData
+                    repository_url = header.repository_url,
+                    created = header.created,
+                    downloads = header.downloads,
+                    latest_version_update = header.latest_version_update,
+                    site_url = header.site_url,
+                    license = header.license,
+                    maintainers = header.maintainers?.Select(m => new { _id = m._id, username = m.username }).ToList(),
+                    keywords = header.keywords?.ToList(),
+                    description = header.description,
+                    engine = header.engine,
+                    used_by = header.used_by,
+                    versions = versionsPayload,
+                    _id = header._id,
+                    name = header.name,
+                    group = header.group,
+                    num_versions = header.num_versions
                 };
 
-                string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(payload, Formatting.None);
+                var selectedPackagePayload = new
+                {
+                    timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    success = true,
+                    message = "Found package",
+                    content = contentPayload
+                };
+
+                // Best-effort: use a computed version string for the current publish VM, fallback to installed package version.
+                var selectedVersion = $"{publishPackageViewModel?.MajorVersion}.{publishPackageViewModel?.MinorVersion}.{publishPackageViewModel?.BuildVersion}";
+                if (string.IsNullOrWhiteSpace(publishPackageViewModel?.MajorVersion) ||
+                    string.IsNullOrWhiteSpace(publishPackageViewModel?.MinorVersion) ||
+                    string.IsNullOrWhiteSpace(publishPackageViewModel?.BuildVersion))
+                {
+                    selectedVersion = pkg.VersionName;
+                }
+
+                string selectedPackageJson = Newtonsoft.Json.JsonConvert.SerializeObject(selectedPackagePayload, Formatting.None);
+                string selectedVersionJson = Newtonsoft.Json.JsonConvert.SerializeObject(new { version = selectedVersion }, Formatting.None);
 
                 if (dynWebView?.CoreWebView2 != null)
                 {
-                    // Guarded call: does nothing if the handler is missing on older front-ends.
+                    // Guarded calls: do nothing if the handler is missing on older front-ends.
                     await dynWebView.CoreWebView2.ExecuteScriptAsync(
-                        $"window.receiveCompatibilityAndHostsByVersion && window.receiveCompatibilityAndHostsByVersion({jsonPayload});");
+                        $"window.receiveSelectedPackage && window.receiveSelectedPackage({selectedPackageJson});");
+
+                    await dynWebView.CoreWebView2.ExecuteScriptAsync(
+                        $"window.receiveSelectedPackageVersion && window.receiveSelectedPackageVersion({selectedVersionJson});");
                 }
             }
             catch (Exception ex)
