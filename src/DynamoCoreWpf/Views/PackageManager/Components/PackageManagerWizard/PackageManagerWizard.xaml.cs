@@ -438,10 +438,31 @@ namespace Dynamo.UI.Views
                 if (pkg == null) return;
 
                 var cachedList = publishPackageViewModel?.DynamoViewModel?.PackageManagerClientViewModel?.CachedPackageList;
-                if (cachedList == null) return;
+                var pmClientVm = publishPackageViewModel?.DynamoViewModel?.PackageManagerClientViewModel;
 
-                var cached = cachedList.FirstOrDefault(x => x.Name == pkg.Name);
-                var header = cached?.Header;
+                // Prefer a direct server call (best-effort) to fetch complete version history
+                // over relying on a potentially stale/partial cache.
+                Greg.Responses.PackageHeader header = null;
+                try
+                {
+                    if (pmClientVm?.Model != null && !pmClientVm.Model.NoNetworkMode)
+                    {
+                        header = await Task.Run(() =>
+                            pmClientVm.Model.GetPackageMaintainers(new PackageInfo(pkg.Name, new Version(pkg.VersionName))));
+                    }
+                }
+                catch
+                {
+                    // Fall back to cached list below.
+                }
+
+                if (header == null)
+                {
+                    if (cachedList == null) return;
+                    var cached = cachedList.FirstOrDefault(x => x.Name == pkg.Name);
+                    header = cached?.Header;
+                }
+
                 var versions = header?.versions;
                 if (header == null || versions == null || versions.Count == 0) return;
 
