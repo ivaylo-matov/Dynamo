@@ -550,10 +550,7 @@ namespace Dynamo.UI.Views
             // Base payload for receiveUpdatedPackageDetails({ payload })
             var jsonPayload = JsonSerializer.Serialize(payload, options);
 
-            // IMPORTANT:
-            // The front-end stores state.selectedPackage = payload (UPDATE_PACKAGE action).
-            // To populate the compatibility "Copy from" dropdown, this payload must include:
-            // payload.versions[*].compatibility_matrix (historical).
+            // IMPORTANT: include payload.versions[*].compatibility_matrix for "Copy from".
             try
             {
                 var header = await TryGetPackageHeaderAsync(vm);
@@ -582,7 +579,11 @@ namespace Dynamo.UI.Views
             }
         }
 
-        private async Task<Greg.Responses.PackageHeader> TryGetPackageHeaderAsync(PublishPackageViewModel vm)
+        /// <summary>
+        /// Tries to retrieve the server-side <see cref="Greg.Responses.PackageHeader"/> for the current package.
+        /// Uses <see cref="PackageManagerClientViewModel.CachedPackageList"/> when available; otherwise refreshes
+        /// the cache via <see cref="PackageManagerClientViewModel.ListAll"/> (best-effort, respects NoNetworkMode).
+        /// </summary>
         {
             var pmClientVm = vm?.DynamoViewModel?.PackageManagerClientViewModel;
             var pkgName = vm?.Package?.Name ?? vm?.Name;
