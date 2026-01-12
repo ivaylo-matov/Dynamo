@@ -205,6 +205,9 @@ namespace Dynamo.UI.Views
                 if (publishPackageViewModel.PackageContents?.Count > 0) UpdatePackageContents();
                 if (publishPackageViewModel.PreviewPackageContents?.Count > 0) UpdatePreviewPackageContents();
                 if (publishPackageViewModel.CompatibilityMatrix?.Count > 0) SendCompatibilityMatrix(publishPackageViewModel.CompatibilityMatrix);
+                // If this publish flow is based on an existing local package, attempt to also send
+                // server-cached per-version compatibility/host dependency info (if available).
+                SendCompatibilityAndHostsByVersionFromCache();
                 if (publishPackageViewModel.RetainFolderStructureOverride) UpdateRetainFolderStructureFlag(publishPackageViewModel.RetainFolderStructureOverride);
             }
         }
@@ -414,6 +417,71 @@ namespace Dynamo.UI.Views
                 {
                     await dynWebView.CoreWebView2.ExecuteScriptAsync($"window.receiveCompatibilityMatrix({jsonPayload})");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Sends per-version compatibility matrices (and host dependencies) for the current package,
+        /// using the cached package list (server metadata) if present. This is a best-effort call:
+        /// it is guarded so older front-ends without the handler do not throw.
+        /// </summary>
+        private async void SendCompatibilityAndHostsByVersionFromCache()
+        {
+            try
+            {
+                var pkg = publishPackageViewModel?.Package;
+                if (pkg == null) return;
+
+                var cachedList = publishPackageViewModel?.DynamoViewModel?.PackageManagerClientViewModel?.CachedPackageList;
+                if (cachedList == null) return;
+
+                var cached = cachedList.FirstOrDefault(x => x.Name == pkg.Name);
+                var versions = cached?.Header?.versions;
+                if (versions == null || versions.Count == 0) return;
+
+                // Normalize to a stable JSON shape for the front-end.
+                var versionData = versions
+                    .Where(v => v != null)
+                    .Select(v => new
+                    {
+                        version = v.version,
+                        created = v.created,
+                        hostDependencies = v.host_dependencies?.ToList(),
+                        // compatibility_matrix is a list of Greg.Responses.Compatibility objects.
+                        // Normalize fields to avoid relying on implementation-specific serialization details.
+                        compatibilityMatrix = v.compatibility_matrix?.Select(c => new
+                        {
+                            name = c.name,
+                            versions = c.versions,
+                            min = c.min,
+                            max = c.max
+                        }).ToList()
+                    })
+                    .ToList();
+
+                // Only send if there's meaningful per-version data.
+                if (!versionData.Any(d => (d.compatibilityMatrix?.Count ?? 0) > 0 || (d.hostDependencies?.Count ?? 0) > 0))
+                    return;
+
+                var payload = new
+                {
+                    packageName = cached?.Name ?? pkg.Name,
+                    installedVersion = pkg.VersionName,
+                    versions = versionData
+                };
+
+                string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(payload, Formatting.None);
+
+                if (dynWebView?.CoreWebView2 != null)
+                {
+                    // Guarded call: does nothing if the handler is missing on older front-ends.
+                    await dynWebView.CoreWebView2.ExecuteScriptAsync(
+                        $"window.receiveCompatibilityAndHostsByVersion && window.receiveCompatibilityAndHostsByVersion({jsonPayload});");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogMessage(ex);
             }
         }
 
