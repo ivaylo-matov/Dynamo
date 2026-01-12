@@ -205,10 +205,6 @@ namespace Dynamo.UI.Views
                 if (publishPackageViewModel.PackageContents?.Count > 0) UpdatePackageContents();
                 if (publishPackageViewModel.PreviewPackageContents?.Count > 0) UpdatePreviewPackageContents();
                 if (publishPackageViewModel.CompatibilityMatrix?.Count > 0) SendCompatibilityMatrix(publishPackageViewModel.CompatibilityMatrix);
-                // If this publish flow is based on an existing local package, attempt to also send
-                // server-cached package/version info (including per-version compatibility matrices)
-                // in the format expected by the compatibility editor.
-                SendSelectedPackageFromCache();
                 if (publishPackageViewModel.RetainFolderStructureOverride) UpdateRetainFolderStructureFlag(publishPackageViewModel.RetainFolderStructureOverride);
             }
         }
@@ -660,6 +656,53 @@ namespace Dynamo.UI.Views
                 ReleaseNotesUrl = vm.ReleaseNotesUrl ?? string.Empty
             };
 
+            // IMPORTANT:
+            // The front-end uses receiveUpdatedPackageDetails({ payload }) to populate state.selectedPackage.
+            // To enable the "Copy from" dropdown in the compatibility editor, this payload must include
+            // package version history: payload.versions[*].compatibility_matrix.
+            var header = await TryGetPackageHeaderAsync(vm);
+            if (header != null)
+            {
+                packageDetails.Id = header._id ?? string.Empty;
+                packageDetails.Downloads = header.downloads;
+                packageDetails.Votes = header.votes;
+                packageDetails.UsedBy = header.used_by;
+
+                // Best-effort: use earliest version created date as package created date.
+                packageDetails.Created = header.versions?.FirstOrDefault()?.created ?? string.Empty;
+
+                packageDetails.Maintainers = header.maintainers?
+                    .Select(m => new PackageMaintainer
+                    {
+                        Id = m._id,
+                        Username = m.username
+                    })
+                    .ToList() ?? new List<PackageMaintainer>();
+
+                packageDetails.Versions = header.versions?
+                    .Where(v => v != null)
+                    .Select(v => new PackageVersionInfo
+                    {
+                        Version = v.version,
+                        Created = v.created,
+                        EngineVersion = v.engine_version,
+                        HostDependencies = v.host_dependencies?.ToList() ?? new List<string>(),
+                        CompatibilityMatrix = v.compatibility_matrix?
+                            .Where(c => c != null)
+                            .Select(c => new PackageCompatibilityEntry
+                            {
+                                Name = c.name,
+                                Versions = c.versions?.ToList(),
+                                Min = c.min,
+                                Max = c.max
+                            })
+                            .ToList() ?? new List<PackageCompatibilityEntry>()
+                    })
+                    .ToList() ?? new List<PackageVersionInfo>();
+
+                packageDetails.NumVersions = packageDetails.Versions.Count;
+            }
+
             var payload = new { payload = packageDetails };
             var options = new JsonSerializerOptions
             {
@@ -672,6 +715,30 @@ namespace Dynamo.UI.Views
             {
                 await dynWebView.CoreWebView2.ExecuteScriptAsync($"window.receiveUpdatedPackageDetails({jsonPayload});");
             }
+        }
+
+        private async Task<Greg.Responses.PackageHeader> TryGetPackageHeaderAsync(PublishPackageViewModel vm)
+        {
+            var pmClientVm = vm?.DynamoViewModel?.PackageManagerClientViewModel;
+            var pkgName = vm?.Package?.Name ?? vm?.Name;
+            if (string.IsNullOrWhiteSpace(pkgName) || pmClientVm == null) return null;
+
+            // Best-effort: prefer direct server call (one package) over cache.
+            // This call returns a PackageHeader that includes versions[*].compatibility_matrix.
+            if (pmClientVm.Model != null && !pmClientVm.Model.NoNetworkMode)
+            {
+                try
+                {
+                    return await Task.Run(() =>
+                        pmClientVm.Model.GetPackageMaintainers(new PackageInfo(pkgName, new Version(0, 0, 0))));
+                }
+                catch
+                {
+                    // Fall back to cached list below.
+                }
+            }
+
+            return pmClientVm.CachedPackageList?.FirstOrDefault(x => x.Name == pkgName)?.Header;
         }
 
         private async void UpdateRetainFolderStructureFlag(bool flag)
