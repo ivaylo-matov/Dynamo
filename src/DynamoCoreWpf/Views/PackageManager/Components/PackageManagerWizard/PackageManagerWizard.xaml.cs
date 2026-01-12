@@ -469,9 +469,7 @@ namespace Dynamo.UI.Views
                 var contentPayload = new
                 {
                     repository_url = header.repository_url,
-                    created = header.created,
                     downloads = header.downloads,
-                    latest_version_update = header.latest_version_update,
                     site_url = header.site_url,
                     license = header.license,
                     maintainers = header.maintainers?.Select(m => new { _id = m._id, username = m.username }).ToList(),
