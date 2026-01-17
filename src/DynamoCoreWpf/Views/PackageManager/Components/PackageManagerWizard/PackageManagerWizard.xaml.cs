@@ -537,12 +537,7 @@ namespace Dynamo.UI.Views
             };
 
             var payload = new { payload = packageDetails };
-            var options = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
-
-            var jsonPayload = JsonSerializer.Serialize(payload, options);
+            var jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(payload, Formatting.None);
 
             // Include payload.versions[*].compatibility_matrix for the "Copy from" dropdown.
             try
@@ -1389,42 +1384,55 @@ namespace Dynamo.UI.Views
     public class PackageUpdateRequest : IEquatable<PackageUpdateRequest>
     {
         [JsonPropertyName("name")]
+        [JsonProperty("name")]
         public string Name { get; set; }
 
         [JsonPropertyName("description")]
+        [JsonProperty("description")]
         public string Description { get; set; }
 
         [JsonPropertyName("major")]
+        [JsonProperty("major")]
         public string Major { get; set; }
 
         [JsonPropertyName("minor")]
+        [JsonProperty("minor")]
         public string Minor { get; set; }
 
         [JsonPropertyName("patch")]
+        [JsonProperty("patch")]
         public string Patch { get; set; }
 
         [JsonPropertyName("keywords")]
+        [JsonProperty("keywords")]
         public List<string> Keywords { get; set; } = new();
 
         [JsonPropertyName("release_notes_url")]
+        [JsonProperty("release_notes_url")]
         public string ReleaseNotesUrl { get; set; }
 
         [JsonPropertyName("copyright_holder")]
+        [JsonProperty("copyright_holder")]
         public string CopyrightHolder { get; set; }
 
         [JsonPropertyName("copyright_year")]
+        [JsonProperty("copyright_year")]
         public string CopyrightYear { get; set; }
 
         [JsonPropertyName("license")]
+        [JsonProperty("license")]
         public string License { get; set; }
 
         [JsonPropertyName("repository_url")]
+        [JsonProperty("repository_url")]
         public string RepositoryUrl { get; set; }
 
         [JsonPropertyName("site_url")]
+        [JsonProperty("site_url")]
         public string SiteUrl { get; set; }
 
         [JsonPropertyName("group")]
+        [JsonProperty("group")]
         public string Group { get; set; }
 
         public bool Equals(PackageUpdateRequest other)
