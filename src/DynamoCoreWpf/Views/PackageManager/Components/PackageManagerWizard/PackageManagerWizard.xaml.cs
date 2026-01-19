@@ -544,7 +544,6 @@ namespace Dynamo.UI.Views
             };
             var jsonSerializer = Newtonsoft.Json.JsonSerializer.Create(jsonSerializerSettings);
             var rootObj = JObject.FromObject(payload, jsonSerializer);
-            var jsonPayload = rootObj.ToString(Newtonsoft.Json.Formatting.None);
 
             // Include payload.versions[*].compatibility_matrix for the "Copy from" dropdown.
             try
@@ -559,7 +558,6 @@ namespace Dynamo.UI.Views
                             : new JArray();
                     }
 
-                    jsonPayload = rootObj.ToString(Newtonsoft.Json.Formatting.None);
                 }
             }
             catch (Exception ex)
@@ -567,6 +565,7 @@ namespace Dynamo.UI.Views
                 LogMessage(ex);
             }
 
+            var jsonPayload = rootObj.ToString(Newtonsoft.Json.Formatting.None);
 
             if (dynWebView?.CoreWebView2 != null)   
             {
