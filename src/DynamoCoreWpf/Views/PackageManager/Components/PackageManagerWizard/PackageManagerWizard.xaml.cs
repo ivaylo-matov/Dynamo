@@ -542,7 +542,7 @@ namespace Dynamo.UI.Views
             {
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             };
-            var jsonSerializer = JsonSerializer.Create(jsonSerializerSettings);
+            var jsonSerializer = Newtonsoft.Json.JsonSerializer.Create(jsonSerializerSettings);
             var rootObj = JObject.FromObject(payload, jsonSerializer);
             var jsonPayload = rootObj.ToString(Newtonsoft.Json.Formatting.None);
 
