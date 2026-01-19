@@ -98,6 +98,7 @@ namespace Dynamo.PackageManager.ViewModels
                     // Update the compatibility info so the icon of the currently selected version is updated
                     IsSelectedVersionCompatible = selectedVersion.IsCompatible;
                     SearchElementModel.SelectedVersion = selectedVersion;
+                    RaisePropertyChanged(nameof(SelectedVersion));
                 }
             }
         }
@@ -191,8 +192,12 @@ namespace Dynamo.PackageManager.ViewModels
 
             internal set
             {
-                canInstall = value;
-                RaisePropertyChanged(nameof(CanInstall));
+                if (canInstall != value)
+                {
+                    canInstall = value;
+                    RaisePropertyChanged(nameof(CanInstall));
+                    DownloadLatestCommand?.RaiseCanExecuteChanged();
+                }
             }
         }
 

@@ -471,8 +471,7 @@ namespace Dynamo.PackageManager
         internal bool CanInstallPackage(string name)
         {
             // Return true if there are no matching non built-in packages
-            return !PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.LocalPackages
-                .Any(x => (x.Name == name) && !x.BuiltInPackage);
+            return !GetInstalledPackages(name).Any();
         }
 
         /// <summary>
@@ -484,16 +483,75 @@ namespace Dynamo.PackageManager
         {
             switch (dh.DownloadState)
             {
-                case PackageDownloadHandle.State.Uninitialized:
-                case PackageDownloadHandle.State.Error:
-                    return true;// Allowed if Download/Install not yet begun or if in Error state.
                 case PackageDownloadHandle.State.Downloaded:
                 case PackageDownloadHandle.State.Downloading:
                 case PackageDownloadHandle.State.Installing:
                     return false;
-                default:
-                    return CanInstallPackage(dh.Name);// All other states need to check with PackageLoader's LocalPackages
             }
+
+            var searchElement = GetSearchElementViewModelByName(dh.Name);
+            return searchElement != null
+                ? CanInstallPackage(searchElement)
+                : CanInstallPackage(dh.Name);// All other states need to check with PackageLoader's LocalPackages
+        }
+
+        private IEnumerable<Package> GetInstalledPackages(string name)
+        {
+            return PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.LocalPackages
+                .Where(x => (x.Name == name) && !x.BuiltInPackage);
+        }
+
+        private bool HasBlockingDownload(string packageName)
+        {
+            return PackageManagerClientViewModel.Downloads.Any(handle =>
+                handle.Name == packageName &&
+                (handle.DownloadState == PackageDownloadHandle.State.Downloaded ||
+                 handle.DownloadState == PackageDownloadHandle.State.Downloading ||
+                 handle.DownloadState == PackageDownloadHandle.State.Installing));
+        }
+
+        private bool CanInstallPackage(PackageManagerSearchElementViewModel element)
+        {
+            if (element?.SearchElementModel == null)
+            {
+                return false;
+            }
+
+            if (HasBlockingDownload(element.SearchElementModel.Name))
+            {
+                return false;
+            }
+
+            var installedPackages = GetInstalledPackages(element.SearchElementModel.Name).ToList();
+            if (!installedPackages.Any())
+            {
+                return true;
+            }
+
+            var selectedVersion = VersionUtilities.Parse(element.SelectedVersion?.Version);
+            if (selectedVersion == null)
+            {
+                return false;
+            }
+
+            var newestInstalledVersion = installedPackages
+                .Select(pkg => VersionUtilities.Parse(pkg.VersionName))
+                .Where(parsedVersion => parsedVersion != null)
+                .OrderBy(parsedVersion => parsedVersion)
+                .LastOrDefault();
+
+            if (newestInstalledVersion == null)
+            {
+                return false;
+            }
+
+            return selectedVersion > newestInstalledVersion;
+        }
+
+        private PackageManagerSearchElementViewModel GetSearchElementViewModelByName(string name)
+        {
+            return SearchResults?.FirstOrDefault(x => x.SearchElementModel.Name == name)
+                ?? SearchMyResults?.FirstOrDefault(x => x.SearchElementModel.Name == name);
         }
 
         public PackageSearchState _searchState; // TODO: Set private for 3.0.
@@ -725,6 +783,8 @@ namespace Dynamo.PackageManager
 
                 p.RequestDownload += this.PackageOnExecuted;
                 p.IsOnwer = true;
+                p.CanInstall = CanInstallPackage(p);
+                p.PropertyChanged += SearchElementViewModelOnPropertyChanged;
 
                 myPackages.Add(p);
             }
@@ -739,6 +799,7 @@ namespace Dynamo.PackageManager
             {
                 ele.RequestDownload -= PackageOnExecuted;
                 ele.RequestShowFileDialog -= OnRequestShowFileDialog;
+                ele.PropertyChanged -= SearchElementViewModelOnPropertyChanged;
             }
 
             this.SearchMyResults = null;
@@ -1239,6 +1300,7 @@ namespace Dynamo.PackageManager
         {
             element.RequestDownload += this.PackageOnExecuted;
             element.RequestShowFileDialog += this.OnRequestShowFileDialog;
+            element.PropertyChanged += SearchElementViewModelOnPropertyChanged;
 
             this.SearchResults.Add(element);
         }
@@ -1250,9 +1312,23 @@ namespace Dynamo.PackageManager
             {
                 ele.RequestDownload -= PackageOnExecuted;
                 ele.RequestShowFileDialog -= OnRequestShowFileDialog;
+                ele.PropertyChanged -= SearchElementViewModelOnPropertyChanged;
                 ele?.Dispose();
             }
             this.SearchResults.Clear();
+        }
+
+        private void SearchElementViewModelOnPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(PackageManagerSearchElementViewModel.SelectedVersion))
+            {
+                return;
+            }
+
+            if (sender is PackageManagerSearchElementViewModel element)
+            {
+                element.CanInstall = CanInstallPackage(element);
+            }
         }
 
         internal void PackageOnExecuted(PackageManagerSearchElement element, PackageVersion version, string downloadPath)
@@ -1297,10 +1373,10 @@ namespace Dynamo.PackageManager
                 // the Downloads collection before Download/Install begins.
                 if (eArgs.PropertyName == nameof(PackageDownloadHandle.DownloadState))
                 {
-                    PackageManagerSearchElementViewModel sr = SearchResults.FirstOrDefault(x => x.SearchElementModel.Name == handle.Name);
-                    if (sr == null) return;
+                    var searchElement = GetSearchElementViewModelByName(handle.Name);
+                    if (searchElement == null) return;
 
-                    sr.CanInstall = CanInstallPackage(o as PackageDownloadHandle);
+                    searchElement.CanInstall = CanInstallPackage(handle);
                 }
             }
 
@@ -1649,10 +1725,12 @@ namespace Dynamo.PackageManager
         private PackageManagerSearchElementViewModel GetSearchElementViewModel(PackageManagerSearchElement package, bool bypassCustomPackageLocations = false)
         {
             var isEnabledForInstall = bypassCustomPackageLocations || !(Preferences as IDisablePackageLoadingPreferences).DisableCustomPackageLocations;
-            return new PackageManagerSearchElementViewModel(package,
+            var viewModel = new PackageManagerSearchElementViewModel(package,
                 PackageManagerClientViewModel.AuthenticationManager.HasAuthProvider,
                 CanInstallPackage(package.Name),
                 isEnabledForInstall);
+            viewModel.CanInstall = CanInstallPackage(viewModel);
+            return viewModel;
         }
 
         /// <summary>
