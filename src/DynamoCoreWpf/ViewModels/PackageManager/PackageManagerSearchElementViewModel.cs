@@ -193,7 +193,7 @@ namespace Dynamo.PackageManager.ViewModels
 
             internal set
             {
-                if (!canInstall)
+                if (canInstall != value)
                 {
                     canInstall = value;
                     RaisePropertyChanged(nameof(CanInstall));
@@ -216,7 +216,7 @@ namespace Dynamo.PackageManager.ViewModels
 
             internal set
             {
-                if (!canUpgrade)
+                if (canUpgrade != value)
                 {
                     canUpgrade = value;
                     RaisePropertyChanged(nameof(CanUpgrade));
