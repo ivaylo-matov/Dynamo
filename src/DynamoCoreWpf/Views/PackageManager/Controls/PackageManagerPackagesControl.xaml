@@ -270,13 +270,13 @@
                                                         </Grid>
                                                     </Border>
                                                     <ControlTemplate.Triggers>
-                                                        <MultiDataTrigger>
-                                                            <MultiDataTrigger.Conditions>
-                                                                <Condition Binding="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=IsMouseOver}" Value="True" />
-                                                                <Condition Binding="{Binding Path=CanInstallOrUpgrade}" Value="True" />
-                                                            </MultiDataTrigger.Conditions>
+                                                        <MultiTrigger>
+                                                            <MultiTrigger.Conditions>
+                                                                <Condition Property="IsMouseOver" Value="True" />
+                                                                <Condition Property="IsEnabled" Value="True" />
+                                                            </MultiTrigger.Conditions>
                                                             <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#4A4A4A" />
-                                                        </MultiDataTrigger>
+                                                        </MultiTrigger>
                                                         <Trigger Property="IsPressed" Value="True">
                                                             <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#5F5F5F" />
                                                         </Trigger>
