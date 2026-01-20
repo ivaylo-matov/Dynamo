@@ -327,6 +327,10 @@ Dynamo.Controls.InOutParamTypeConverter
 Dynamo.Controls.InOutParamTypeConverter.Convert(object value, System.Type targetType, object parameter, System.Globalization.CultureInfo culture) -> object
 Dynamo.Controls.InOutParamTypeConverter.ConvertBack(object value, System.Type targetType, object parameter, System.Globalization.CultureInfo culture) -> object
 Dynamo.Controls.InOutParamTypeConverter.InOutParamTypeConverter() -> void
+Dynamo.Controls.InstallButtonTextConverter
+Dynamo.Controls.InstallButtonTextConverter.Convert(object[] values, System.Type targetType, object parameter, System.Globalization.CultureInfo culture) -> object
+Dynamo.Controls.InstallButtonTextConverter.ConvertBack(object value, System.Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture) -> object[]
+Dynamo.Controls.InstallButtonTextConverter.InstallButtonTextConverter() -> void
 Dynamo.Controls.InstalledButtonTextConverter
 Dynamo.Controls.InstalledButtonTextConverter.Convert(object value, System.Type targetType, object parameter, System.Globalization.CultureInfo culture) -> object
 Dynamo.Controls.InstalledButtonTextConverter.ConvertBack(object value, System.Type targetType, object parameter, System.Globalization.CultureInfo culture) -> object
