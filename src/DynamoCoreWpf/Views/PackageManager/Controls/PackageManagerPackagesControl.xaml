@@ -457,7 +457,7 @@
                                               HorizontalContentAlignment="Stretch"
                                               ItemTemplate="{StaticResource VersionInfoTemplate}"
                                               ItemsSource="{Binding Path=ReversedVersionInformationList, UpdateSourceTrigger=PropertyChanged}"
-                                              SelectedItem="{Binding Path=SelectedVersion, UpdateSourceTrigger=PropertyChanged}">
+                                              SelectedItem="{Binding Path=SelectedVersion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                         <ComboBox.Style>
                                             <Style BasedOn="{StaticResource PackageManagerSmallComboBox}" TargetType="ComboBox">
                                                 <Style.Triggers>
