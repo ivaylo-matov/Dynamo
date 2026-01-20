@@ -484,13 +484,16 @@ namespace Dynamo.PackageManager
         {
             switch (dh.DownloadState)
             {
+                case PackageDownloadHandle.State.Uninitialized:
+                case PackageDownloadHandle.State.Error:
+                    return true;// Allowed if Download/Install not yet begun or if in Error state.
                 case PackageDownloadHandle.State.Downloaded:
                 case PackageDownloadHandle.State.Downloading:
                 case PackageDownloadHandle.State.Installing:
                     return false;
+                default:
+                    return CanInstallPackage(dh.Name);// All other states need to check with PackageLoader's LocalPackages
             }
-
-            return CanInstallPackage(dh.Name);// All other states need to check with PackageLoader's LocalPackages
         }
 
         private void UpdateInstallState(PackageManagerSearchElementViewModel element)
