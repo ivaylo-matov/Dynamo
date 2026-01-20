@@ -518,7 +518,8 @@
                                                             Height="25"
                                                             Padding="5,0"
                                                             BorderThickness="2"
-                                                            CornerRadius="2">
+                                                            CornerRadius="2"
+                                                            BorderBrush="Transparent">
                                                             <Grid x:Name="installPackageGrid">
 
                                                                 <DockPanel LastChildFill="False">
@@ -599,6 +600,7 @@
                                                                 <Setter Property="ToolTip" Value="{x:Static p:Resources.PackageDeprecatedTooltip}" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding CanInstallOrUpgrade}" Value="False">
+                                                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="Transparent" />
                                                                 <Setter Property="TextBlock.Foreground" Value="#999999" />
                                                                 <Setter Property="Opacity" Value="1" />
                                                             </DataTrigger>
