@@ -98,6 +98,7 @@ namespace Dynamo.PackageManager.ViewModels
                     // Update the compatibility info so the icon of the currently selected version is updated
                     IsSelectedVersionCompatible = selectedVersion.IsCompatible;
                     SearchElementModel.SelectedVersion = selectedVersion;
+                    RaisePropertyChanged(nameof(SelectedVersion) );
                 }
             }
         }
@@ -128,7 +129,8 @@ namespace Dynamo.PackageManager.ViewModels
 
             this.DownloadLatestCommand = new DelegateCommand(
                 () => OnRequestDownload(false),
-                () => !SearchElementModel.IsDeprecated && CanInstall);
+                // () => !SearchElementModel.IsDeprecated && CanInstall);
+                () => !SearchElementModel.IsDeprecated && CanInstallOrUpgrade);
             this.DownloadLatestToCustomPathCommand = new DelegateCommand(() => OnRequestDownload(true));
 
             this.UpvoteCommand = new DelegateCommand(SearchElementModel.Upvote, () => canLogin);
@@ -191,8 +193,47 @@ namespace Dynamo.PackageManager.ViewModels
 
             internal set
             {
-                canInstall = value;
-                RaisePropertyChanged(nameof(CanInstall));
+                if (!canInstall)
+                {
+                    canInstall = value;
+                    RaisePropertyChanged(nameof(CanInstall));
+                    RaisePropertyChanged(nameof(CanInstallOrUpgrade));
+                    //DownloadLatestCommand?.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        private bool canUpgrade;
+        /// <summary>
+        /// A Boolean flag reporting whether or not the user can updgrade this SearchElement's package.
+        /// </summary>
+        public bool CanUpgrade
+        {
+            get
+            {
+                return canUpgrade;
+            }
+
+            internal set
+            {
+                if (!canUpgrade)
+                {
+                    canUpgrade = value;
+                    RaisePropertyChanged(nameof(CanUpgrade));
+                    RaisePropertyChanged(nameof(CanInstallOrUpgrade));
+                    //DownloadLatestCommand?.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// A Boolean flag reporting whether or not the user can install or upgrade this SearchElement's package.
+        /// </summary>
+        public bool CanInstallOrUpgrade
+        {
+            get
+            {
+                return CanInstall || CanUpgrade;
             }
         }
 

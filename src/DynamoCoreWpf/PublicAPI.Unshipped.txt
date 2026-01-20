@@ -1358,6 +1358,8 @@ Dynamo.PackageManager.UI.TermsOfUseView.TermsOfUseView(string touFilePath) -> vo
 Dynamo.PackageManager.UI.TreeViewItemHelper
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.CanInstall.get -> bool
+Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.CanInstallOrUpgrade.get -> bool
+Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.CanUpgrade.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.DownloadLatestCommand.get -> System.Windows.Input.ICommand
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.DownloadLatestCommand.set -> void
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.DownloadLatestToCustomPathCommand.get -> System.Windows.Input.ICommand

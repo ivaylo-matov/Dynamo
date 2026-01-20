@@ -496,6 +496,93 @@ namespace Dynamo.PackageManager
             }
         }
 
+
+
+
+
+        /// <summary>
+        /// Checks and updates the install state of the given search element.
+        /// </summary>
+        /// <param name="element"></param>
+        private void UpdateInstallState(PackageManagerSearchElementViewModel element)
+        {
+            if (element?.SearchElementModel == null)
+            {
+                return;
+            }
+
+            var hasBlockingDownload = PackageManagerClientViewModel.Downloads.Any(handle =>
+                handle.Name == element.SearchElementModel.Name &&
+                (handle.DownloadState == PackageDownloadHandle.State.Downloaded ||
+                 handle.DownloadState == PackageDownloadHandle.State.Downloading ||
+                 handle.DownloadState == PackageDownloadHandle.State.Installing));
+            if (hasBlockingDownload)
+            {
+                element.CanInstall = false;
+                element.CanUpgrade = false;
+                return;
+            }
+
+            var installedPackages = PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.LocalPackages
+                .Where(x => (x.Name == element.SearchElementModel.Name) && !x.BuiltInPackage)
+                .ToList();
+            if (!installedPackages.Any())
+            {
+                element.CanInstall = true;
+                element.CanUpgrade = false;
+                return;
+            }
+
+            element.CanInstall = false;
+            element.CanUpgrade = IsUpgradeAvailable(element.SelectedVersion?.Version, installedPackages);
+        }
+
+        /// <summary>
+        /// Checks if an upgrade is available for the given selected version compared to the installed packages.
+        /// </summary>
+        /// <param name="selectedVersion"></param>
+        /// <param name="installedPackages"></param>
+        /// <returns></returns>
+        private bool IsUpgradeAvailable(string selectedVersion, IEnumerable<Package> installedPackages)
+        {
+            var parsedSelectedVersion = VersionUtilities.Parse(selectedVersion);
+            if (parsedSelectedVersion == null)
+            {
+                return false;
+            }
+
+            var newestInstalledVersion = installedPackages
+                .Select(pkg => VersionUtilities.Parse(pkg.VersionName))
+                .Where(parsedVersion => parsedVersion != null)
+                .OrderBy(parsedVersion => parsedVersion)
+                .LastOrDefault();
+
+            if (newestInstalledVersion == null)
+            {
+                return false;
+            }
+
+            return parsedSelectedVersion > newestInstalledVersion;
+        }
+
+        /// <summary>
+        /// Gets the search element view model by package name from either SearchResults or SearchMyResults.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        private PackageManagerSearchElementViewModel GetSearchElementViewModelByName(string name)
+        {
+            return SearchResults?.FirstOrDefault(x => x.SearchElementModel.Name == name)
+                ?? SearchMyResults?.FirstOrDefault(x => x.SearchElementModel.Name == name);
+        }
+
+
+
+
+
+
+
+
         public PackageSearchState _searchState; // TODO: Set private for 3.0.
 
         /// <summary>
@@ -726,6 +813,10 @@ namespace Dynamo.PackageManager
                 p.RequestDownload += this.PackageOnExecuted;
                 p.IsOnwer = true;
 
+                // NEW : Check install state and subscribe to property changed to update install state accordingly
+                UpdateInstallState(p);
+                p.PropertyChanged += SearchElementViewModelOnPropertyChanged;
+
                 myPackages.Add(p);
             }
     
@@ -739,6 +830,9 @@ namespace Dynamo.PackageManager
             {
                 ele.RequestDownload -= PackageOnExecuted;
                 ele.RequestShowFileDialog -= OnRequestShowFileDialog;
+
+                // NEW: Unsubscribe from property changed to avoid memory leaks
+                ele.PropertyChanged -= SearchElementViewModelOnPropertyChanged;
             }
 
             this.SearchMyResults = null;
@@ -1240,6 +1334,9 @@ namespace Dynamo.PackageManager
             element.RequestDownload += this.PackageOnExecuted;
             element.RequestShowFileDialog += this.OnRequestShowFileDialog;
 
+            // NEW: Subscribe to property changed to update install state accordingly
+            element.PropertyChanged += SearchElementViewModelOnPropertyChanged;
+
             this.SearchResults.Add(element);
         }
 
@@ -1250,10 +1347,42 @@ namespace Dynamo.PackageManager
             {
                 ele.RequestDownload -= PackageOnExecuted;
                 ele.RequestShowFileDialog -= OnRequestShowFileDialog;
+
+                // NEW: Unsubscribe from property changed to avoid memory leaks
+                ele.PropertyChanged -= SearchElementViewModelOnPropertyChanged;
+
                 ele?.Dispose();
             }
             this.SearchResults.Clear();
         }
+
+
+
+        // NEW
+        /// <summary>
+        /// Handles the PropertyChanged event for a PackageManagerSearchElementViewModel instance, updating the install
+        /// state when the SelectedVersion property changes.
+        /// </summary>
+        /// <remarks>This method only responds to changes in the SelectedVersion property. If the event is
+        /// raised for a different property, no action is taken.</remarks>
+        /// <param name="sender">The source of the event, expected to be a PackageManagerSearchElementViewModel whose property has changed.</param>
+        /// <param name="e">An object that provides data about the property change event, including the name of the property that
+        /// changed.</param>
+        private void SearchElementViewModelOnPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(PackageManagerSearchElementViewModel.SelectedVersion))
+            {
+                return;
+            }
+
+            if (sender is PackageManagerSearchElementViewModel element)
+            {
+                UpdateInstallState(element);
+            }
+        }
+
+
+
 
         internal void PackageOnExecuted(PackageManagerSearchElement element, PackageVersion version, string downloadPath)
         {
@@ -1297,10 +1426,13 @@ namespace Dynamo.PackageManager
                 // the Downloads collection before Download/Install begins.
                 if (eArgs.PropertyName == nameof(PackageDownloadHandle.DownloadState))
                 {
-                    PackageManagerSearchElementViewModel sr = SearchResults.FirstOrDefault(x => x.SearchElementModel.Name == handle.Name);
-                    if (sr == null) return;
+                    //PackageManagerSearchElementViewModel sr = SearchResults.FirstOrDefault(x => x.SearchElementModel.Name == handle.Name);
+                    //if (sr == null) return;
+                    //sr.CanInstall = CanInstallPackage(o as PackageDownloadHandle);
+                    var searchElement = GetSearchElementViewModelByName(handle.Name);
+                    if (searchElement == null) return;
 
-                    sr.CanInstall = CanInstallPackage(o as PackageDownloadHandle);
+                    UpdateInstallState(searchElement);
                 }
             }
 
@@ -1649,10 +1781,16 @@ namespace Dynamo.PackageManager
         private PackageManagerSearchElementViewModel GetSearchElementViewModel(PackageManagerSearchElement package, bool bypassCustomPackageLocations = false)
         {
             var isEnabledForInstall = bypassCustomPackageLocations || !(Preferences as IDisablePackageLoadingPreferences).DisableCustomPackageLocations;
-            return new PackageManagerSearchElementViewModel(package,
+            //return new PackageManagerSearchElementViewModel(package,
+            //    PackageManagerClientViewModel.AuthenticationManager.HasAuthProvider,
+            //    CanInstallPackage(package.Name),
+            //    isEnabledForInstall);
+            var viewModel = new PackageManagerSearchElementViewModel(package,
                 PackageManagerClientViewModel.AuthenticationManager.HasAuthProvider,
                 CanInstallPackage(package.Name),
                 isEnabledForInstall);
+            UpdateInstallState(viewModel);      // CAN WE INTEGRATE THIS INTO THE CONSTRUCTOR???
+            return viewModel;
         }
 
         /// <summary>

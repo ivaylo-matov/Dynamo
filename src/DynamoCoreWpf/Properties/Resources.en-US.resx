@@ -3033,6 +3033,10 @@ This package will be unloaded after the next Dynamo restart.</value>
   <data name="PackageManagerInstall" xml:space="preserve">
     <value>Install</value>
     <comment>Used on the package manager search result card. If the package is not installed, the button will say 'Install'.</comment>
+  </data>  
+  <data name="PackageManagerUpgrade" xml:space="preserve">
+    <value>Upgrade</value>
+    <comment>Used on the package manager search result card when a newer version is available.</comment>
   </data>
   <data name="PackageManagerPackageUpdated" xml:space="preserve">
     <value>Updated</value>

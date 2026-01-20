@@ -6449,7 +6449,18 @@ namespace Dynamo.Wpf.Properties {
                 return ResourceManager.GetString("PackageManagerInstall", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Upgrade.
+        /// </summary>
+        public static string PackageManagerUpgrade
+        {
+            get
+            {
+                return ResourceManager.GetString("PackageManagerUpgrade", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Installed Packages.
         /// </summary>
