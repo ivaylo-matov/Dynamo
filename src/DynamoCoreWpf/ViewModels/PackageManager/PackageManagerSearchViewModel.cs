@@ -493,15 +493,6 @@ namespace Dynamo.PackageManager
             return CanInstallPackage(dh.Name);// All other states need to check with PackageLoader's LocalPackages
         }
 
-        private bool HasBlockingDownload(string packageName)
-        {
-            return PackageManagerClientViewModel.Downloads.Any(handle =>
-                handle.Name == packageName &&
-                (handle.DownloadState == PackageDownloadHandle.State.Downloaded ||
-                 handle.DownloadState == PackageDownloadHandle.State.Downloading ||
-                 handle.DownloadState == PackageDownloadHandle.State.Installing));
-        }
-
         private void UpdateInstallState(PackageManagerSearchElementViewModel element)
         {
             if (element?.SearchElementModel == null)
@@ -509,7 +500,12 @@ namespace Dynamo.PackageManager
                 return;
             }
 
-            if (HasBlockingDownload(element.SearchElementModel.Name))
+            var hasBlockingDownload = PackageManagerClientViewModel.Downloads.Any(handle =>
+                handle.Name == element.SearchElementModel.Name &&
+                (handle.DownloadState == PackageDownloadHandle.State.Downloaded ||
+                 handle.DownloadState == PackageDownloadHandle.State.Downloading ||
+                 handle.DownloadState == PackageDownloadHandle.State.Installing));
+            if (hasBlockingDownload)
             {
                 element.CanInstall = false;
                 element.CanUpgrade = false;
