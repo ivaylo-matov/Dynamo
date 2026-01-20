@@ -471,7 +471,8 @@ namespace Dynamo.PackageManager
         internal bool CanInstallPackage(string name)
         {
             // Return true if there are no matching non built-in packages
-            return !GetInstalledPackages(name).Any();
+            return !PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.LocalPackages
+                .Any(x => (x.Name == name) && !x.BuiltInPackage);
         }
 
         /// <summary>
@@ -490,12 +491,6 @@ namespace Dynamo.PackageManager
             }
 
             return CanInstallPackage(dh.Name);// All other states need to check with PackageLoader's LocalPackages
-        }
-
-        private IEnumerable<Package> GetInstalledPackages(string name)
-        {
-            return PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.LocalPackages
-                .Where(x => (x.Name == name) && !x.BuiltInPackage);
         }
 
         private bool HasBlockingDownload(string packageName)
@@ -521,7 +516,9 @@ namespace Dynamo.PackageManager
                 return;
             }
 
-            var installedPackages = GetInstalledPackages(element.SearchElementModel.Name).ToList();
+            var installedPackages = PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.LocalPackages
+                .Where(x => (x.Name == element.SearchElementModel.Name) && !x.BuiltInPackage)
+                .ToList();
             if (!installedPackages.Any())
             {
                 element.CanInstall = true;
