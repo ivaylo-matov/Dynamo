@@ -506,6 +506,7 @@
                                         <MultiBinding Converter="{StaticResource InstallButtonTextConverter}">
                                             <Binding Path="CanInstall" />
                                             <Binding Path="CanUpgrade" />
+                                            <Binding Path="CanDowngrade" />
                                         </MultiBinding>
                                     </Button.Content>
                                     <Button.Style>

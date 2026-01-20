@@ -6397,6 +6397,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Downgrade.
+        /// </summary>
+        public static string PackageManagerDowngrade {
+            get {
+                return ResourceManager.GetString("PackageManagerDowngrade", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to  files published.
         /// </summary>
         public static string PackageManagerFinishedPackageFilesPublishedMessage {
@@ -6449,18 +6458,7 @@ namespace Dynamo.Wpf.Properties {
                 return ResourceManager.GetString("PackageManagerInstall", resourceCulture);
             }
         }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Upgrade.
-        /// </summary>
-        public static string PackageManagerUpgrade
-        {
-            get
-            {
-                return ResourceManager.GetString("PackageManagerUpgrade", resourceCulture);
-            }
-        }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Installed Packages.
         /// </summary>
@@ -6683,6 +6681,15 @@ namespace Dynamo.Wpf.Properties {
         public static string PackageManagerTitle {
             get {
                 return ResourceManager.GetString("PackageManagerTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Upgrade.
+        /// </summary>
+        public static string PackageManagerUpgrade {
+            get {
+                return ResourceManager.GetString("PackageManagerUpgrade", resourceCulture);
             }
         }
         

@@ -413,8 +413,8 @@ namespace Dynamo.Controls
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if (values == null || values.Length < 2) return null;
-            if (!(values[0] is bool canInstall) || !(values[1] is bool canUpgrade)) return null;
+            if (values == null || values.Length < 3) return null;
+            if (!(values[0] is bool canInstall) || !(values[1] is bool canUpgrade) || !(values[2] is bool canDowngrade)) return null;
 
             if (canInstall)
             {
@@ -424,6 +424,11 @@ namespace Dynamo.Controls
             if (canUpgrade)
             {
                 return Resources.PackageManagerUpgrade;
+            }
+
+            if (canDowngrade)
+            {
+                return Resources.PackageManagerDowngrade;
             }
 
             return Resources.PackageDownloadStateInstalled;

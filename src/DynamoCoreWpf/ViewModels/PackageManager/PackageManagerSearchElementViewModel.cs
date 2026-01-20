@@ -129,7 +129,6 @@ namespace Dynamo.PackageManager.ViewModels
 
             this.DownloadLatestCommand = new DelegateCommand(
                 () => OnRequestDownload(false),
-                // () => !SearchElementModel.IsDeprecated && CanInstall);
                 () => !SearchElementModel.IsDeprecated && CanInstallOrUpgrade);
             this.DownloadLatestToCustomPathCommand = new DelegateCommand(() => OnRequestDownload(true));
 
@@ -203,6 +202,29 @@ namespace Dynamo.PackageManager.ViewModels
             }
         }
 
+        private bool canDowngrade;
+        /// <summary>
+        /// A Boolean flag reporting whether or not the user can downgrade this SearchElement's package.
+        /// </summary>
+        public bool CanDowngrade
+        {
+            get
+            {
+                return canDowngrade;
+            }
+
+            internal set
+            {
+                if (canDowngrade != value)
+                {
+                    canDowngrade = value;
+                    RaisePropertyChanged(nameof(CanDowngrade));
+                    RaisePropertyChanged(nameof(CanInstallOrUpgrade));
+                    //DownloadLatestCommand?.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
         private bool canUpgrade;
         /// <summary>
         /// A Boolean flag reporting whether or not the user can updgrade this SearchElement's package.
@@ -233,7 +255,7 @@ namespace Dynamo.PackageManager.ViewModels
         {
             get
             {
-                return CanInstall || CanUpgrade;
+                return CanInstall || CanUpgrade || CanDowngrade;
             }
         }
 

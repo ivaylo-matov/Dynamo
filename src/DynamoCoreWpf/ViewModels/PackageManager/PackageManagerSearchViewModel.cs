@@ -520,6 +520,7 @@ namespace Dynamo.PackageManager
             {
                 element.CanInstall = false;
                 element.CanUpgrade = false;
+                element.CanDowngrade = false;
                 return;
             }
 
@@ -530,11 +531,13 @@ namespace Dynamo.PackageManager
             {
                 element.CanInstall = true;
                 element.CanUpgrade = false;
+                element.CanDowngrade = false;
                 return;
             }
 
             element.CanInstall = false;
             element.CanUpgrade = IsUpgradeAvailable(element.SelectedVersion?.Version, installedPackages);
+            element.CanDowngrade = IsDowngradeAvailable(element.SelectedVersion?.Version, installedPackages);
         }
 
         /// <summary>
@@ -564,6 +567,49 @@ namespace Dynamo.PackageManager
 
             return parsedSelectedVersion > newestInstalledVersion;
         }
+
+        private bool IsDowngradeAvailable(string selectedVersion, IEnumerable<Package> installedPackages)
+        {
+            var parsedSelectedVersion = VersionUtilities.Parse(selectedVersion);
+            if (parsedSelectedVersion == null)
+            {
+                return false;
+            }
+
+            var newestInstalledVersion = installedPackages
+                .Select(pkg => VersionUtilities.Parse(pkg.VersionName))
+                .Where(parsedVersion => parsedVersion != null)
+                .OrderBy(parsedVersion => parsedVersion)
+                .LastOrDefault();
+
+            if (newestInstalledVersion == null)
+            {
+                return false;
+            }
+
+            return parsedSelectedVersion < newestInstalledVersion;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         /// <summary>
         /// Gets the search element view model by package name from either SearchResults or SearchMyResults.
