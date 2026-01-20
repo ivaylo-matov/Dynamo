@@ -62,6 +62,7 @@
     <controls:NegativeIntToZeroConverter x:Key="NegativeIntToZeroConverter" />
     <controls:NonEmptyStringToCollapsedConverter x:Key="NonEmptyStringToCollapsedConverter" />
     <controls:InstalledButtonTextConverter x:Key="InstalledButtonTextConverter" />
+    <controls:InstallButtonTextConverter x:Key="InstallButtonTextConverter" />
     <controls:SearchResultsToVisibilityConverter x:Key="SearchResultsToVisibilityConverter" />
     <controls:EnumToBooleanConverter x:Key="EnumToBoolConverter" />
     <controls:PackageUploadStateToStringConverter x:Key="PackageUploadStateToStringConverter" />

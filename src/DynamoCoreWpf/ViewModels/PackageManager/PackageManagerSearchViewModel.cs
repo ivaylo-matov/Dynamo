@@ -489,10 +489,7 @@ namespace Dynamo.PackageManager
                     return false;
             }
 
-            var searchElement = GetSearchElementViewModelByName(dh.Name);
-            return searchElement != null
-                ? CanInstallPackage(searchElement)
-                : CanInstallPackage(dh.Name);// All other states need to check with PackageLoader's LocalPackages
+            return CanInstallPackage(dh.Name);// All other states need to check with PackageLoader's LocalPackages
         }
 
         private IEnumerable<Package> GetInstalledPackages(string name)
@@ -510,26 +507,36 @@ namespace Dynamo.PackageManager
                  handle.DownloadState == PackageDownloadHandle.State.Installing));
         }
 
-        private bool CanInstallPackage(PackageManagerSearchElementViewModel element)
+        private void UpdateInstallState(PackageManagerSearchElementViewModel element)
         {
             if (element?.SearchElementModel == null)
             {
-                return false;
+                return;
             }
 
             if (HasBlockingDownload(element.SearchElementModel.Name))
             {
-                return false;
+                element.CanInstall = false;
+                element.CanUpgrade = false;
+                return;
             }
 
             var installedPackages = GetInstalledPackages(element.SearchElementModel.Name).ToList();
             if (!installedPackages.Any())
             {
-                return true;
+                element.CanInstall = true;
+                element.CanUpgrade = false;
+                return;
             }
 
-            var selectedVersion = VersionUtilities.Parse(element.SelectedVersion?.Version);
-            if (selectedVersion == null)
+            element.CanInstall = false;
+            element.CanUpgrade = IsUpgradeAvailable(element.SelectedVersion?.Version, installedPackages);
+        }
+
+        private bool IsUpgradeAvailable(string selectedVersion, IEnumerable<Package> installedPackages)
+        {
+            var parsedSelectedVersion = VersionUtilities.Parse(selectedVersion);
+            if (parsedSelectedVersion == null)
             {
                 return false;
             }
@@ -545,7 +552,7 @@ namespace Dynamo.PackageManager
                 return false;
             }
 
-            return selectedVersion > newestInstalledVersion;
+            return parsedSelectedVersion > newestInstalledVersion;
         }
 
         private PackageManagerSearchElementViewModel GetSearchElementViewModelByName(string name)
@@ -783,7 +790,7 @@ namespace Dynamo.PackageManager
 
                 p.RequestDownload += this.PackageOnExecuted;
                 p.IsOnwer = true;
-                p.CanInstall = CanInstallPackage(p);
+                UpdateInstallState(p);
                 p.PropertyChanged += SearchElementViewModelOnPropertyChanged;
 
                 myPackages.Add(p);
@@ -1327,7 +1334,7 @@ namespace Dynamo.PackageManager
 
             if (sender is PackageManagerSearchElementViewModel element)
             {
-                element.CanInstall = CanInstallPackage(element);
+                UpdateInstallState(element);
             }
         }
 
@@ -1376,7 +1383,7 @@ namespace Dynamo.PackageManager
                     var searchElement = GetSearchElementViewModelByName(handle.Name);
                     if (searchElement == null) return;
 
-                    searchElement.CanInstall = CanInstallPackage(handle);
+                    UpdateInstallState(searchElement);
                 }
             }
 
@@ -1729,7 +1736,7 @@ namespace Dynamo.PackageManager
                 PackageManagerClientViewModel.AuthenticationManager.HasAuthProvider,
                 CanInstallPackage(package.Name),
                 isEnabledForInstall);
-            viewModel.CanInstall = CanInstallPackage(viewModel);
+            UpdateInstallState(viewModel);
             return viewModel;
         }
 

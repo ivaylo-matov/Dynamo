@@ -129,7 +129,7 @@ namespace Dynamo.PackageManager.ViewModels
 
             this.DownloadLatestCommand = new DelegateCommand(
                 () => OnRequestDownload(false),
-                () => !SearchElementModel.IsDeprecated && CanInstall);
+                () => !SearchElementModel.IsDeprecated && CanInstallOrUpgrade);
             this.DownloadLatestToCustomPathCommand = new DelegateCommand(() => OnRequestDownload(true));
 
             this.UpvoteCommand = new DelegateCommand(SearchElementModel.Upvote, () => canLogin);
@@ -180,6 +180,7 @@ namespace Dynamo.PackageManager.ViewModels
         }
 
         private bool canInstall;
+        private bool canUpgrade;
         /// <summary>
         /// A Boolean flag reporting whether or not the user can install this SearchElement's package.
         /// </summary>
@@ -196,8 +197,42 @@ namespace Dynamo.PackageManager.ViewModels
                 {
                     canInstall = value;
                     RaisePropertyChanged(nameof(CanInstall));
+                    RaisePropertyChanged(nameof(CanInstallOrUpgrade));
                     DownloadLatestCommand?.RaiseCanExecuteChanged();
                 }
+            }
+        }
+
+        /// <summary>
+        /// A Boolean flag reporting whether or not the user can upgrade this SearchElement's package.
+        /// </summary>
+        public bool CanUpgrade
+        {
+            get
+            {
+                return canUpgrade;
+            }
+
+            internal set
+            {
+                if (canUpgrade != value)
+                {
+                    canUpgrade = value;
+                    RaisePropertyChanged(nameof(CanUpgrade));
+                    RaisePropertyChanged(nameof(CanInstallOrUpgrade));
+                    DownloadLatestCommand?.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// A Boolean flag reporting whether or not the user can install or upgrade this SearchElement's package.
+        /// </summary>
+        public bool CanInstallOrUpgrade
+        {
+            get
+            {
+                return CanInstall || CanUpgrade;
             }
         }
 
