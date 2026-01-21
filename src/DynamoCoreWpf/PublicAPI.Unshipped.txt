@@ -1371,6 +1371,7 @@ Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.DownloadLa
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.Downloads.get -> int
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.Equals(Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel other) -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.HasUpvote.get -> bool
+Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.HasUpdateAvailable.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.Hosts.get -> System.Collections.Generic.List<string>
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsDeprecated.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsEnabledForInstall.get -> bool

@@ -69,6 +69,8 @@ namespace Dynamo.PackageManager.ViewModels
         /// The currently selected version of a package
         /// </summary>
         private VersionInformation selectedVersion;
+        private string installedVersion;
+        private bool hasUpdateAvailable;
 
         public bool? IsSelectedVersionCompatible
         {
@@ -96,9 +98,25 @@ namespace Dynamo.PackageManager.ViewModels
                     selectedVersion = value;
 
                     // Update the compatibility info so the icon of the currently selected version is updated
-                    IsSelectedVersionCompatible = selectedVersion.IsCompatible;
+                    IsSelectedVersionCompatible = selectedVersion?.IsCompatible;
                     SearchElementModel.SelectedVersion = selectedVersion;
-                    RaisePropertyChanged(nameof(SelectedVersion) );
+                    RaisePropertyChanged(nameof(SelectedVersion));
+                }
+            }
+        }
+
+        /// <summary>
+        /// True if a newer version is available for an installed package.
+        /// </summary>
+        public bool HasUpdateAvailable
+        {
+            get { return hasUpdateAvailable; }
+            internal set
+            {
+                if (hasUpdateAvailable != value)
+                {
+                    hasUpdateAvailable = value;
+                    RaisePropertyChanged(nameof(HasUpdateAvailable));
                 }
             }
         }
@@ -144,11 +162,12 @@ namespace Dynamo.PackageManager.ViewModels
         {
             if (e.PropertyName == nameof(SearchElementModel.LatestCompatibleVersion))
             {
-                this.SelectedVersion = this.SearchElementModel.LatestCompatibleVersion;
+                SetDefaultSelectedVersion();
             }
             if (e.PropertyName == nameof(SearchElementModel.VersionDetails))
             {
                 this.VersionInformationList = this.SearchElementModel.VersionDetails;
+                SetDefaultSelectedVersion();
             }
         }
 
@@ -325,6 +344,7 @@ namespace Dynamo.PackageManager.ViewModels
                 {
                     versionInformationList = value;
                     RaisePropertyChanged(nameof(VersionInformationList));
+                    UpdateInstalledVersionFlags();
                 }
             }
         }
@@ -339,6 +359,56 @@ namespace Dynamo.PackageManager.ViewModels
                 var reversedList = VersionInformationList?.AsEnumerable().Reverse().ToList();
                 return CollectionViewSource.GetDefaultView(reversedList);
             }
+        }
+
+        internal void UpdateInstalledVersion(string version, bool setDefaultSelection)
+        {
+            installedVersion = version;
+            UpdateInstalledVersionFlags();
+
+            if (setDefaultSelection)
+            {
+                SetDefaultSelectedVersion();
+            }
+        }
+
+        private void SetDefaultSelectedVersion()
+        {
+            var defaultVersion = GetDefaultSelectedVersion();
+            if (defaultVersion != null && SelectedVersion != defaultVersion)
+            {
+                SelectedVersion = defaultVersion;
+            }
+        }
+
+        private VersionInformation GetDefaultSelectedVersion()
+        {
+            if (!string.IsNullOrEmpty(installedVersion))
+            {
+                var installedInfo = VersionInformationList?.FirstOrDefault(v => v.Version == installedVersion);
+                if (installedInfo != null)
+                {
+                    return installedInfo;
+                }
+            }
+
+            return SearchElementModel?.LatestCompatibleVersion;
+        }
+
+        private void UpdateInstalledVersionFlags()
+        {
+            if (VersionInformationList == null)
+            {
+                return;
+            }
+
+            foreach (var versionInfo in VersionInformationList)
+            {
+                versionInfo.IsInstalled = !string.IsNullOrEmpty(installedVersion) &&
+                                          string.Equals(versionInfo.Version, installedVersion, StringComparison.OrdinalIgnoreCase);
+            }
+
+            RaisePropertyChanged(nameof(ReversedVersionInformationList));
         }
 
         private List<String> CustomPackageFolders;

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -2710,6 +2710,9 @@ This package will be unloaded after the next Dynamo restart.</value>
   </data>
   <data name="PackageManagerPackageUpdated" xml:space="preserve">
     <value>Updated</value>
+  </data>
+  <data name="PackageManagerPackageUpdateAvailable" xml:space="preserve">
+    <value>Update available</value>
   </data>
   <data name="PackageManagerPackageNew" xml:space="preserve">
     <value>New</value>

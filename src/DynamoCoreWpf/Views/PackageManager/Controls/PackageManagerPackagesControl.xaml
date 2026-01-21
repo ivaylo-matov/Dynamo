@@ -116,6 +116,10 @@
                     <TextBlock VerticalAlignment="Center"
                                Foreground="White"
                                Text="{Binding Version}" />
+                    <TextBlock VerticalAlignment="Center"
+                               Foreground="White"
+                               Text="{Binding Source={x:Static p:Resources.PackageDownloadStateInstalled}, StringFormat= ({0})}"
+                               Visibility="{Binding IsInstalled, Converter={StaticResource BoolToVisibilityCollapsedConverter}}" />
                 </StackPanel>
             </DataTemplate>
 
@@ -522,12 +526,15 @@
                                     </TextBlock.ToolTip>
                                 </TextBlock>
 
-                                <!--  Tag Bubble  -->
+                            <!--  Tag Bubbles  -->
+                            <StackPanel Grid.Column="1"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Orientation="Horizontal">
                                 <Border Name="newPackageLabel"
-                                        Grid.Column="1"
                                         Width="Auto"
                                         Height="20"
-                                        Margin="7,-3,7,0"
+                                        Margin="7,-3,4,0"
                                         HorizontalAlignment="Right"
                                         VerticalAlignment="Center"
                                         Background="Transparent"
@@ -550,6 +557,30 @@
                                         </TextBlock.ToolTip>
                                     </TextBlock>
                                 </Border>
+
+                                <Border Name="updateAvailableLabel"
+                                        Width="Auto"
+                                        Height="20"
+                                        Margin="3,-3,7,0"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderBrush="{StaticResource PMBorderColorBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="3"
+                                        SnapsToDevicePixels="True"
+                                        UseLayoutRounding="True"
+                                        Visibility="{Binding HasUpdateAvailable, Converter={StaticResource BoolToVisibilityCollapsedConverter}}">
+                                    <TextBlock Margin="3,0"
+                                               Padding="0,1,0,0"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontFamily="{StaticResource ArtifaktElementRegular}"
+                                               FontSize="11"
+                                               Foreground="{StaticResource PMForegroundColorBrush}"
+                                               Text="{x:Static p:Resources.PackageManagerPackageUpdateAvailable}" />
+                                </Border>
+                            </StackPanel>
 
                             </Grid>
                         </DockPanel>

@@ -1303,6 +1303,10 @@ Don't worry, you'll have the option to save your work.</value>
     <value>Updated</value>
     <comment>Displays next to the package name in the Package Search window if the package has been updated in the last 30 days.</comment>
   </data>
+  <data name="PackageManagerPackageUpdateAvailable" xml:space="preserve">
+    <value>Update available</value>
+    <comment>Displays next to the package name in the Package Search window if an installed package has a newer version.</comment>
+  </data>
   <data name="PackageManagerPackageNew" xml:space="preserve">
     <value>New</value>
     <comment>Displays next to the package name in the Package Search window if the package has been added in the last 30 days.</comment>

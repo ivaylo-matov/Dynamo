@@ -504,12 +504,20 @@ namespace Dynamo.PackageManager
         /// Checks and updates the install state of the given search element.
         /// </summary>
         /// <param name="element"></param>
-        private void UpdateInstallState(PackageManagerSearchElementViewModel element)
+        private void UpdateInstallState(PackageManagerSearchElementViewModel element, bool setDefaultSelection = false)
         {
             if (element?.SearchElementModel == null)
             {
                 return;
             }
+
+            var installedPackages = PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.LocalPackages
+                .Where(x => (x.Name == element.SearchElementModel.Name) && !x.BuiltInPackage)
+                .ToList();
+
+            var installedVersion = installedPackages.Any() ? GetNewestInstalledVersion(installedPackages) : null;
+            element.UpdateInstalledVersion(installedVersion, setDefaultSelection);
+            element.HasUpdateAvailable = IsUpdateAvailable(installedVersion, element.VersionInformationList);
 
             var hasBlockingDownload = PackageManagerClientViewModel.Downloads.Any(handle =>
                 handle.Name == element.SearchElementModel.Name &&
@@ -524,9 +532,6 @@ namespace Dynamo.PackageManager
                 return;
             }
 
-            var installedPackages = PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.LocalPackages
-                .Where(x => (x.Name == element.SearchElementModel.Name) && !x.BuiltInPackage)
-                .ToList();
             if (!installedPackages.Any())
             {
                 element.CanInstall = true;
@@ -588,6 +593,54 @@ namespace Dynamo.PackageManager
             }
 
             return parsedSelectedVersion < newestInstalledVersion;
+        }
+
+        private static string GetNewestInstalledVersion(IEnumerable<Package> installedPackages)
+        {
+            if (installedPackages == null)
+            {
+                return null;
+            }
+
+            var parsedVersions = installedPackages
+                .Select(pkg => new { Version = pkg.VersionName, Parsed = VersionUtilities.Parse(pkg.VersionName) })
+                .Where(x => x.Parsed != null)
+                .OrderBy(x => x.Parsed)
+                .LastOrDefault();
+
+            if (parsedVersions != null)
+            {
+                return parsedVersions.Version;
+            }
+
+            return installedPackages.Select(pkg => pkg.VersionName).FirstOrDefault();
+        }
+
+        private static bool IsUpdateAvailable(string installedVersion, IEnumerable<VersionInformation> availableVersions)
+        {
+            if (string.IsNullOrEmpty(installedVersion) || availableVersions == null)
+            {
+                return false;
+            }
+
+            var parsedInstalledVersion = VersionUtilities.Parse(installedVersion);
+            if (parsedInstalledVersion == null)
+            {
+                return false;
+            }
+
+            var newestAvailableVersion = availableVersions
+                .Select(version => VersionUtilities.Parse(version.Version))
+                .Where(parsedVersion => parsedVersion != null)
+                .OrderBy(parsedVersion => parsedVersion)
+                .LastOrDefault();
+
+            if (newestAvailableVersion == null)
+            {
+                return false;
+            }
+
+            return newestAvailableVersion > parsedInstalledVersion;
         }
 
 
@@ -1835,7 +1888,7 @@ namespace Dynamo.PackageManager
                 PackageManagerClientViewModel.AuthenticationManager.HasAuthProvider,
                 CanInstallPackage(package.Name),
                 isEnabledForInstall);
-            UpdateInstallState(viewModel);      // CAN WE INTEGRATE THIS INTO THE CONSTRUCTOR???
+            UpdateInstallState(viewModel, true);      // CAN WE INTEGRATE THIS INTO THE CONSTRUCTOR???
             return viewModel;
         }
 
