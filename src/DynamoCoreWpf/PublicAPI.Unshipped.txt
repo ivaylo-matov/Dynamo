@@ -327,10 +327,6 @@ Dynamo.Controls.InOutParamTypeConverter
 Dynamo.Controls.InOutParamTypeConverter.Convert(object value, System.Type targetType, object parameter, System.Globalization.CultureInfo culture) -> object
 Dynamo.Controls.InOutParamTypeConverter.ConvertBack(object value, System.Type targetType, object parameter, System.Globalization.CultureInfo culture) -> object
 Dynamo.Controls.InOutParamTypeConverter.InOutParamTypeConverter() -> void
-Dynamo.Controls.InstallButtonTextConverter
-Dynamo.Controls.InstallButtonTextConverter.Convert(object[] values, System.Type targetType, object parameter, System.Globalization.CultureInfo culture) -> object
-Dynamo.Controls.InstallButtonTextConverter.ConvertBack(object value, System.Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture) -> object[]
-Dynamo.Controls.InstallButtonTextConverter.InstallButtonTextConverter() -> void
 Dynamo.Controls.InstalledButtonTextConverter
 Dynamo.Controls.InstalledButtonTextConverter.Convert(object value, System.Type targetType, object parameter, System.Globalization.CultureInfo culture) -> object
 Dynamo.Controls.InstalledButtonTextConverter.ConvertBack(object value, System.Type targetType, object parameter, System.Globalization.CultureInfo culture) -> object
@@ -1362,8 +1358,6 @@ Dynamo.PackageManager.UI.TermsOfUseView.TermsOfUseView(string touFilePath) -> vo
 Dynamo.PackageManager.UI.TreeViewItemHelper
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.CanInstall.get -> bool
-Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.CanInstallOrUpgrade.get -> bool
-Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.CanUpgrade.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.DownloadLatestCommand.get -> System.Windows.Input.ICommand
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.DownloadLatestCommand.set -> void
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.DownloadLatestToCustomPathCommand.get -> System.Windows.Input.ICommand

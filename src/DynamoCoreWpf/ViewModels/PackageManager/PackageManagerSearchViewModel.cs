@@ -528,8 +528,6 @@ namespace Dynamo.PackageManager
             if (hasBlockingDownload)
             {
                 element.CanInstall = false;
-                element.CanUpgrade = false;
-                element.CanDowngrade = false;
                 // RaiseUninstallCommandCanExecuteChanged(element);
                 return;
             }
@@ -541,14 +539,10 @@ namespace Dynamo.PackageManager
             if (!installedPackages.Any())
             {
                 element.CanInstall = true;
-                element.CanUpgrade = false;
-                element.CanDowngrade = false;
                 return;
             }
 
             element.CanInstall = false;
-            element.CanUpgrade = IsUpgradeAvailable(element.SelectedVersion?.Version, installedPackages);
-            element.CanDowngrade = IsDowngradeAvailable(element.SelectedVersion?.Version, installedPackages);
         }
 
 
@@ -714,57 +708,6 @@ namespace Dynamo.PackageManager
 
 
 
-
-
-        /// <summary>
-        /// Checks if an upgrade is available for the given selected version compared to the installed packages.
-        /// </summary>
-        /// <param name="selectedVersion"></param>
-        /// <param name="installedPackages"></param>
-        /// <returns></returns>
-        private bool IsUpgradeAvailable(string selectedVersion, IEnumerable<Package> installedPackages)
-        {
-            var parsedSelectedVersion = VersionUtilities.Parse(selectedVersion);
-            if (parsedSelectedVersion == null)
-            {
-                return false;
-            }
-
-            var newestInstalledVersion = installedPackages
-                .Select(pkg => VersionUtilities.Parse(pkg.VersionName))
-                .Where(parsedVersion => parsedVersion != null)
-                .OrderBy(parsedVersion => parsedVersion)
-                .LastOrDefault();
-
-            if (newestInstalledVersion == null)
-            {
-                return false;
-            }
-
-            return parsedSelectedVersion > newestInstalledVersion;
-        }
-
-        private bool IsDowngradeAvailable(string selectedVersion, IEnumerable<Package> installedPackages)
-        {
-            var parsedSelectedVersion = VersionUtilities.Parse(selectedVersion);
-            if (parsedSelectedVersion == null)
-            {
-                return false;
-            }
-
-            var newestInstalledVersion = installedPackages
-                .Select(pkg => VersionUtilities.Parse(pkg.VersionName))
-                .Where(parsedVersion => parsedVersion != null)
-                .OrderBy(parsedVersion => parsedVersion)
-                .LastOrDefault();
-
-            if (newestInstalledVersion == null)
-            {
-                return false;
-            }
-
-            return parsedSelectedVersion < newestInstalledVersion;
-        }
 
 
 

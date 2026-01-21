@@ -188,7 +188,7 @@ namespace Dynamo.PackageManager.ViewModels
 
             this.DownloadLatestCommand = new DelegateCommand(
                 () => OnRequestDownload(false),
-                () => !SearchElementModel.IsDeprecated && CanInstallOrUpgrade);
+                () => !SearchElementModel.IsDeprecated);
             this.DownloadLatestToCustomPathCommand = new DelegateCommand(() => OnRequestDownload(true));
 
             this.UpvoteCommand = new DelegateCommand(SearchElementModel.Upvote, () => canLogin);
@@ -259,68 +259,9 @@ namespace Dynamo.PackageManager.ViewModels
                 {
                     canInstall = value;
                     RaisePropertyChanged(nameof(CanInstall));
-                    RaisePropertyChanged(nameof(CanInstallOrUpgrade));
-                    RaiseDownloadLatestCommandCanExecuteChanged();
                 }
             }
         }
-
-        private bool canDowngrade;
-        /// <summary>
-        /// A Boolean flag reporting whether or not the user can downgrade this SearchElement's package.
-        /// </summary>
-        public bool CanDowngrade
-        {
-            get
-            {
-                return canDowngrade;
-            }
-
-            internal set
-            {
-                if (canDowngrade != value)
-                {
-                    canDowngrade = value;
-                    RaisePropertyChanged(nameof(CanDowngrade));
-                    RaisePropertyChanged(nameof(CanInstallOrUpgrade));
-                    RaiseDownloadLatestCommandCanExecuteChanged();
-                }
-            }
-        }
-
-        private bool canUpgrade;
-        /// <summary>
-        /// A Boolean flag reporting whether or not the user can updgrade this SearchElement's package.
-        /// </summary>
-        public bool CanUpgrade
-        {
-            get
-            {
-                return canUpgrade;
-            }
-
-            internal set
-            {
-                if (canUpgrade != value)
-                {
-                    canUpgrade = value;
-                    RaisePropertyChanged(nameof(CanUpgrade));
-                    RaisePropertyChanged(nameof(CanInstallOrUpgrade));
-                    RaiseDownloadLatestCommandCanExecuteChanged();
-                }
-            }
-        }
-
-        /// <summary>
-        /// A Boolean flag reporting whether or not the user can install or upgrade this SearchElement's package.
-        /// </summary>
-        public bool CanInstallOrUpgrade => true;
-        //{
-        //    get
-        //    {
-        //        return CanInstall || CanUpgrade || CanDowngrade;
-        //    }
-        //}
 
         /// <summary>
         /// True if package is enabled for download if custom package paths are not disabled,
@@ -463,13 +404,6 @@ namespace Dynamo.PackageManager.ViewModels
         private bool IsInstalledVersionSelected
         {
             get { return SelectedVersion?.IsInstalled == true; }
-        }
-        private void RaiseDownloadLatestCommandCanExecuteChanged()
-        {
-            if (DownloadLatestCommand is DelegateCommand command)
-            {
-                command.RaiseCanExecuteChanged();
-            }
         }
 
 
