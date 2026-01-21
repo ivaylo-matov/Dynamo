@@ -109,6 +109,7 @@ namespace Dynamo.PackageManager.ViewModels
                     RaisePropertyChanged(nameof(SelectedVersion));
                     RaisePropertyChanged(nameof(InstallActionText));
                     RaisePropertyChanged(nameof(InstallActionCommand));
+                    RaisePropertyChanged(nameof(IsInstalledVersionSelected));
                 }
             }
         }
@@ -252,7 +253,7 @@ namespace Dynamo.PackageManager.ViewModels
                     canInstall = value;
                     RaisePropertyChanged(nameof(CanInstall));
                     RaisePropertyChanged(nameof(CanInstallOrUpgrade));
-                    //DownloadLatestCommand?.RaiseCanExecuteChanged();
+                    RaiseDownloadLatestCommandCanExecuteChanged();
                 }
             }
         }
@@ -275,7 +276,7 @@ namespace Dynamo.PackageManager.ViewModels
                     canDowngrade = value;
                     RaisePropertyChanged(nameof(CanDowngrade));
                     RaisePropertyChanged(nameof(CanInstallOrUpgrade));
-                    //DownloadLatestCommand?.RaiseCanExecuteChanged();
+                    RaiseDownloadLatestCommandCanExecuteChanged();
                 }
             }
         }
@@ -298,7 +299,7 @@ namespace Dynamo.PackageManager.ViewModels
                     canUpgrade = value;
                     RaisePropertyChanged(nameof(CanUpgrade));
                     RaisePropertyChanged(nameof(CanInstallOrUpgrade));
-                    //DownloadLatestCommand?.RaiseCanExecuteChanged();
+                    RaiseDownloadLatestCommandCanExecuteChanged();
                 }
             }
         }
@@ -408,6 +409,7 @@ namespace Dynamo.PackageManager.ViewModels
             }
             RaisePropertyChanged(nameof(InstallActionText));
             RaisePropertyChanged(nameof(InstallActionCommand));
+            RaisePropertyChanged(nameof(IsInstalledVersionSelected));
         }
 
         private void SetDefaultSelectedVersion()
@@ -454,9 +456,17 @@ namespace Dynamo.PackageManager.ViewModels
             get { return !string.IsNullOrEmpty(installedVersion); }
         }
 
-        private bool IsInstalledVersionSelected
+        public bool IsInstalledVersionSelected
         {
             get { return SelectedVersion?.IsInstalled == true; }
+        }
+
+        private void RaiseDownloadLatestCommandCanExecuteChanged()
+        {
+            if (DownloadLatestCommand is DelegateCommand command)
+            {
+                command.RaiseCanExecuteChanged();
+            }
         }
 
         private List<String> CustomPackageFolders;
