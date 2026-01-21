@@ -405,42 +405,6 @@ namespace Dynamo.Controls
     }
 
     /// <summary>
-    /// Determines what the Install button says on the Package Manager Search.
-    /// If the package can be installed it says 'Install', if it can be upgraded
-    /// it says 'Upgrade', otherwise 'Installed'.
-    /// </summary>
-    public class InstallButtonTextConverter : IMultiValueConverter
-    {
-        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
-        {
-            if (values == null || values.Length < 3) return null;
-            if (!(values[0] is bool canInstall) || !(values[1] is bool canUpgrade) || !(values[2] is bool canDowngrade)) return null;
-
-            if (canInstall)
-            {
-                return Resources.PackageManagerInstall;
-            }
-
-            if (canUpgrade)
-            {
-                return Resources.PackageManagerUpgrade;
-            }
-
-            if (canDowngrade)
-            {
-                return Resources.PackageManagerDowngrade;
-            }
-
-            return Resources.PackageDownloadStateInstalled;
-        }
-
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
     /// If the given string is empty, false is returned, otherwise true is returned.
     /// </summary>
     public class EmptyStringToFalseConverter : IValueConverter
