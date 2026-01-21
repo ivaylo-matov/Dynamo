@@ -529,6 +529,7 @@ namespace Dynamo.PackageManager
                 element.CanInstall = false;
                 element.CanUpgrade = false;
                 element.CanDowngrade = false;
+                RaiseUninstallCommandCanExecuteChanged(element);
                 return;
             }
 
@@ -537,12 +538,23 @@ namespace Dynamo.PackageManager
                 element.CanInstall = true;
                 element.CanUpgrade = false;
                 element.CanDowngrade = false;
+                RaiseUninstallCommandCanExecuteChanged(element);
                 return;
             }
 
             element.CanInstall = false;
             element.CanUpgrade = IsUpgradeAvailable(element.SelectedVersion?.Version, installedPackages);
             element.CanDowngrade = IsDowngradeAvailable(element.SelectedVersion?.Version, installedPackages);
+
+            RaiseUninstallCommandCanExecuteChanged(element);
+        }
+
+        private static void RaiseUninstallCommandCanExecuteChanged(PackageManagerSearchElementViewModel element)
+        {
+            if (element?.UninstallCommand is DelegateCommand uninstallCommand)
+            {
+                uninstallCommand.RaiseCanExecuteChanged();
+            }
         }
 
         /// <summary>
@@ -593,6 +605,112 @@ namespace Dynamo.PackageManager
             }
 
             return parsedSelectedVersion < newestInstalledVersion;
+        }
+
+        private void UninstallPackage(PackageManagerSearchElementViewModel element)
+        {
+            var installedPackage = GetInstalledPackageForSelectedVersion(element);
+            if (installedPackage == null)
+            {
+                return;
+            }
+
+            var dynamoViewModel = PackageManagerClientViewModel?.DynamoViewModel;
+            if (dynamoViewModel == null)
+            {
+                return;
+            }
+
+            if (installedPackage.LoadedAssemblies.Any())
+            {
+                var message = string.Format(Resources.MessageNeedToRestartAfterDelete,
+                    dynamoViewModel.BrandingResourceProvider.ProductName);
+                var title = Resources.MessageNeedToRestartAfterDeleteTitle;
+                var result = MessageBoxService.Show(dynamoViewModel.Owner, message, title,
+                    MessageBoxButton.OKCancel, MessageBoxImage.Exclamation);
+                if (result == MessageBoxResult.Cancel || result == MessageBoxResult.None)
+                {
+                    return;
+                }
+            }
+
+            var confirmResult = MessageBoxService.Show(dynamoViewModel.Owner,
+                string.Format(Resources.MessageConfirmToDeletePackage, installedPackage.Name),
+                Resources.MessageNeedToRestartAfterDeleteTitle,
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirmResult == MessageBoxResult.No || confirmResult == MessageBoxResult.None)
+            {
+                return;
+            }
+
+            try
+            {
+                installedPackage.UninstallCore(dynamoViewModel.Model.CustomNodeManager,
+                    PackageManagerClientViewModel.PackageManagerExtension.PackageLoader,
+                    dynamoViewModel.Model.PreferenceSettings);
+            }
+            catch (Exception)
+            {
+                MessageBoxService.Show(dynamoViewModel.Owner,
+                    string.Format(Resources.MessageFailedToDelete, dynamoViewModel.BrandingResourceProvider.ProductName),
+                    Resources.DeleteFailureMessageBoxTitle,
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                UpdateInstallState(element);
+            }
+        }
+
+        private bool CanUninstallPackage(PackageManagerSearchElementViewModel element)
+        {
+            var installedPackage = GetInstalledPackageForSelectedVersion(element);
+            if (installedPackage == null)
+            {
+                return false;
+            }
+
+            var dynamoModel = PackageManagerClientViewModel?.DynamoViewModel?.Model;
+            if (dynamoModel == null)
+            {
+                return false;
+            }
+
+            if (!installedPackage.InUse(dynamoModel) || installedPackage.LoadedAssemblies.Any())
+            {
+                return IsLoadedWithNoScheduledOperation(installedPackage);
+            }
+
+            return false;
+        }
+
+        private static bool IsLoadedWithNoScheduledOperation(Package package)
+        {
+            return package.BuiltInPackage
+                ? package.LoadState.State != PackageLoadState.StateTypes.Unloaded &&
+                  package.LoadState.ScheduledState != PackageLoadState.ScheduledTypes.ScheduledForUnload
+                : package.LoadState.ScheduledState != PackageLoadState.ScheduledTypes.ScheduledForDeletion;
+        }
+
+        private Package GetInstalledPackageForSelectedVersion(PackageManagerSearchElementViewModel element)
+        {
+            if (element?.SelectedVersion?.IsInstalled != true || element.SearchElementModel == null)
+            {
+                return null;
+            }
+
+            var installedPackages = PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.LocalPackages
+                .Where(x => x.Name == element.SearchElementModel.Name && !x.BuiltInPackage)
+                .ToList();
+
+            if (!installedPackages.Any())
+            {
+                return null;
+            }
+
+            return installedPackages.FirstOrDefault(pkg =>
+                string.Equals(pkg.VersionName, element.SelectedVersion.Version, StringComparison.OrdinalIgnoreCase));
         }
 
         private static string GetNewestInstalledVersion(IEnumerable<Package> installedPackages)
@@ -1888,6 +2006,9 @@ namespace Dynamo.PackageManager
                 PackageManagerClientViewModel.AuthenticationManager.HasAuthProvider,
                 CanInstallPackage(package.Name),
                 isEnabledForInstall);
+            viewModel.UninstallCommand = new DelegateCommand(
+                () => UninstallPackage(viewModel),
+                () => CanUninstallPackage(viewModel));
             UpdateInstallState(viewModel, true);      // CAN WE INTEGRATE THIS INTO THE CONSTRUCTOR???
             return viewModel;
         }

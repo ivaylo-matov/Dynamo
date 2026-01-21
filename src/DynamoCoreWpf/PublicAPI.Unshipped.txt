@@ -1373,6 +1373,8 @@ Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.Equals(Dyn
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.HasUpvote.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.HasUpdateAvailable.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.Hosts.get -> System.Collections.Generic.List<string>
+Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.InstallActionCommand.get -> System.Windows.Input.ICommand
+Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.InstallActionText.get -> string
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsDeprecated.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsEnabledForInstall.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsOnwer.get -> bool

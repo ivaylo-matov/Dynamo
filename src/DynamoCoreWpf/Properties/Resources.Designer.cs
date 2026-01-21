@@ -6701,6 +6701,24 @@ namespace Dynamo.Wpf.Properties {
                 return ResourceManager.GetString("PackageManagerUpgrade", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Update.
+        /// </summary>
+        public static string PackageManagerUpdate {
+            get {
+                return ResourceManager.GetString("PackageManagerUpdate", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Uninstall.
+        /// </summary>
+        public static string PackageManagerUninstall {
+            get {
+                return ResourceManager.GetString("PackageManagerUninstall", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Once signed in, you can find your published packages here..

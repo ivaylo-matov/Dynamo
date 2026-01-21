@@ -118,7 +118,7 @@
                                Text="{Binding Version}" />
                     <TextBlock VerticalAlignment="Center"
                                Foreground="White"
-                               Text="{Binding Source={x:Static p:Resources.PackageDownloadStateInstalled}, StringFormat= ({0})}"
+                               Text=" (installed)"
                                Visibility="{Binding IsInstalled, Converter={StaticResource BoolToVisibilityCollapsedConverter}}" />
                 </StackPanel>
             </DataTemplate>
@@ -310,18 +310,14 @@
 
                             <!--  Install Button  -->
                             <Button Name="installButton"
-                                    Command="{Binding DownloadLatestCommand}"
+                                    Command="{Binding InstallActionCommand}"
                                     DockPanel.Dock="Right"
                                     IsEnabled="{Binding IsEnabledForInstall}"
                                     Loaded="DropDownInstallButton_Loaded"
                                     ToolTipService.ShowOnDisabled="True"
                                     Unloaded="DropDownInstallButton_Unloaded">
                                 <Button.Content>
-                                    <MultiBinding Converter="{StaticResource InstallButtonTextConverter}">
-                                        <Binding Path="CanInstall" />
-                                        <Binding Path="CanUpgrade" />
-                                        <Binding Path="CanDowngrade" />
-                                    </MultiBinding>
+                                    <Binding Path="InstallActionText" />
                                 </Button.Content>
                                 <Button.Style>
                                     <Style TargetType="Button">

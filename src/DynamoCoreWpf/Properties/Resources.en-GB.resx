@@ -2708,6 +2708,12 @@ This package will be unloaded after the next Dynamo restart.</value>
   <data name="PackageManagerInstall" xml:space="preserve">
     <value>Install</value>
   </data>
+  <data name="PackageManagerUpdate" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="PackageManagerUninstall" xml:space="preserve">
+    <value>Uninstall</value>
+  </data>
   <data name="PackageManagerPackageUpdated" xml:space="preserve">
     <value>Updated</value>
   </data>
