@@ -6550,6 +6550,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Update available.
+        /// </summary>
+        public static string PackageManagerPackageUpdateAvailable {
+            get {
+                return ResourceManager.GetString("PackageManagerPackageUpdateAvailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Updated.
         /// </summary>
         public static string PackageManagerPackageUpdated {
@@ -6681,6 +6690,24 @@ namespace Dynamo.Wpf.Properties {
         public static string PackageManagerTitle {
             get {
                 return ResourceManager.GetString("PackageManagerTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Uninstall.
+        /// </summary>
+        public static string PackageManagerUninstall {
+            get {
+                return ResourceManager.GetString("PackageManagerUninstall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update.
+        /// </summary>
+        public static string PackageManagerUpdate {
+            get {
+                return ResourceManager.GetString("PackageManagerUpdate", resourceCulture);
             }
         }
         
