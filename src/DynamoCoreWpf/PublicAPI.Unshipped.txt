@@ -1369,8 +1369,10 @@ Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.Hosts.get 
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsDeprecated.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsEnabledForInstall.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsOnwer.get -> bool
+Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsPackageInstalled.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsSelectedVersionCompatible.get -> bool?
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsSelectedVersionCompatible.set -> void
+Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsSelectedVersionInstalled.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.LatestVersion.get -> string
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.LatestVersionCreated.get -> string
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.Maintainers.get -> string
@@ -1386,6 +1388,8 @@ Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.ReversedVe
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.SearchElementModel.get -> Dynamo.PackageManager.PackageManagerSearchElement
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.SelectedVersion.get -> Dynamo.PackageManager.VersionInformation
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.SelectedVersion.set -> void
+Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.UninstallCommand.get -> System.Windows.Input.ICommand
+Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.UninstallCommand.set -> void
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.UpvoteCommand.get -> System.Windows.Input.ICommand
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.UpvoteCommand.set -> void
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.VersionInformationList.get -> System.Collections.Generic.List<Dynamo.PackageManager.VersionInformation>
