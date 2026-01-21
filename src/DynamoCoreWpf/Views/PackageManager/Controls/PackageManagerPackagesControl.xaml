@@ -126,6 +126,7 @@
                                     <MultiDataTrigger>
                                         <MultiDataTrigger.Conditions>
                                             <Condition Binding="{Binding IsInstalled}" Value="True" />
+                                            <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=ComboBoxItem}, Path=IsVisible}" Value="True" />
                                             <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=ComboBox}, Path=IsDropDownOpen}" Value="True" />
                                         </MultiDataTrigger.Conditions>
                                         <Setter Property="Visibility" Value="Visible" />
