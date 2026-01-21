@@ -357,7 +357,10 @@
                                                                         <Style BasedOn="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" TargetType="Button">
                                                                             <Setter Property="Visibility" Value="{Binding CanInstallOrUpgrade, Converter={StaticResource BoolToVisibilityCollapsedConverter}}" />
                                                                             <Style.Triggers>
-                                                                                <DataTrigger Binding="{Binding IsInstalledVersionSelected}" Value="True">
+                                                    <DataTrigger Binding="{Binding IsInstalledVersionSelected}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding InstallActionText}" Value="{x:Static p:Resources.PackageManagerUninstall}">
                                                                                     <Setter Property="Visibility" Value="Collapsed" />
                                                                                 </DataTrigger>
                                                                             </Style.Triggers>
@@ -385,6 +388,9 @@
                                                                                 <DataTrigger Binding="{Binding Path=IsInstalledVersionSelected}" Value="True">
                                                                                     <Setter Property="Visibility" Value="Collapsed" />
                                                                                 </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Path=InstallActionText}" Value="{x:Static p:Resources.PackageManagerUninstall}">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
                                                                                 <DataTrigger Binding="{Binding Path=IsDeprecated}" Value="True">
                                                                                     <Setter Property="Fill">
                                                                                         <Setter.Value>
