@@ -475,6 +475,59 @@ namespace Dynamo.PackageManager
                 .Any(x => (x.Name == name) && !x.BuiltInPackage);
         }
 
+        private Package GetInstalledPackage(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            var packageLoader = PackageManagerClientViewModel?.PackageManagerExtension?.PackageLoader;
+            if (packageLoader == null)
+            {
+                return null;
+            }
+
+            return packageLoader.LocalPackages
+                .FirstOrDefault(x => x.Name == name && !x.BuiltInPackage);
+        }
+
+        private void InitializeSearchElementPackageState(PackageManagerSearchElementViewModel element)
+        {
+            if (element == null)
+            {
+                return;
+            }
+
+            var installedPackage = GetInstalledPackage(element.Name);
+            element.InitializeForPackageManager(PackageManagerClientViewModel?.DynamoViewModel, installedPackage);
+        }
+
+        private void UpdateInstalledPackageState(string packageName)
+        {
+            if (string.IsNullOrEmpty(packageName))
+            {
+                return;
+            }
+
+            var installedPackage = GetInstalledPackage(packageName);
+            UpdateInstalledPackageState(SearchResults, packageName, installedPackage);
+            UpdateInstalledPackageState(SearchMyResults, packageName, installedPackage);
+        }
+
+        private void UpdateInstalledPackageState(IEnumerable<PackageManagerSearchElementViewModel> elements, string packageName, Package installedPackage)
+        {
+            if (elements == null)
+            {
+                return;
+            }
+
+            foreach (var element in elements.Where(x => x.Name == packageName))
+            {
+                element.InitializeForPackageManager(PackageManagerClientViewModel?.DynamoViewModel, installedPackage);
+            }
+        }
+
         /// <summary>
         /// Checks if the package corresponding to the PackageDownloadHandle can be installed.
         /// </summary>
@@ -1239,6 +1292,7 @@ namespace Dynamo.PackageManager
         {
             element.RequestDownload += this.PackageOnExecuted;
             element.RequestShowFileDialog += this.OnRequestShowFileDialog;
+            InitializeSearchElementPackageState(element);
 
             this.SearchResults.Add(element);
         }
@@ -1332,6 +1386,16 @@ namespace Dynamo.PackageManager
             RaisePropertyChanged(nameof(HasDownloads));
         }
 
+        private void PackageLoaderOnPackageAdded(Package pkg)
+        {
+            UpdateInstalledPackageState(pkg?.Name);
+        }
+
+        private void PackageLoaderOnPackageRemoved(Package pkg)
+        {
+            UpdateInstalledPackageState(pkg?.Name);
+        }
+
         private void SearchResultsOnCollectionChanged(object sender, NotifyCollectionChangedEventArgs args)
         {
             this.RaisePropertyChanged("HasNoResults");
@@ -1416,6 +1480,8 @@ namespace Dynamo.PackageManager
         {
             SearchResults.CollectionChanged += SearchResultsOnCollectionChanged;
             PackageManagerClientViewModel.Downloads.CollectionChanged += DownloadsOnCollectionChanged;
+            PackageManagerClientViewModel?.PackageManagerExtension?.PackageLoader.PackageAdded += PackageLoaderOnPackageAdded;
+            PackageManagerClientViewModel?.PackageManagerExtension?.PackageLoader.PackageRemoved += PackageLoaderOnPackageRemoved;
             PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.ConflictingCustomNodePackageLoaded +=
                 ConflictingCustomNodePackageLoaded;
         }
@@ -1424,6 +1490,8 @@ namespace Dynamo.PackageManager
         {
             SearchResults.CollectionChanged -= SearchResultsOnCollectionChanged;
             PackageManagerClientViewModel.Downloads.CollectionChanged -= DownloadsOnCollectionChanged;
+            PackageManagerClientViewModel?.PackageManagerExtension?.PackageLoader.PackageAdded -= PackageLoaderOnPackageAdded;
+            PackageManagerClientViewModel?.PackageManagerExtension?.PackageLoader.PackageRemoved -= PackageLoaderOnPackageRemoved;
             PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.ConflictingCustomNodePackageLoaded -=
                 ConflictingCustomNodePackageLoaded;
         }
@@ -1649,10 +1717,12 @@ namespace Dynamo.PackageManager
         private PackageManagerSearchElementViewModel GetSearchElementViewModel(PackageManagerSearchElement package, bool bypassCustomPackageLocations = false)
         {
             var isEnabledForInstall = bypassCustomPackageLocations || !(Preferences as IDisablePackageLoadingPreferences).DisableCustomPackageLocations;
-            return new PackageManagerSearchElementViewModel(package,
+            var viewModel = new PackageManagerSearchElementViewModel(package,
                 PackageManagerClientViewModel.AuthenticationManager.HasAuthProvider,
                 CanInstallPackage(package.Name),
                 isEnabledForInstall);
+            InitializeSearchElementPackageState(viewModel);
+            return viewModel;
         }
 
         /// <summary>
