@@ -482,13 +482,12 @@ namespace Dynamo.PackageManager
                 return null;
             }
 
-            var packageLoader = PackageManagerClientViewModel?.PackageManagerExtension?.PackageLoader;
-            if (packageLoader == null)
+            if (PackageLoader == null)
             {
                 return null;
             }
 
-            return packageLoader.LocalPackages
+            return PackageLoader.LocalPackages
                 .FirstOrDefault(x => x.Name == name && !x.BuiltInPackage);
         }
 
@@ -500,7 +499,8 @@ namespace Dynamo.PackageManager
             }
 
             var installedPackage = GetInstalledPackage(element.Name);
-            element.InitializeForPackageManager(PackageManagerClientViewModel?.DynamoViewModel, installedPackage);
+            element.UpdateInstalledPackage(installedPackage, PackageManagerClientViewModel?.DynamoViewModel);
+            element.CanInstall = CanInstallPackage(element.Name);
         }
 
         private void UpdateInstalledPackageState(string packageName)
@@ -522,9 +522,11 @@ namespace Dynamo.PackageManager
                 return;
             }
 
+            var canInstall = CanInstallPackage(packageName);
             foreach (var element in elements.Where(x => x.Name == packageName))
             {
-                element.InitializeForPackageManager(PackageManagerClientViewModel?.DynamoViewModel, installedPackage);
+                element.UpdateInstalledPackage(installedPackage, PackageManagerClientViewModel?.DynamoViewModel);
+                element.CanInstall = canInstall;
             }
         }
 
@@ -662,6 +664,8 @@ namespace Dynamo.PackageManager
         {
             get { return PackageManagerClientViewModel.DynamoViewModel.PreferenceSettings; }
         }
+
+        private PackageLoader PackageLoader => PackageManagerClientViewModel?.PackageManagerExtension?.PackageLoader;
 
         private bool isDetailPackagesExtensionOpened;
         public bool IsDetailPackagesExtensionOpened
@@ -1480,20 +1484,26 @@ namespace Dynamo.PackageManager
         {
             SearchResults.CollectionChanged += SearchResultsOnCollectionChanged;
             PackageManagerClientViewModel.Downloads.CollectionChanged += DownloadsOnCollectionChanged;
-            PackageManagerClientViewModel?.PackageManagerExtension?.PackageLoader.PackageAdded += PackageLoaderOnPackageAdded;
-            PackageManagerClientViewModel?.PackageManagerExtension?.PackageLoader.PackageRemoved += PackageLoaderOnPackageRemoved;
-            PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.ConflictingCustomNodePackageLoaded +=
-                ConflictingCustomNodePackageLoaded;
+            var packageLoader = PackageLoader;
+            if (packageLoader != null)
+            {
+                packageLoader.PackageAdded += PackageLoaderOnPackageAdded;
+                packageLoader.PackageRemoved += PackageLoaderOnPackageRemoved;
+                packageLoader.ConflictingCustomNodePackageLoaded += ConflictingCustomNodePackageLoaded;
+            }
         }
 
         internal void UnregisterTransientHandlers()
         {
             SearchResults.CollectionChanged -= SearchResultsOnCollectionChanged;
             PackageManagerClientViewModel.Downloads.CollectionChanged -= DownloadsOnCollectionChanged;
-            PackageManagerClientViewModel?.PackageManagerExtension?.PackageLoader.PackageAdded -= PackageLoaderOnPackageAdded;
-            PackageManagerClientViewModel?.PackageManagerExtension?.PackageLoader.PackageRemoved -= PackageLoaderOnPackageRemoved;
-            PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.ConflictingCustomNodePackageLoaded -=
-                ConflictingCustomNodePackageLoaded;
+            var packageLoader = PackageLoader;
+            if (packageLoader != null)
+            {
+                packageLoader.PackageAdded -= PackageLoaderOnPackageAdded;
+                packageLoader.PackageRemoved -= PackageLoaderOnPackageRemoved;
+                packageLoader.ConflictingCustomNodePackageLoaded -= ConflictingCustomNodePackageLoaded;
+            }
         }
 
         /// <summary>

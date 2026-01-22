@@ -251,18 +251,13 @@ namespace Dynamo.PackageManager.ViewModels
             }
         }
 
-        internal void InitializeForPackageManager(DynamoViewModel viewModel, Package package)
+        internal void UpdateInstalledPackage(Package package, DynamoViewModel viewModel = null)
         {
             if (viewModel != null && dynamoViewModel == null)
             {
                 dynamoViewModel = viewModel;
             }
 
-            UpdateInstalledPackage(package);
-        }
-
-        internal void UpdateInstalledPackage(Package package)
-        {
             if (installedPackage == package &&
                 (installedPackage == null || string.Equals(installedPackage.VersionName, package.VersionName, StringComparison.OrdinalIgnoreCase)))
             {
