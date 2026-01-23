@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 using Dynamo.ViewModels;
+using Dynamo.Wpf.Properties;
 using Dynamo.Wpf.ViewModels;
 using Greg.Responses;
 using Prism.Commands;
@@ -20,6 +21,10 @@ namespace Dynamo.PackageManager.ViewModels
         public ICommand VisitSiteCommand { get; set; }
         public ICommand VisitRepositoryCommand { get; set; }
         public ICommand DownloadLatestToCustomPathCommand { get; set; }
+        public ICommand InstallActionCommand
+        {
+            get { return IsInstalledVersionSelected ? uninstallCommand ?? DownloadLatestCommand : DownloadLatestCommand; }
+        }
 
         /// <summary>
         /// VM IsDeprecated property
@@ -70,6 +75,16 @@ namespace Dynamo.PackageManager.ViewModels
         /// </summary>
         private VersionInformation selectedVersion;
 
+        private string installedVersion;
+        private bool hasUpdateAvailable;
+        private ICommand uninstallCommand;
+
+        private bool HasInstalledVersion =>
+            !string.IsNullOrEmpty(installedVersion);
+
+        private bool IsInstalledVersionSelected =>
+            SelectedVersion?.IsInstalled == true;
+
         public bool? IsSelectedVersionCompatible
         {
             get { return isSelectedVersionCompatible; }
@@ -96,8 +111,62 @@ namespace Dynamo.PackageManager.ViewModels
                     selectedVersion = value;
 
                     // Update the compatibility info so the icon of the currently selected version is updated
-                    IsSelectedVersionCompatible = selectedVersion.IsCompatible;
+                    IsSelectedVersionCompatible = selectedVersion?.IsCompatible;
                     SearchElementModel.SelectedVersion = selectedVersion;
+                    RaisePropertyChanged(nameof(SelectedVersion));
+                    RaisePropertyChanged(nameof(InstallActionText));
+                    RaisePropertyChanged(nameof(InstallActionCommand));
+                    RaisePropertyChanged(nameof(IsInstalledVersionSelected));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sets the install action text based on whether the package is installed, needs an update, or is not installed
+        /// </summary>
+        public string InstallActionText
+        {
+            get
+            {
+                if (HasInstalledVersion)
+                {
+                    return IsInstalledVersionSelected
+                        ? Resources.PackageManagerUninstall
+                        : Resources.PackageManagerUpdate;
+                }
+
+                return Resources.PackageManagerInstall;
+            }
+        }
+
+        /// <summary>
+        /// True if newer version is available for an installed package
+        /// </summary>
+        public bool HasUpdateAvailable
+        {
+            get => hasUpdateAvailable;
+            set
+            {
+                if (hasUpdateAvailable != value)
+                {
+                    hasUpdateAvailable = value;
+                    RaisePropertyChanged(nameof(HasUpdateAvailable));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the command that executes the uninstall operation.
+        /// </summary>
+        internal ICommand UninstallCommand
+        {
+            get => uninstallCommand;
+            set
+            {
+                if (uninstallCommand != value)
+                {
+                    uninstallCommand = value;
+                    RaisePropertyChanged(nameof(InstallActionCommand));
                 }
             }
         }
@@ -128,7 +197,7 @@ namespace Dynamo.PackageManager.ViewModels
 
             this.DownloadLatestCommand = new DelegateCommand(
                 () => OnRequestDownload(false),
-                () => !SearchElementModel.IsDeprecated && CanInstall);
+                () => !SearchElementModel.IsDeprecated);
             this.DownloadLatestToCustomPathCommand = new DelegateCommand(() => OnRequestDownload(true));
 
             this.UpvoteCommand = new DelegateCommand(SearchElementModel.Upvote, () => canLogin);
@@ -143,11 +212,11 @@ namespace Dynamo.PackageManager.ViewModels
         {
             if (e.PropertyName == nameof(SearchElementModel.LatestCompatibleVersion))
             {
-                this.SelectedVersion = this.SearchElementModel.LatestCompatibleVersion;
+                SetDefaultSelectedVersion();
             }
             if (e.PropertyName == nameof(SearchElementModel.VersionDetails))
             {
-                this.VersionInformationList = this.SearchElementModel.VersionDetails;
+                SetDefaultSelectedVersion();
             }
         }
 
@@ -191,8 +260,11 @@ namespace Dynamo.PackageManager.ViewModels
 
             internal set
             {
-                canInstall = value;
-                RaisePropertyChanged(nameof(CanInstall));
+                if (canInstall != value)
+                {
+                    canInstall = value;
+                    RaisePropertyChanged(nameof(CanInstall));
+                }
             }
         }
 
@@ -262,6 +334,7 @@ namespace Dynamo.PackageManager.ViewModels
                 {
                     versionInformationList = value;
                     RaisePropertyChanged(nameof(VersionInformationList));
+                    UpdateInstalledVersionFlags();
                 }
             }
         }
@@ -278,6 +351,61 @@ namespace Dynamo.PackageManager.ViewModels
             }
         }
 
+        /// <summary>
+        /// Updates the installed version and sets the default selected version
+        /// </summary>
+        /// <param name="version"></param>
+        /// <param name="setDefaultSelection"></param>
+        internal void UpdateInstalledVersion(string version, bool setDefaultSelection)
+        {
+            installedVersion = version;
+            UpdateInstalledVersionFlags();
+
+            if (setDefaultSelection)
+            {
+                SetDefaultSelectedVersion();
+            }
+            RaisePropertyChanged(nameof(InstallActionText));
+            RaisePropertyChanged(nameof(InstallActionCommand));
+            RaisePropertyChanged(nameof(IsInstalledVersionSelected));
+        }
+
+        private void SetDefaultSelectedVersion()
+        {
+            var defaultVersion = GetDefaultSelectedVersion();
+            if (defaultVersion != null && SelectedVersion != defaultVersion)
+            {
+                SelectedVersion = defaultVersion;
+            }
+        }
+
+        private VersionInformation GetDefaultSelectedVersion()
+        {
+            if (!string.IsNullOrEmpty(installedVersion))
+            {
+                var installedInfo = VersionInformationList?.FirstOrDefault(v => v.Version == installedVersion);
+                if (installedInfo != null)
+                {
+                    return installedInfo;
+                }
+            }
+
+            return SearchElementModel?.LatestCompatibleVersion;
+        }
+
+        private void UpdateInstalledVersionFlags()
+        {
+            if (VersionInformationList == null) return;
+
+            foreach (var versionInfo in VersionInformationList)
+            {
+                versionInfo.IsInstalled = !string.IsNullOrEmpty(installedVersion) &&
+                                          string.Equals(versionInfo.Version, installedVersion, StringComparison.OrdinalIgnoreCase);
+            }
+
+            RaisePropertyChanged(nameof(ReversedVersionInformationList));
+        }
+        
         private List<String> CustomPackageFolders;
         private bool? isSelectedVersionCompatible;
 

@@ -498,11 +498,13 @@
                                 <!--  Install Button  -->
                                 <Button
                                     Name="installButton"
-                                    Command="{Binding DownloadLatestCommand}"
-                                    Content="{Binding CanInstall, Converter={StaticResource InstalledButtonTextConverter}}"
+                                    Command="{Binding InstallActionCommand}"
                                     DockPanel.Dock="Right"
                                     ToolTipService.ShowOnDisabled="True"
                                     IsEnabled="{Binding IsEnabledForInstall}">
+                                    <Button.Content>
+                                        <Binding Path="InstallActionText" />
+                                    </Button.Content>
                                     <Button.Style>
                                         <Style TargetType="Button">
                                             <Setter Property="Template">
@@ -534,6 +536,9 @@
                                                                         <Rectangle.Style>
                                                                             <Style TargetType="Rectangle">
                                                                                 <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding Path=InstallActionText}" Value="{x:Static p:Resources.PackageManagerUninstall}">
+                                                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                                                    </DataTrigger>
                                                                                     <DataTrigger Binding="{Binding Path=Model.IsDeprecated}" Value="True">
                                                                                         <Setter Property="Fill">
                                                                                             <Setter.Value>
@@ -541,14 +546,6 @@
                                                                                             </Setter.Value>
                                                                                         </Setter>
                                                                                         <Setter Property="Opacity" Value="0.5" />
-                                                                                    </DataTrigger>
-                                                                                    <DataTrigger Binding="{Binding Path=CanInstall}" Value="False">
-                                                                                        <Setter Property="Fill">
-                                                                                            <Setter.Value>
-                                                                                                <ImageBrush ImageSource="/DynamoCoreWpf;component/UI/Images/checkmark - grey.png" />
-                                                                                            </Setter.Value>
-                                                                                        </Setter>
-                                                                                        <Setter Property="Opacity" Value="1" />
                                                                                     </DataTrigger>
                                                                                     <DataTrigger Binding="{Binding Path=IsEnabledForInstall}" Value="False">
                                                                                         <Setter Property="Fill">
@@ -561,7 +558,6 @@
                                                                                     <MultiDataTrigger>
                                                                                         <MultiDataTrigger.Conditions>
                                                                                             <Condition Binding="{Binding Path=Model.IsDeprecated}" Value="False" />
-                                                                                            <Condition Binding="{Binding Path=CanInstall}" Value="True" />
                                                                                             <Condition Binding="{Binding Path=IsEnabledForInstall}" Value="True" />
                                                                                         </MultiDataTrigger.Conditions>
                                                                                         <Setter Property="Fill">
@@ -589,10 +585,6 @@
                                                                 <Setter Property="TextBlock.Foreground" Value="#84D7CE" />
                                                                 <Setter Property="ToolTip" Value="{x:Static p:Resources.PackageDeprecatedTooltip}" />
                                                             </DataTrigger>
-                                                            <DataTrigger Binding="{Binding CanInstall}" Value="False">
-                                                                <Setter Property="TextBlock.Foreground" Value="#999999" />
-                                                                <Setter Property="Opacity" Value="1" />
-                                                            </DataTrigger>
                                                             <DataTrigger Binding="{Binding IsEnabledForInstall}" Value="False">
                                                                 <Setter Property="TextBlock.Foreground" Value="#999999" />
                                                                 <Setter Property="TextBlock.Opacity" Value="1" />
@@ -600,7 +592,6 @@
                                                             <MultiDataTrigger>
                                                                 <MultiDataTrigger.Conditions>
                                                                     <Condition Binding="{Binding Path=Model.IsDeprecated}" Value="False" />
-                                                                    <Condition Binding="{Binding Path=CanInstall}" Value="True" />
                                                                     <Condition Binding="{Binding Path=IsEnabledForInstall}" Value="True" />
                                                                 </MultiDataTrigger.Conditions>
                                                                 <Setter Property="TextBlock.Opacity" Value="1" />
