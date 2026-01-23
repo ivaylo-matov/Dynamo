@@ -23,7 +23,7 @@ namespace Dynamo.PackageManager.ViewModels
         public ICommand DownloadLatestToCustomPathCommand { get; set; }
         public ICommand InstallActionCommand
         {
-            get { return IsInstalledVersionSelected ? uninstallCommand ?? DownloadLatestCommand : DownloadLatestCommand; }
+            get { return IsInstalledVersionSelected ? uninstallCommand : DownloadLatestCommand; }
         }
 
         /// <summary>
@@ -75,6 +75,7 @@ namespace Dynamo.PackageManager.ViewModels
         /// </summary>
         private VersionInformation selectedVersion;
 
+        private readonly ICommand disabledCommand = new DelegateCommand(() => { }, () => false);
         private string installedVersion;
         private bool hasUpdateAvailable;
         private ICommand uninstallCommand;
@@ -130,9 +131,14 @@ namespace Dynamo.PackageManager.ViewModels
             {
                 if (HasInstalledVersion)
                 {
-                    return IsInstalledVersionSelected
-                        ? Resources.PackageManagerUninstall
-                        : Resources.PackageManagerUpdate;
+                    if (IsInstalledVersionSelected)
+                    {
+                        return CanUninstallSelectedVersion
+                            ? Resources.PackageManagerUninstall
+                            : Resources.PackageDownloadStateInstalled;
+                    }
+
+                    return Resources.PackageManagerUpdate;
                 }
 
                 return Resources.PackageManagerInstall;
@@ -163,11 +169,17 @@ namespace Dynamo.PackageManager.ViewModels
             get => uninstallCommand;
             set
             {
-                if (uninstallCommand != value)
+                if (uninstallCommand == value) return;
+
+                if (uninstallCommand != null)
                 {
-                    uninstallCommand = value;
-                    RaisePropertyChanged(nameof(InstallActionCommand));
+                    uninstallCommand.CanExecuteChanged -= OnUninstallCommandCanExecuteChanged;
                 }
+
+                uninstallCommand = value ?? disabledCommand;
+                uninstallCommand.CanExecuteChanged += OnUninstallCommandCanExecuteChanged;
+                RaisePropertyChanged(nameof(InstallActionCommand));
+                RaisePropertyChanged(nameof(InstallActionText));
             }
         }
 
@@ -183,6 +195,7 @@ namespace Dynamo.PackageManager.ViewModels
             : base(element)
         {
             this.SearchElementModel = element;
+            UninstallCommand = disabledCommand;
             CanInstall = install;
             IsEnabledForInstall = isEnabledForInstall;
 
@@ -368,6 +381,15 @@ namespace Dynamo.PackageManager.ViewModels
             RaisePropertyChanged(nameof(InstallActionText));
             RaisePropertyChanged(nameof(InstallActionCommand));
             RaisePropertyChanged(nameof(IsInstalledVersionSelected));
+        }
+
+        private bool CanUninstallSelectedVersion =>
+            IsInstalledVersionSelected && uninstallCommand?.CanExecute(null) == true;
+
+        private void OnUninstallCommandCanExecuteChanged(object sender, EventArgs e)
+        {
+            RaisePropertyChanged(nameof(InstallActionText));
+            RaisePropertyChanged(nameof(InstallActionCommand));
         }
 
         private void SetDefaultSelectedVersion()

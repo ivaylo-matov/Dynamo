@@ -359,6 +359,9 @@
                                                                                 <DataTrigger Binding="{Binding InstallActionText}" Value="{x:Static p:Resources.PackageManagerUninstall}">
                                                                                     <Setter Property="Visibility" Value="Collapsed" />
                                                                                 </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding InstallActionText}" Value="{x:Static p:Resources.PackageDownloadStateInstalled}">
+                                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                                </DataTrigger>
                                                                             </Style.Triggers>
                                                                         </Style>
                                                                     </Button.Style>
@@ -382,6 +385,9 @@
                                                                         <Style TargetType="Rectangle">
                                                                             <Style.Triggers>
                                                                                 <DataTrigger Binding="{Binding Path=InstallActionText}" Value="{x:Static p:Resources.PackageManagerUninstall}">
+                                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding Path=InstallActionText}" Value="{x:Static p:Resources.PackageDownloadStateInstalled}">
                                                                                     <Setter Property="Visibility" Value="Collapsed" />
                                                                                 </DataTrigger>
                                                                                 <DataTrigger Binding="{Binding Path=IsDeprecated}" Value="True">

@@ -513,18 +513,12 @@ namespace Dynamo.PackageManager
                 (handle.DownloadState == PackageDownloadHandle.State.Downloaded ||
                  handle.DownloadState == PackageDownloadHandle.State.Downloading ||
                  handle.DownloadState == PackageDownloadHandle.State.Installing));
-            if (hasBlockingDownload)
-            {
-                element.CanInstall = false;
-                return;
-            }
-            if (!installedPackages.Any())
-            {
-                element.CanInstall = true;
-                return;
-            }
+            element.CanInstall = !hasBlockingDownload && !installedPackages.Any();
 
-            element.CanInstall = false;
+            if (element.UninstallCommand is DelegateCommand uninstallCommand)
+            {
+                uninstallCommand.RaiseCanExecuteChanged();
+            }
         }
 
         private void UninstallPackage(PackageManagerSearchElementViewModel element)
