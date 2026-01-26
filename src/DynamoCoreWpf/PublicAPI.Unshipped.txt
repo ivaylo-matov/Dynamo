@@ -1373,6 +1373,9 @@ Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.InstallAct
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsDeprecated.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsEnabledForInstall.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsOnwer.get -> bool
+Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsInstalledFallback.get -> bool
+Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsInstalledVersionSelected.get -> bool
+Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsUninstallState.get -> bool
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsSelectedVersionCompatible.get -> bool?
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.IsSelectedVersionCompatible.set -> void
 Dynamo.PackageManager.ViewModels.PackageManagerSearchElementViewModel.LatestVersion.get -> string
