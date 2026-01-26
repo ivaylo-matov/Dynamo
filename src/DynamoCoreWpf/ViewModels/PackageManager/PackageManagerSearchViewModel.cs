@@ -918,6 +918,7 @@ namespace Dynamo.PackageManager
 
                 p.RequestDownload += this.PackageOnExecuted;
                 p.RequestUninstall += SearchElementViewModelOnRequestUninstall;
+                p.PropertyChanged += SearchElementViewModelOnVersionInfoChanged;
                 p.IsOnwer = true;
 
                 myPackages.Add(p);
@@ -934,6 +935,7 @@ namespace Dynamo.PackageManager
                 ele.RequestDownload -= PackageOnExecuted;
                 ele.RequestShowFileDialog -= OnRequestShowFileDialog;
                 ele.RequestUninstall -= SearchElementViewModelOnRequestUninstall;
+                ele.PropertyChanged -= SearchElementViewModelOnVersionInfoChanged;
             }
 
             this.SearchMyResults = null;
@@ -1435,6 +1437,7 @@ namespace Dynamo.PackageManager
             element.RequestDownload += this.PackageOnExecuted;
             element.RequestShowFileDialog += this.OnRequestShowFileDialog;
             element.RequestUninstall += SearchElementViewModelOnRequestUninstall;
+            element.PropertyChanged += SearchElementViewModelOnVersionInfoChanged;
 
             this.SearchResults.Add(element);
         }
@@ -1447,6 +1450,7 @@ namespace Dynamo.PackageManager
                 ele.RequestDownload -= PackageOnExecuted;
                 ele.RequestShowFileDialog -= OnRequestShowFileDialog;
                 ele.RequestUninstall -= SearchElementViewModelOnRequestUninstall;
+                ele.PropertyChanged -= SearchElementViewModelOnVersionInfoChanged;
 
                 ele?.Dispose();
             }
@@ -1455,6 +1459,39 @@ namespace Dynamo.PackageManager
         private void SearchElementViewModelOnRequestUninstall(PackageManagerSearchElementViewModel element)
         {
             UninstallPackage(element);
+        }
+
+        private void SearchElementViewModelOnVersionInfoChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (sender is PackageManagerSearchElementViewModel element &&
+                e.PropertyName == nameof(PackageManagerSearchElementViewModel.VersionInformationList))
+            {
+                UpdateInstallState(element);
+            }
+        }
+
+        private void OnLocalPackageAdded(Package package)
+        {
+            RefreshInstallStateForPackage(package?.Name);
+        }
+
+        private void OnLocalPackageRemoved(Package package)
+        {
+            RefreshInstallStateForPackage(package?.Name);
+        }
+
+        private void RefreshInstallStateForPackage(string packageName)
+        {
+            if (string.IsNullOrEmpty(packageName))
+            {
+                return;
+            }
+
+            var element = GetSearchElementViewModelByName(packageName);
+            if (element != null)
+            {
+                UpdateInstallState(element);
+            }
         }
 
         internal void PackageOnExecuted(PackageManagerSearchElement element, PackageVersion version, string downloadPath)
@@ -1617,16 +1654,20 @@ namespace Dynamo.PackageManager
         {
             SearchResults.CollectionChanged += SearchResultsOnCollectionChanged;
             PackageManagerClientViewModel.Downloads.CollectionChanged += DownloadsOnCollectionChanged;
-            PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.ConflictingCustomNodePackageLoaded +=
-                ConflictingCustomNodePackageLoaded;
+            var packageLoader = PackageManagerClientViewModel.PackageManagerExtension.PackageLoader;
+            packageLoader.ConflictingCustomNodePackageLoaded += ConflictingCustomNodePackageLoaded;
+            packageLoader.PackageAdded += OnLocalPackageAdded;
+            packageLoader.PackageRemoved += OnLocalPackageRemoved;
         }
 
         internal void UnregisterTransientHandlers()
         {
             SearchResults.CollectionChanged -= SearchResultsOnCollectionChanged;
             PackageManagerClientViewModel.Downloads.CollectionChanged -= DownloadsOnCollectionChanged;
-            PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.ConflictingCustomNodePackageLoaded -=
-                ConflictingCustomNodePackageLoaded;
+            var packageLoader = PackageManagerClientViewModel.PackageManagerExtension.PackageLoader;
+            packageLoader.ConflictingCustomNodePackageLoaded -= ConflictingCustomNodePackageLoaded;
+            packageLoader.PackageAdded -= OnLocalPackageAdded;
+            packageLoader.PackageRemoved -= OnLocalPackageRemoved;
         }
 
         /// <summary>
