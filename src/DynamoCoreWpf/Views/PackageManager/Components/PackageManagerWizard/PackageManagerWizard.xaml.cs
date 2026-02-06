@@ -67,6 +67,7 @@ namespace Dynamo.UI.Views
         internal Action RequestCancelUpload;
         internal Action<int, int, string> RequestUploadProgress;
         internal Action<bool> RequestSetTextInputFocus;
+        internal Action<int> RequestTabNavigation;
 
         private PackageUpdateRequest previousPackageDetails;
 
@@ -74,6 +75,7 @@ namespace Dynamo.UI.Views
         private bool _textInputFocusHooked = false;
         internal bool IsTextInputFocused { get; private set; }
         internal event Action<bool> TextInputFocusChanged;
+        internal event Action<int> TabNavigationRequested;
         #endregion
 
         /// <summary>
@@ -112,6 +114,7 @@ namespace Dynamo.UI.Views
             RequestCancelUpload = CancelUpload;
             RequestUploadProgress = UploadProgress;
             RequestSetTextInputFocus = SetTextInputFocus;
+            RequestTabNavigation = RequestTabNavigationFromWeb;
 
             DataContextChanged += OnDataContextChanged;
         }
@@ -276,7 +279,8 @@ namespace Dynamo.UI.Views
                             RequestShowDialog,
                             RequestCancelUpload,
                             RequestUploadProgress,
-                            RequestSetTextInputFocus));
+                            RequestSetTextInputFocus,
+                            RequestTabNavigation));
 
                 }
                 catch (Exception ex)
@@ -989,6 +993,17 @@ namespace Dynamo.UI.Views
             TextInputFocusChanged?.Invoke(isFocused);
         }
 
+        internal void RequestTabNavigationFromWeb(int direction)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(() => RequestTabNavigationFromWeb(direction));
+                return;
+            }
+
+            TabNavigationRequested?.Invoke(direction);
+        }
+
         /// <summary>
         /// Reports progress of file upload operations
         /// </summary>
@@ -1092,6 +1107,24 @@ namespace Dynamo.UI.Views
   document.addEventListener('focusin', notify, true);
   document.addEventListener('focusout', notify, true);
   notify();
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'PageUp' && e.key !== 'PageDown') {
+      return;
+    }
+    if (isEditableElement(document.activeElement)) {
+      return;
+    }
+    try {
+      const host = window.chrome && window.chrome.webview && window.chrome.webview.hostObjects && window.chrome.webview.hostObjects.scriptObject;
+      if (host && host.RequestTabNavigation) {
+        const direction = e.key === 'PageUp' ? -1 : 1;
+        host.RequestTabNavigation(direction);
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    } catch (e) {}
+  }, true);
 })();";
 
             await dynWebView.CoreWebView2.ExecuteScriptAsync(script);
@@ -1311,6 +1344,7 @@ namespace Dynamo.UI.Views
         readonly Action RequestCancelUpload;
         readonly Action<int, int, string> RequestUploadProgress;
         readonly Action<bool> RequestSetTextInputFocus;
+        readonly Action<int> RequestTabNavigationAction;
 
         public ScriptWizardObject(
             Action<string> requestAddFileOrFolder,
@@ -1330,7 +1364,8 @@ namespace Dynamo.UI.Views
             Action<string, string> requestShowDialog,
             Action requestCancelUpload,
             Action<int, int, string> requestUploadProgress,
-            Action<bool> requestSetTextInputFocus)
+            Action<bool> requestSetTextInputFocus,
+            Action<int> requestTabNavigation)
         {
             RequestAddFileOrFolder = requestAddFileOrFolder;
             RequestRemoveFileOrFolder = requestRemoveFileOrFolder;
@@ -1350,6 +1385,7 @@ namespace Dynamo.UI.Views
             RequestCancelUpload = requestCancelUpload;
             RequestUploadProgress = requestUploadProgress;
             RequestSetTextInputFocus = requestSetTextInputFocus;
+            RequestTabNavigationAction = requestTabNavigation;
         }
 
         [DynamoJSInvokable]
@@ -1460,6 +1496,12 @@ namespace Dynamo.UI.Views
         public void SetTextInputFocus(bool isFocused)
         {
             RequestSetTextInputFocus(isFocused);
+        }
+
+        [DynamoJSInvokable]
+        public void RequestTabNavigation(int direction)
+        {
+            RequestTabNavigationAction(direction);
         }
     }
 

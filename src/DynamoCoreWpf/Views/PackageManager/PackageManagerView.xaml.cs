@@ -167,6 +167,7 @@ namespace Dynamo.PackageManager.UI
                 if (this.packageManagerPublishHost.Wizard != null)
                 {
                     this.packageManagerPublishHost.Wizard.TextInputFocusChanged -= Wizard_TextInputFocusChanged;
+                    this.packageManagerPublishHost.Wizard.TabNavigationRequested -= Wizard_TabNavigationRequested;
                 }
             }
 
@@ -233,6 +234,8 @@ namespace Dynamo.PackageManager.UI
 
             wizard.TextInputFocusChanged -= Wizard_TextInputFocusChanged;
             wizard.TextInputFocusChanged += Wizard_TextInputFocusChanged;
+            wizard.TabNavigationRequested -= Wizard_TabNavigationRequested;
+            wizard.TabNavigationRequested += Wizard_TabNavigationRequested;
             UpdatePublishTabKeyNavigation();
         }
 
@@ -260,32 +263,45 @@ namespace Dynamo.PackageManager.UI
         {
             if (e.Key != Key.PageUp && e.Key != Key.PageDown) return;
 
+            var direction = e.Key == Key.PageUp ? -1 : 1;
+            if (HandleTabNavigation(direction))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void Wizard_TabNavigationRequested(int direction)
+        {
+            HandleTabNavigation(direction);
+        }
+
+        private bool HandleTabNavigation(int direction)
+        {
+            if (direction == 0) return false;
+
             if (projectManagerTabControl?.SuppressHomeEndNavigation == true)
             {
-                return;
+                return false;
             }
 
             var tabControl = projectManagerTabControl;
-            if (tabControl == null || tabControl.Items.Count == 0) return;
+            if (tabControl == null || tabControl.Items.Count == 0) return false;
 
             var currentIndex = tabControl.SelectedIndex;
-            if (currentIndex < 0) return;
+            if (currentIndex < 0) return false;
 
-            var direction = e.Key == Key.PageUp ? -1 : 1;
-            var targetIndex = currentIndex + direction;
+            var targetIndex = currentIndex + (direction < 0 ? -1 : 1);
             if (targetIndex < 0 || targetIndex >= tabControl.Items.Count)
             {
-                e.Handled = true;
-                return;
+                return true;
             }
 
             if (tabControl.Items[targetIndex] is TabItem targetTab)
             {
-                if (TrySelectTab(targetTab))
-                {
-                    e.Handled = true;
-                }
+                return TrySelectTab(targetTab);
             }
+
+            return false;
         }
 
         private bool TrySelectTab(TabItem selectedTab)
