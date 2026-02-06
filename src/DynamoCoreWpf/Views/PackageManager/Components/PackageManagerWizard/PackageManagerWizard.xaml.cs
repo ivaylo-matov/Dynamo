@@ -1094,6 +1094,15 @@ namespace Dynamo.UI.Views
     return !!el.isContentEditable;
   };
 
+  const allowTabNavigation = (el) => {
+    if (!el) return true;
+    const tag = el.tagName;
+    if (tag === 'TEXTAREA') {
+      return false;
+    }
+    return !el.isContentEditable;
+  };
+
   const notify = () => {
     const focused = isEditableElement(document.activeElement);
     try {
@@ -1112,7 +1121,7 @@ namespace Dynamo.UI.Views
     if (e.key !== 'PageUp' && e.key !== 'PageDown') {
       return;
     }
-    if (isEditableElement(document.activeElement)) {
+    if (!allowTabNavigation(document.activeElement)) {
       return;
     }
     try {

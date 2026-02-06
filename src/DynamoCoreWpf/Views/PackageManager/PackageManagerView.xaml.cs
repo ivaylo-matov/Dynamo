@@ -264,7 +264,7 @@ namespace Dynamo.PackageManager.UI
             if (e.Key != Key.PageUp && e.Key != Key.PageDown) return;
 
             var direction = e.Key == Key.PageUp ? -1 : 1;
-            if (HandleTabNavigation(direction))
+            if (HandleTabNavigation(direction, allowWhenTextInputFocused: false))
             {
                 e.Handled = true;
             }
@@ -272,14 +272,15 @@ namespace Dynamo.PackageManager.UI
 
         private void Wizard_TabNavigationRequested(int direction)
         {
-            HandleTabNavigation(direction);
+            HandleTabNavigation(direction, allowWhenTextInputFocused: true);
         }
 
-        private bool HandleTabNavigation(int direction)
+        private bool HandleTabNavigation(int direction, bool allowWhenTextInputFocused)
         {
             if (direction == 0) return false;
 
-            if (projectManagerTabControl?.SuppressHomeEndNavigation == true)
+            if (!allowWhenTextInputFocused &&
+                projectManagerTabControl?.SuppressHomeEndNavigation == true)
             {
                 return false;
             }
