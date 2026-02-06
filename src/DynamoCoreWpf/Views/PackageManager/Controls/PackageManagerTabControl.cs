@@ -1,5 +1,4 @@
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 
 namespace Dynamo.PackageManager.UI
@@ -24,7 +23,7 @@ namespace Dynamo.PackageManager.UI
         {
             if (e.Key == Key.PageUp || e.Key == Key.PageDown)
             {
-                if (!SuppressHomeEndNavigation && !IsWpfTextInputFocused())
+                if (!SuppressHomeEndNavigation)
                 {
                     var direction = e.Key == Key.PageUp ? -1 : 1;
                     var newIndex = SelectedIndex + direction;
@@ -52,17 +51,6 @@ namespace Dynamo.PackageManager.UI
             }
 
             base.OnPreviewKeyDown(e);
-        }
-
-        private static bool IsWpfTextInputFocused()
-        {
-            var focusedElement = Keyboard.FocusedElement as System.Windows.DependencyObject;
-            if (focusedElement == null)
-            {
-                return false;
-            }
-
-            return focusedElement is TextBoxBase || focusedElement is PasswordBox;
         }
     }
 }
