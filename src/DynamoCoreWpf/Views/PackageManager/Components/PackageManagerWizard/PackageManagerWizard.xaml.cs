@@ -1094,15 +1094,6 @@ namespace Dynamo.UI.Views
     return !!el.isContentEditable;
   };
 
-  const allowTabNavigation = (el) => {
-    if (!el) return true;
-    const tag = el.tagName;
-    if (tag === 'TEXTAREA') {
-      return false;
-    }
-    return !el.isContentEditable;
-  };
-
   const notify = () => {
     const focused = isEditableElement(document.activeElement);
     try {
@@ -1119,9 +1110,6 @@ namespace Dynamo.UI.Views
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'PageUp' && e.key !== 'PageDown') {
-      return;
-    }
-    if (!allowTabNavigation(document.activeElement)) {
       return;
     }
     try {
