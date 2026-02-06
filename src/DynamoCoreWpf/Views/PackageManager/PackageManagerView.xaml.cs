@@ -69,6 +69,7 @@ namespace Dynamo.PackageManager.UI
             this.PackageManagerViewModel = packageManagerViewModel;
 
             InitializeComponent();
+            packageManagerPublishHost.Loaded += PackageManagerPublishHost_Loaded;
             UpdatePublishTabKeyNavigation();
 
             if (packageManagerViewModel != null )
@@ -159,6 +160,15 @@ namespace Dynamo.PackageManager.UI
             this.packageManagerSearch?.Dispose();
             (this.Owner as DynamoView).EnableOverlayBlocker(false);
 
+            if (this.packageManagerPublishHost != null)
+            {
+                this.packageManagerPublishHost.Loaded -= PackageManagerPublishHost_Loaded;
+                if (this.packageManagerPublishHost.Wizard != null)
+                {
+                    this.packageManagerPublishHost.Wizard.TextInputFocusChanged -= Wizard_TextInputFocusChanged;
+                }
+            }
+
             if (PackageManagerViewModel == null) return;
             this.PackageManagerViewModel.PackageSearchViewModel.RequestShowFileDialog -= OnRequestShowFileDialog;
             this.PackageManagerViewModel.PackageSearchViewModel.PackageManagerViewClose();
@@ -213,6 +223,16 @@ namespace Dynamo.PackageManager.UI
             this.loadingMyPackagesWarningBar.Visibility = Visibility.Collapsed;
         }
 
+        private void PackageManagerPublishHost_Loaded(object sender, RoutedEventArgs e)
+        {
+            var wizard = this.packageManagerPublishHost?.Wizard;
+            if (wizard == null) return;
+
+            wizard.TextInputFocusChanged -= Wizard_TextInputFocusChanged;
+            wizard.TextInputFocusChanged += Wizard_TextInputFocusChanged;
+            UpdatePublishTabKeyNavigation();
+        }
+
         private void ProjectManagerTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             UpdatePublishTabKeyNavigation();
@@ -223,7 +243,14 @@ namespace Dynamo.PackageManager.UI
             if (projectManagerTabControl == null) return;
 
             projectManagerTabControl.SuppressHomeEndNavigation =
-                IsNewPMPublishWizardEnabled && publishTab?.IsSelected == true;
+                IsNewPMPublishWizardEnabled &&
+                publishTab?.IsSelected == true &&
+                this.packageManagerPublishHost?.Wizard?.IsTextInputFocused == true;
+        }
+
+        private void Wizard_TextInputFocusChanged(bool isFocused)
+        {
+            UpdatePublishTabKeyNavigation();
         }
 
         private void tab_PreviewMouseDown(object sender, MouseButtonEventArgs e)

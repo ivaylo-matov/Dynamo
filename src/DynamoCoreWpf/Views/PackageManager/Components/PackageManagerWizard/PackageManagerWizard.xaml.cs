@@ -66,10 +66,14 @@ namespace Dynamo.UI.Views
         internal Action<string, string> RequestShowDialog;
         internal Action RequestCancelUpload;
         internal Action<int, int, string> RequestUploadProgress;
+        internal Action<bool> RequestSetTextInputFocus;
 
         private PackageUpdateRequest previousPackageDetails;
 
         private bool _hasPendingUpdates = false;
+        private bool _textInputFocusHooked = false;
+        internal bool IsTextInputFocused { get; private set; }
+        internal event Action<bool> TextInputFocusChanged;
         #endregion
 
         /// <summary>
@@ -107,6 +111,7 @@ namespace Dynamo.UI.Views
             RequestShowDialog = ShowDialog;
             RequestCancelUpload = CancelUpload;
             RequestUploadProgress = UploadProgress;
+            RequestSetTextInputFocus = SetTextInputFocus;
 
             DataContextChanged += OnDataContextChanged;
         }
@@ -237,6 +242,7 @@ namespace Dynamo.UI.Views
                 // Apply standard WebView2 settings with DevTools enabled for package manager debugging
                 dynWebView.ConfigureSettings(enableDevTools: true);
                 this.dynWebView.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
+                this.dynWebView.CoreWebView2.NavigationCompleted += CoreWebView2_NavigationCompleted;
 
                 // Embed the font
                 var assembly = Assembly.GetExecutingAssembly();
@@ -269,7 +275,8 @@ namespace Dynamo.UI.Views
                             RequestApplicationLoaded,
                             RequestShowDialog,
                             RequestCancelUpload,
-                            RequestUploadProgress));
+                            RequestUploadProgress,
+                            RequestSetTextInputFocus));
 
                 }
                 catch (Exception ex)
@@ -968,6 +975,20 @@ namespace Dynamo.UI.Views
             }
         }
 
+        internal void SetTextInputFocus(bool isFocused)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(() => SetTextInputFocus(isFocused));
+                return;
+            }
+
+            if (IsTextInputFocused == isFocused) return;
+
+            IsTextInputFocused = isFocused;
+            TextInputFocusChanged?.Invoke(isFocused);
+        }
+
         /// <summary>
         /// Reports progress of file upload operations
         /// </summary>
@@ -1024,6 +1045,57 @@ namespace Dynamo.UI.Views
         {
             e.Handled = true;
             ProcessUri(e.Uri);
+        }
+
+        private async void CoreWebView2_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
+        {
+            if (!e.IsSuccess) return;
+
+            try
+            {
+                await InjectTextInputFocusTracking();
+            }
+            catch (Exception ex)
+            {
+                LogMessage(ex);
+            }
+        }
+
+        private async Task InjectTextInputFocusTracking()
+        {
+            if (_textInputFocusHooked || dynWebView?.CoreWebView2 == null) return;
+
+            const string script = @"
+(function() {
+  if (window.__dynamoTextInputFocusHooked) { return; }
+  window.__dynamoTextInputFocusHooked = true;
+
+  const isEditableElement = (el) => {
+    if (!el) return false;
+    const tag = el.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') {
+      return !el.readOnly && !el.disabled;
+    }
+    return !!el.isContentEditable;
+  };
+
+  const notify = () => {
+    const focused = isEditableElement(document.activeElement);
+    try {
+      const host = window.chrome && window.chrome.webview && window.chrome.webview.hostObjects && window.chrome.webview.hostObjects.scriptObject;
+      if (host && host.SetTextInputFocus) {
+        host.SetTextInputFocus(focused);
+      }
+    } catch (e) {}
+  };
+
+  document.addEventListener('focusin', notify, true);
+  document.addEventListener('focusout', notify, true);
+  notify();
+})();";
+
+            await dynWebView.CoreWebView2.ExecuteScriptAsync(script);
+            _textInputFocusHooked = true;
         }
 
         internal bool ProcessUri(string uri)
@@ -1206,6 +1278,7 @@ namespace Dynamo.UI.Views
                     if (this.dynWebView != null && this.dynWebView.CoreWebView2 != null)
                     {
                         this.dynWebView.CoreWebView2.NewWindowRequested -= CoreWebView2_NewWindowRequested;
+                        this.dynWebView.CoreWebView2.NavigationCompleted -= CoreWebView2_NavigationCompleted;
                     }
                 }
 
@@ -1237,6 +1310,7 @@ namespace Dynamo.UI.Views
         readonly Action<string, string> RequestShowDialog;
         readonly Action RequestCancelUpload;
         readonly Action<int, int, string> RequestUploadProgress;
+        readonly Action<bool> RequestSetTextInputFocus;
 
         public ScriptWizardObject(
             Action<string> requestAddFileOrFolder,
@@ -1255,7 +1329,8 @@ namespace Dynamo.UI.Views
             Action requestApplicationLoaded,
             Action<string, string> requestShowDialog,
             Action requestCancelUpload,
-            Action<int, int, string> requestUploadProgress)
+            Action<int, int, string> requestUploadProgress,
+            Action<bool> requestSetTextInputFocus)
         {
             RequestAddFileOrFolder = requestAddFileOrFolder;
             RequestRemoveFileOrFolder = requestRemoveFileOrFolder;
@@ -1274,6 +1349,7 @@ namespace Dynamo.UI.Views
             RequestShowDialog = requestShowDialog;
             RequestCancelUpload = requestCancelUpload;
             RequestUploadProgress = requestUploadProgress;
+            RequestSetTextInputFocus = requestSetTextInputFocus;
         }
 
         [DynamoJSInvokable]
@@ -1378,6 +1454,12 @@ namespace Dynamo.UI.Views
         public void UploadProgress(int currentFile, int totalFiles, string currentFileName)
         {
             RequestUploadProgress(currentFile, totalFiles, currentFileName);
+        }
+
+        [DynamoJSInvokable]
+        public void SetTextInputFocus(bool isFocused)
+        {
+            RequestSetTextInputFocus(isFocused);
         }
     }
 
