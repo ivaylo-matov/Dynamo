@@ -1394,7 +1394,7 @@ namespace Dynamo.UI.Views
             RequestCancelUpload = requestCancelUpload;
             RequestUploadProgress = requestUploadProgress;
             RequestSetTextInputFocus = requestSetTextInputFocus;
-            RequestTabNavigationAction = requestTabNavigation;
+            RequestTabNavigationAction = requestTabNavigation ?? (_ => { });
         }
 
         [DynamoJSInvokable]
@@ -1510,7 +1510,7 @@ namespace Dynamo.UI.Views
         [DynamoJSInvokable]
         public void RequestTabNavigation(int direction)
         {
-            RequestTabNavigationAction(direction);
+            RequestTabNavigationAction?.Invoke(direction);
         }
     }
 
