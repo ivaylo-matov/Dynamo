@@ -220,6 +220,38 @@ namespace Dynamo.Tests.ModelsTest
             Assert.IsTrue(deletionStarted);
         }
 
+        [Test]
+        [Category("UnitTests")]
+        public void DeletingInlineWatchReconnectsPorts()
+        {
+            var codeBlockNodeA = CreateCodeBlockNode();
+            UpdateCodeBlockNodeContent(codeBlockNodeA, "1;");
+
+            var codeBlockNodeB = CreateCodeBlockNode();
+            UpdateCodeBlockNodeContent(codeBlockNodeB, "x + 1;");
+
+            var watch = new Watch();
+            var command = new DynCmd.CreateNodeCommand(
+                watch, 0, 0, true, false);
+            CurrentDynamoModel.ExecuteCommand(command);
+
+            ConnectorModel.Make(codeBlockNodeA, watch, 0, 0);
+            ConnectorModel.Make(watch, codeBlockNodeB, 0, 0);
+
+            Assert.AreEqual(3, CurrentDynamoModel.CurrentWorkspace.Nodes.Count());
+            Assert.AreEqual(1, codeBlockNodeB.InPorts[0].Connectors.Count);
+            Assert.AreSame(watch, codeBlockNodeB.InPorts[0].Connectors[0].Start.Owner);
+
+            CurrentDynamoModel.DeleteModelInternal(new List<ModelBase> { watch });
+
+            Assert.AreEqual(2, CurrentDynamoModel.CurrentWorkspace.Nodes.Count());
+            Assert.IsFalse(CurrentDynamoModel.CurrentWorkspace.Nodes.Contains(watch));
+            Assert.AreEqual(1, codeBlockNodeB.InPorts[0].Connectors.Count);
+            Assert.AreSame(codeBlockNodeA, codeBlockNodeB.InPorts[0].Connectors[0].Start.Owner);
+            Assert.AreEqual(1, codeBlockNodeA.OutPorts[0].Connectors.Count);
+            Assert.AreSame(codeBlockNodeB, codeBlockNodeA.OutPorts[0].Connectors[0].End.Owner);
+        }
+
         /// <summary>
         /// This test method will execute the event OnDeletionComplete
         /// </summary>
