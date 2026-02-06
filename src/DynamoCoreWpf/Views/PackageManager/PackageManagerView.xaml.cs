@@ -70,6 +70,7 @@ namespace Dynamo.PackageManager.UI
 
             InitializeComponent();
             packageManagerPublishHost.Loaded += PackageManagerPublishHost_Loaded;
+            this.PreviewKeyDown += PackageManagerView_PreviewKeyDown;
             UpdatePublishTabKeyNavigation();
 
             if (packageManagerViewModel != null )
@@ -169,6 +170,8 @@ namespace Dynamo.PackageManager.UI
                 }
             }
 
+            this.PreviewKeyDown -= PackageManagerView_PreviewKeyDown;
+
             if (PackageManagerViewModel == null) return;
             this.PackageManagerViewModel.PackageSearchViewModel.RequestShowFileDialog -= OnRequestShowFileDialog;
             this.PackageManagerViewModel.PackageSearchViewModel.PackageManagerViewClose();
@@ -253,14 +256,50 @@ namespace Dynamo.PackageManager.UI
             UpdatePublishTabKeyNavigation();
         }
 
-        private void tab_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        private void PackageManagerView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            var selectedTab = sender as TabItem;
-            if (selectedTab == null) return;
-            var tabControl = selectedTab.Parent as TabControl;
-            if (tabControl == null) return;
-            var prevTab = tabControl.SelectedItem as TabItem;
-            if (prevTab == null) return;
+            if (e.Key != Key.PageUp && e.Key != Key.PageDown) return;
+
+            if (IsNewPMPublishWizardEnabled &&
+                this.packageManagerPublishHost?.Wizard?.IsTextInputFocused == true)
+            {
+                return;
+            }
+
+            var tabControl = projectManagerTabControl;
+            if (tabControl == null || tabControl.Items.Count == 0) return;
+
+            var currentIndex = tabControl.SelectedIndex;
+            if (currentIndex < 0) return;
+
+            var direction = e.Key == Key.PageUp ? -1 : 1;
+            var targetIndex = currentIndex + direction;
+            if (targetIndex < 0 || targetIndex >= tabControl.Items.Count)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            if (tabControl.Items[targetIndex] is TabItem targetTab)
+            {
+                if (TrySelectTab(targetTab))
+                {
+                    e.Handled = true;
+                }
+            }
+        }
+
+        private bool TrySelectTab(TabItem selectedTab)
+        {
+            if (selectedTab == null) return false;
+
+            var tabControl = selectedTab.Parent as TabControl ?? projectManagerTabControl;
+            var prevTab = tabControl?.SelectedItem as TabItem;
+            if (prevTab == null || prevTab == selectedTab)
+            {
+                selectedTab.IsSelected = true;
+                return true;
+            }
 
             if (prevTab.Name.Equals("publishTab") && !selectedTab.Name.Equals("publishTab"))
             {
@@ -271,7 +310,7 @@ namespace Dynamo.PackageManager.UI
                 if (!PackageManagerViewModel.PublishPackageViewModel.AnyUserChanges() || isPublishing)
                 {
                     selectedTab.IsSelected = true;
-                    return;
+                    return true;
                 }
 
                 MessageBoxResult response = DynamoModel.IsTestMode ? MessageBoxResult.OK :
@@ -289,12 +328,24 @@ namespace Dynamo.PackageManager.UI
                 if (response == MessageBoxResult.Yes || response == MessageBoxResult.No)
                 {
                     HandlePackageManagerNavigation(response, selectedTab);
+                    return true;
                 }
-                else
-                {
-                    // Don't do anything
-                    e.Handled = true;
-                }
+
+                return false;
+            }
+
+            selectedTab.IsSelected = true;
+            return true;
+        }
+
+        private void tab_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var selectedTab = sender as TabItem;
+            if (selectedTab == null) return;
+            if (!TrySelectTab(selectedTab))
+            {
+                // Don't do anything
+                e.Handled = true;
             }
 
         }

@@ -18,39 +18,5 @@ namespace Dynamo.PackageManager.UI
 
             base.OnKeyDown(e);
         }
-
-        protected override void OnPreviewKeyDown(KeyEventArgs e)
-        {
-            if (e.Key == Key.PageUp || e.Key == Key.PageDown)
-            {
-                if (!SuppressHomeEndNavigation)
-                {
-                    var direction = e.Key == Key.PageUp ? -1 : 1;
-                    var newIndex = SelectedIndex + direction;
-
-                    if (Items.Count > 0)
-                    {
-                        if (newIndex < 0)
-                        {
-                            newIndex = 0;
-                        }
-                        else if (newIndex >= Items.Count)
-                        {
-                            newIndex = Items.Count - 1;
-                        }
-
-                        if (newIndex != SelectedIndex)
-                        {
-                            SelectedIndex = newIndex;
-                        }
-                    }
-
-                    e.Handled = true;
-                    return;
-                }
-            }
-
-            base.OnPreviewKeyDown(e);
-        }
     }
 }
