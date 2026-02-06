@@ -260,8 +260,7 @@ namespace Dynamo.PackageManager.UI
         {
             if (e.Key != Key.PageUp && e.Key != Key.PageDown) return;
 
-            if (IsNewPMPublishWizardEnabled &&
-                this.packageManagerPublishHost?.Wizard?.IsTextInputFocused == true)
+            if (projectManagerTabControl?.SuppressHomeEndNavigation == true)
             {
                 return;
             }
