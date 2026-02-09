@@ -306,8 +306,12 @@ namespace Dynamo.Tests.ModelsTest
                 (50, 60)
             };
 
-            var actualPinsToB = connectorToB.ConnectorPinModels.Select(pin => (pin.X, pin.Y)).ToHashSet();
-            var actualPinsToC = connectorToC.ConnectorPinModels.Select(pin => (pin.X, pin.Y)).ToHashSet();
+            var actualPinsToB = connectorToB.ConnectorPinModels
+                .Select(pin => (pin.Position.X, pin.Position.Y))
+                .ToHashSet();
+            var actualPinsToC = connectorToC.ConnectorPinModels
+                .Select(pin => (pin.Position.X, pin.Position.Y))
+                .ToHashSet();
 
             CollectionAssert.AreEquivalent(expectedPinsToB, actualPinsToB);
             CollectionAssert.AreEquivalent(expectedPinsToC, actualPinsToC);

@@ -356,7 +356,7 @@ namespace Dynamo.Graph.Workspaces
                 }
 
                 var inputPinLocations = inputConnector.ConnectorPinModels
-                    .Select(pin => (pin.X, pin.Y))
+                    .Select(pin => (pin.Position.X, pin.Position.Y))
                     .Distinct()
                     .ToList();
 
@@ -383,7 +383,7 @@ namespace Dynamo.Graph.Workspaces
                     var pinLocations = new HashSet<(double X, double Y)>(inputPinLocations);
                     foreach (var pin in outputConnector.ConnectorPinModels)
                     {
-                        pinLocations.Add((pin.X, pin.Y));
+                        pinLocations.Add((pin.Position.X, pin.Position.Y));
                     }
                     rewires.Add((startNode, startPort.Index, endNode, endPort.Index, pinLocations.ToList()));
                 }
