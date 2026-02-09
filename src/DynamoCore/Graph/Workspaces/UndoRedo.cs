@@ -314,28 +314,10 @@ namespace Dynamo.Graph.Workspaces
             } // Conclude the deletion.
         }
 
-        private readonly struct InlineWatchRewireData
+        private static List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)>
+            CollectInlineWatchRewireData(List<ModelBase> models)
         {
-            internal InlineWatchRewireData(NodeModel startNode, int startIndex, NodeModel endNode, int endIndex)
-            {
-                StartNode = startNode;
-                StartIndex = startIndex;
-                EndNode = endNode;
-                EndIndex = endIndex;
-            }
-
-            internal NodeModel StartNode { get; }
-            internal int StartIndex { get; }
-            internal NodeModel EndNode { get; }
-            internal int EndIndex { get; }
-
-            internal (Guid StartNode, int StartIndex, Guid EndNode, int EndIndex) Key =>
-                (StartNode.GUID, StartIndex, EndNode.GUID, EndIndex);
-        }
-
-        private static List<InlineWatchRewireData> CollectInlineWatchRewireData(List<ModelBase> models)
-        {
-            var rewires = new List<InlineWatchRewireData>();
+            var rewires = new List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)>();
             var nodesToDelete = models.OfType<NodeModel>().ToList();
             if (nodesToDelete.Count == 0)
             {
@@ -390,7 +372,7 @@ namespace Dynamo.Graph.Workspaces
                         continue;
                     }
 
-                    rewires.Add(new InlineWatchRewireData(startNode, startPort.Index, endNode, endPort.Index));
+                    rewires.Add((startNode, startPort.Index, endNode, endPort.Index));
                 }
             }
 
@@ -407,7 +389,8 @@ namespace Dynamo.Graph.Workspaces
             return node.GetOriginalName() == "Watch";
         }
 
-        private void CreateInlineWatchRewireConnectors(IEnumerable<InlineWatchRewireData> rewires)
+        private void CreateInlineWatchRewireConnectors(
+            IEnumerable<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)> rewires)
         {
             if (rewires is null || undoRecorder is null)
             {
@@ -418,12 +401,15 @@ namespace Dynamo.Graph.Workspaces
 
             foreach (var rewire in rewires)
             {
-                if (rewire.StartNode is null || rewire.EndNode is null)
+                var startNode = rewire.StartNode;
+                var endNode = rewire.EndNode;
+                if (startNode is null || endNode is null)
                 {
                     continue;
                 }
 
-                if (!createdKeys.Add(rewire.Key))
+                var key = (startNode.GUID, rewire.StartIndex, endNode.GUID, rewire.EndIndex);
+                if (!createdKeys.Add(key))
                 {
                     continue;
                 }
@@ -433,14 +419,14 @@ namespace Dynamo.Graph.Workspaces
                     continue;
                 }
 
-                if (rewire.StartNode.OutPorts.Count <= rewire.StartIndex ||
-                    rewire.EndNode.InPorts.Count <= rewire.EndIndex)
+                if (startNode.OutPorts.Count <= rewire.StartIndex ||
+                    endNode.InPorts.Count <= rewire.EndIndex)
                 {
                     continue;
                 }
 
-                var startPort = rewire.StartNode.OutPorts[rewire.StartIndex];
-                var endPort = rewire.EndNode.InPorts[rewire.EndIndex];
+                var startPort = startNode.OutPorts[rewire.StartIndex];
+                var endPort = endNode.InPorts[rewire.EndIndex];
 
                 if (startPort.Connectors.Any(connector => connector.End == endPort))
                 {
@@ -448,8 +434,8 @@ namespace Dynamo.Graph.Workspaces
                 }
 
                 var connector = ConnectorModel.Make(
-                    rewire.StartNode,
-                    rewire.EndNode,
+                    startNode,
+                    endNode,
                     rewire.StartIndex,
                     rewire.EndIndex);
 
