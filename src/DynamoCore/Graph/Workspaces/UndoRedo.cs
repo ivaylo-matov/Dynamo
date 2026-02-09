@@ -203,6 +203,8 @@ namespace Dynamo.Graph.Workspaces
             if (!ShouldProceedWithRecording(models))
                 return; // There's nothing for deletion.
 
+            var inlineWatchRewireData = CollectInlineWatchRewireData(models);
+
             // Gather a list of connectors first before the nodes they connect
             // to are deleted. We will have to delete the connectors first
             // before
@@ -307,8 +309,189 @@ namespace Dynamo.Graph.Workspaces
                         HasUnsavedChanges = true;
                     }
                 }
+
+                CreateInlineWatchRewireConnectors(inlineWatchRewireData);
+
             } // Conclude the deletion.
         }
+
+
+        private readonly struct InlineWatchRewireData
+        {
+            internal InlineWatchRewireData(NodeModel startNode, int startIndex, NodeModel endNode, int endIndex)
+            {
+                StartNode = startNode;
+                StartIndex = startIndex;
+                EndNode = endNode;
+                EndIndex = endIndex;
+            }
+
+            internal NodeModel StartNode { get; }
+            internal int StartIndex { get; }
+            internal NodeModel EndNode { get; }
+            internal int EndIndex { get; }
+
+            internal (Guid StartNode, int StartIndex, Guid EndNode, int EndIndex) Key =>
+                (StartNode.GUID, StartIndex, EndNode.GUID, EndIndex);
+        }
+
+        private static List<InlineWatchRewireData> CollectInlineWatchRewireData(List<ModelBase> models)
+        {
+            var rewires = new List<InlineWatchRewireData>();
+            var nodesToDelete = models.OfType<NodeModel>().ToList();
+            if (nodesToDelete.Count == 0)
+            {
+                return rewires;
+            }
+
+            var deletedNodeGuids = new HashSet<Guid>(nodesToDelete.Select(node => node.GUID));
+
+            foreach (var node in nodesToDelete)
+            {
+                if (!IsInlineWatchNode(node))
+                {
+                    continue;
+                }
+
+                if (node.InPorts.Count == 0 || node.OutPorts.Count == 0)
+                {
+                    continue;
+                }
+
+                var inputPort = node.InPorts[0];
+                if (inputPort.Connectors.Count != 1)
+                {
+                    continue;
+                }
+
+                var inputConnector = inputPort.Connectors[0];
+                var startPort = inputConnector.Start;
+                var startNode = startPort?.Owner;
+                if (startNode is null || deletedNodeGuids.Contains(startNode.GUID))
+                {
+                    continue;
+                }
+
+                var outputPort = node.OutPorts[0];
+                if (outputPort.Connectors.Count == 0)
+                {
+                    continue;
+                }
+
+                foreach (var outputConnector in outputPort.Connectors.ToList())
+                {
+                    var endPort = outputConnector.End;
+                    var endNode = endPort?.Owner;
+                    if (endNode is null || deletedNodeGuids.Contains(endNode.GUID))
+                    {
+                        continue;
+                    }
+
+                    if (startNode.GUID == endNode.GUID)
+                    {
+                        continue;
+                    }
+
+                    rewires.Add(new InlineWatchRewireData(startNode, startPort.Index, endNode, endPort.Index));
+                }
+            }
+
+            return rewires;
+        }
+
+        private static bool IsInlineWatchNode(NodeModel node)
+        {
+            if (node is null)
+            {
+                return false;
+            }
+
+            return node.GetOriginalName() == "Watch";
+        }
+
+        private void CreateInlineWatchRewireConnectors(IEnumerable<InlineWatchRewireData> rewires)
+        {
+            if (rewires is null || undoRecorder is null)
+            {
+                return;
+            }
+
+            var createdKeys = new HashSet<(Guid StartNode, int StartIndex, Guid EndNode, int EndIndex)>();
+
+            foreach (var rewire in rewires)
+            {
+                if (rewire.StartNode is null || rewire.EndNode is null)
+                {
+                    continue;
+                }
+
+                if (!createdKeys.Add(rewire.Key))
+                {
+                    continue;
+                }
+
+                if (rewire.StartIndex < 0 || rewire.EndIndex < 0)
+                {
+                    continue;
+                }
+
+                if (rewire.StartNode.OutPorts.Count <= rewire.StartIndex ||
+                    rewire.EndNode.InPorts.Count <= rewire.EndIndex)
+                {
+                    continue;
+                }
+
+                var startPort = rewire.StartNode.OutPorts[rewire.StartIndex];
+                var endPort = rewire.EndNode.InPorts[rewire.EndIndex];
+
+                if (startPort.Connectors.Any(connector => connector.End == endPort))
+                {
+                    continue;
+                }
+
+                var connector = ConnectorModel.Make(
+                    rewire.StartNode,
+                    rewire.EndNode,
+                    rewire.StartIndex,
+                    rewire.EndIndex);
+
+                if (connector is null)
+                {
+                    continue;
+                }
+
+                undoRecorder.RecordCreationForUndo(connector);
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         internal void DeleteSavedModels()
         {
