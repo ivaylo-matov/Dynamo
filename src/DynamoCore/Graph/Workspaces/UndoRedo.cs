@@ -357,6 +357,7 @@ namespace Dynamo.Graph.Workspaces
 
                 var inputPinLocations = inputConnector.ConnectorPinModels
                     .Select(pin => (pin.X, pin.Y))
+                    .Distinct()
                     .ToList();
 
                 var outputPort = node.OutPorts[0];
@@ -379,9 +380,12 @@ namespace Dynamo.Graph.Workspaces
                         continue;
                     }
 
-                    var pinLocations = new List<(double X, double Y)>(inputPinLocations);
-                    pinLocations.AddRange(outputConnector.ConnectorPinModels.Select(pin => (pin.X, pin.Y)));
-                    rewires.Add((startNode, startPort.Index, endNode, endPort.Index, pinLocations));
+                    var pinLocations = new HashSet<(double X, double Y)>(inputPinLocations);
+                    foreach (var pin in outputConnector.ConnectorPinModels)
+                    {
+                        pinLocations.Add((pin.X, pin.Y));
+                    }
+                    rewires.Add((startNode, startPort.Index, endNode, endPort.Index, pinLocations.ToList()));
                 }
             }
 
