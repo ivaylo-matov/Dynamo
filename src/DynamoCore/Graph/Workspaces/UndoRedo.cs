@@ -315,84 +315,40 @@ namespace Dynamo.Graph.Workspaces
             } // Conclude the deletion.
         }
 
-
-        private readonly struct InlineWatchRewireData
+        private static List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)> CollectInlineWatchRewireData(List<ModelBase> models)
         {
-            internal InlineWatchRewireData(NodeModel startNode, int startIndex, NodeModel endNode, int endIndex)
-            {
-                StartNode = startNode;
-                StartIndex = startIndex;
-                EndNode = endNode;
-                EndIndex = endIndex;
-            }
-
-            internal NodeModel StartNode { get; }
-            internal int StartIndex { get; }
-            internal NodeModel EndNode { get; }
-            internal int EndIndex { get; }
-
-            internal (Guid StartNode, int StartIndex, Guid EndNode, int EndIndex) Key =>
-                (StartNode.GUID, StartIndex, EndNode.GUID, EndIndex);
-        }
-
-        private static List<InlineWatchRewireData> CollectInlineWatchRewireData(List<ModelBase> models)
-        {
-            var rewires = new List<InlineWatchRewireData>();
+            var rewires = new List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)>();
             var nodesToDelete = models.OfType<NodeModel>().ToList();
-            if (nodesToDelete.Count == 0)
-            {
-                return rewires;
-            }
+            if (nodesToDelete.Count == 0) return rewires;
 
             var deletedNodeGuids = new HashSet<Guid>(nodesToDelete.Select(node => node.GUID));
 
             foreach (var node in nodesToDelete)
             {
-                if (!IsInlineWatchNode(node))
-                {
-                    continue;
-                }
+                if (!IsInlineWatchNode(node)) continue;
 
-                if (node.InPorts.Count == 0 || node.OutPorts.Count == 0)
-                {
-                    continue;
-                }
+                if (node.InPorts.Count == 0 || node.OutPorts.Count == 0) continue;
 
                 var inputPort = node.InPorts[0];
-                if (inputPort.Connectors.Count != 1)
-                {
-                    continue;
-                }
+                if (inputPort.Connectors.Count != 1) continue;
 
                 var inputConnector = inputPort.Connectors[0];
                 var startPort = inputConnector.Start;
                 var startNode = startPort?.Owner;
-                if (startNode is null || deletedNodeGuids.Contains(startNode.GUID))
-                {
-                    continue;
-                }
+                if (startNode is null || deletedNodeGuids.Contains(startNode.GUID)) continue;
 
                 var outputPort = node.OutPorts[0];
-                if (outputPort.Connectors.Count == 0)
-                {
-                    continue;
-                }
+                if (outputPort.Connectors.Count == 0) continue;
 
                 foreach (var outputConnector in outputPort.Connectors.ToList())
                 {
                     var endPort = outputConnector.End;
                     var endNode = endPort?.Owner;
-                    if (endNode is null || deletedNodeGuids.Contains(endNode.GUID))
-                    {
-                        continue;
-                    }
+                    if (endNode is null || deletedNodeGuids.Contains(endNode.GUID)) continue;
 
-                    if (startNode.GUID == endNode.GUID)
-                    {
-                        continue;
-                    }
+                    if (startNode.GUID == endNode.GUID) continue;
 
-                    rewires.Add(new InlineWatchRewireData(startNode, startPort.Index, endNode, endPort.Index));
+                    rewires.Add((startNode, startPort.Index, endNode, endPort.Index));
                 }
             }
 
@@ -401,97 +357,45 @@ namespace Dynamo.Graph.Workspaces
 
         private static bool IsInlineWatchNode(NodeModel node)
         {
-            if (node is null)
-            {
-                return false;
-            }
-
-            return node.GetOriginalName() == "Watch";
+            if (node is null) return false;
+            return string.Equals(node.GetOriginalName(), "Watch", StringComparison.Ordinal);
         }
 
-        private void CreateInlineWatchRewireConnectors(IEnumerable<InlineWatchRewireData> rewires)
+        private void CreateInlineWatchRewireConnectors( IEnumerable<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)> rewires)
         {
-            if (rewires is null || undoRecorder is null)
-            {
-                return;
-            }
+            if (rewires is null || undoRecorder is null) return;
 
             var createdKeys = new HashSet<(Guid StartNode, int StartIndex, Guid EndNode, int EndIndex)>();
 
             foreach (var rewire in rewires)
             {
-                if (rewire.StartNode is null || rewire.EndNode is null)
-                {
-                    continue;
-                }
+                var startNode = rewire.StartNode;
+                var endNode = rewire.EndNode;
+                if (startNode is null || endNode is null) continue;
 
-                if (!createdKeys.Add(rewire.Key))
-                {
-                    continue;
-                }
+                var key = (startNode.GUID, rewire.StartIndex, endNode.GUID, rewire.EndIndex);
+                if (!createdKeys.Add(key)) continue;
 
-                if (rewire.StartIndex < 0 || rewire.EndIndex < 0)
-                {
-                    continue;
-                }
+                if (rewire.StartIndex < 0 || rewire.EndIndex < 0) continue;
 
-                if (rewire.StartNode.OutPorts.Count <= rewire.StartIndex ||
-                    rewire.EndNode.InPorts.Count <= rewire.EndIndex)
-                {
-                    continue;
-                }
+                if (startNode.OutPorts.Count <= rewire.StartIndex || endNode.InPorts.Count <= rewire.EndIndex) continue;
 
-                var startPort = rewire.StartNode.OutPorts[rewire.StartIndex];
-                var endPort = rewire.EndNode.InPorts[rewire.EndIndex];
+                var startPort = startNode.OutPorts[rewire.StartIndex];
+                var endPort = endNode.InPorts[rewire.EndIndex];
 
-                if (startPort.Connectors.Any(connector => connector.End == endPort))
-                {
-                    continue;
-                }
+                if (startPort.Connectors.Any(connector => connector.End == endPort)) continue;
 
                 var connector = ConnectorModel.Make(
-                    rewire.StartNode,
-                    rewire.EndNode,
+                    startNode,
+                    endNode,
                     rewire.StartIndex,
                     rewire.EndIndex);
 
-                if (connector is null)
-                {
-                    continue;
-                }
+                if (connector is null) continue;
 
                 undoRecorder.RecordCreationForUndo(connector);
             }
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         internal void DeleteSavedModels()
         {
