@@ -315,11 +315,11 @@ namespace Dynamo.Graph.Workspaces
             } // Conclude the deletion.
         }
 
-        private static List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)>
+        private static List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex, List<(double X, double Y)> PinLocations)>
             CollectInlineWatchRewireData(List<ModelBase> models)
         {
             // Capture upstream -> watch -> downstream pairs for later reconnection.
-            var rewires = new List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)>();
+            var rewires = new List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex, List<(double X, double Y)> PinLocations)>();
             var nodesToDelete = models.OfType<NodeModel>().ToList();
             if (nodesToDelete.Count == 0)
             {
@@ -355,6 +355,10 @@ namespace Dynamo.Graph.Workspaces
                     continue;
                 }
 
+                var inputPinLocations = inputConnector.ConnectorPinModels
+                    .Select(pin => (pin.X, pin.Y))
+                    .ToList();
+
                 var outputPort = node.OutPorts[0];
                 if (outputPort.Connectors.Count == 0)
                 {
@@ -375,7 +379,9 @@ namespace Dynamo.Graph.Workspaces
                         continue;
                     }
 
-                    rewires.Add((startNode, startPort.Index, endNode, endPort.Index));
+                    var pinLocations = new List<(double X, double Y)>(inputPinLocations);
+                    pinLocations.AddRange(outputConnector.ConnectorPinModels.Select(pin => (pin.X, pin.Y)));
+                    rewires.Add((startNode, startPort.Index, endNode, endPort.Index, pinLocations));
                 }
             }
 
@@ -393,7 +399,7 @@ namespace Dynamo.Graph.Workspaces
         }
 
         private void CreateInlineWatchRewireConnectors(
-            IEnumerable<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)> rewires)
+            IEnumerable<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex, List<(double X, double Y)> PinLocations)> rewires)
         {
             if (rewires is null || undoRecorder is null)
             {
@@ -449,6 +455,18 @@ namespace Dynamo.Graph.Workspaces
                 }
 
                 undoRecorder.RecordCreationForUndo(connector);
+
+                // Recreate pins from both watch connectors on the new connector.
+                foreach (var pinLocation in rewire.PinLocations)
+                {
+                    var connectorPinModel = new ConnectorPinModel(
+                        pinLocation.X,
+                        pinLocation.Y,
+                        Guid.NewGuid(),
+                        connector.GUID);
+                    connector.AddPin(connectorPinModel);
+                    undoRecorder.RecordCreationForUndo(connectorPinModel);
+                }
             }
         }
 
