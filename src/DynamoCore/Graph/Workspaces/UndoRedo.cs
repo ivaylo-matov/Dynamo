@@ -315,9 +315,17 @@ namespace Dynamo.Graph.Workspaces
             } // Conclude the deletion.
         }
 
-        private static List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)> CollectInlineWatchRewireData(List<ModelBase> models)
+        private static List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex, List<(double X, double Y)> PinLocations)>
+            CollectInlineWatchRewireData(List<ModelBase> models)
         {
-            var rewires = new List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)>();
+            // Capture upstream -> watch -> downstream pairs for later reconnection.
+            var rewires = new List<(
+                NodeModel StartNode,
+                int StartIndex,
+                NodeModel EndNode,
+                int EndIndex,
+                List<(double X, double Y)> PinLocations)>();
+
             var nodesToDelete = models.OfType<NodeModel>().ToList();
             if (nodesToDelete.Count == 0) return rewires;
 
@@ -325,11 +333,19 @@ namespace Dynamo.Graph.Workspaces
 
             foreach (var node in nodesToDelete)
             {
-                if (!IsInlineWatchNode(node)) continue;
+                if (!IsInlineWatchNode(node))
+                {
+                    continue;
+                }
 
-                if (node.InPorts.Count == 0 || node.OutPorts.Count == 0) continue;
+                if (node.InPorts.Count == 0 || node.OutPorts.Count == 0)
+                {
+                    continue;
+                }
 
                 var inputPort = node.InPorts[0];
+
+                // WatchNodes have only a single inputPort
                 if (inputPort.Connectors.Count != 1) continue;
 
                 var inputConnector = inputPort.Connectors[0];
@@ -337,9 +353,15 @@ namespace Dynamo.Graph.Workspaces
                 var startNode = startPort?.Owner;
                 if (startNode is null || deletedNodeGuids.Contains(startNode.GUID)) continue;
 
+                var inputPinLocations = inputConnector.ConnectorPinModels
+                    .Select(pin => (pin.CenterX, pin.CenterY))
+                    .Distinct()
+                    .ToList();
+
                 var outputPort = node.OutPorts[0];
                 if (outputPort.Connectors.Count == 0) continue;
 
+                // Capture all downstream nodes connected to the output port, and reconnect them to the upstream node
                 foreach (var outputConnector in outputPort.Connectors.ToList())
                 {
                     var endPort = outputConnector.End;
@@ -348,7 +370,9 @@ namespace Dynamo.Graph.Workspaces
 
                     if (startNode.GUID == endNode.GUID) continue;
 
-                    rewires.Add((startNode, startPort.Index, endNode, endPort.Index));
+                    var pinLocations = new List<(double X, double Y)>(inputPinLocations);
+                    pinLocations.AddRange(outputConnector.ConnectorPinModels.Select(pin => (pin.CenterX, pin.CenterY)));
+                    rewires.Add((startNode, startPort.Index, endNode, endPort.Index, pinLocations));
                 }
             }
 
@@ -361,10 +385,11 @@ namespace Dynamo.Graph.Workspaces
             return string.Equals(node.GetOriginalName(), "Watch", StringComparison.Ordinal);
         }
 
-        private void CreateInlineWatchRewireConnectors( IEnumerable<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)> rewires)
+        private void CreateInlineWatchRewireConnectors(IEnumerable<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex, List<(double X, double Y)> PinLocations)> rewires)
         {
             if (rewires is null || undoRecorder is null) return;
 
+            // Avoid duplicate reconnects when multiple Watch nodes map to same ports.
             var createdKeys = new HashSet<(Guid StartNode, int StartIndex, Guid EndNode, int EndIndex)>();
 
             foreach (var rewire in rewires)
@@ -394,6 +419,18 @@ namespace Dynamo.Graph.Workspaces
                 if (connector is null) continue;
 
                 undoRecorder.RecordCreationForUndo(connector);
+
+                // Recreate pins from both watch connectors on the new connector.
+                foreach (var pinLocation in rewire.PinLocations)
+                {
+                    var connectorPinModel = new ConnectorPinModel(
+                        pinLocation.X,
+                        pinLocation.Y,
+                        Guid.NewGuid(),
+                        connector.GUID);
+                    connector.AddPin(connectorPinModel);
+                    undoRecorder.RecordCreationForUndo(connectorPinModel);
+                }
             }
         }
 
