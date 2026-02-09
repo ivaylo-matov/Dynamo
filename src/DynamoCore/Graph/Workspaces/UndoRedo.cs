@@ -354,7 +354,7 @@ namespace Dynamo.Graph.Workspaces
                 if (startNode is null || deletedNodeGuids.Contains(startNode.GUID)) continue;
 
                 var inputPinLocations = inputConnector.ConnectorPinModels
-                    .Select(pin => (pin.CenterX, pin.CenterY))
+                    .Select(pin => (pin.Position.X, pin.Position.Y))
                     .Distinct()
                     .ToList();
 
@@ -371,7 +371,7 @@ namespace Dynamo.Graph.Workspaces
                     if (startNode.GUID == endNode.GUID) continue;
 
                     var pinLocations = new List<(double X, double Y)>(inputPinLocations);
-                    pinLocations.AddRange(outputConnector.ConnectorPinModels.Select(pin => (pin.CenterX, pin.CenterY)));
+                    pinLocations.AddRange(outputConnector.ConnectorPinModels.Select(pin => (pin.Position.X, pin.Position.Y)));
                     rewires.Add((startNode, startPort.Index, endNode, endPort.Index, pinLocations));
                 }
             }
