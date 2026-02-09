@@ -203,6 +203,7 @@ namespace Dynamo.Graph.Workspaces
             if (!ShouldProceedWithRecording(models))
                 return; // There's nothing for deletion.
 
+            // Collect inline Watch connections before deletion severs them.
             var inlineWatchRewireData = CollectInlineWatchRewireData(models);
 
             // Gather a list of connectors first before the nodes they connect
@@ -317,6 +318,7 @@ namespace Dynamo.Graph.Workspaces
         private static List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)>
             CollectInlineWatchRewireData(List<ModelBase> models)
         {
+            // Capture upstream -> watch -> downstream pairs for later reconnection.
             var rewires = new List<(NodeModel StartNode, int StartIndex, NodeModel EndNode, int EndIndex)>();
             var nodesToDelete = models.OfType<NodeModel>().ToList();
             if (nodesToDelete.Count == 0)
@@ -339,6 +341,7 @@ namespace Dynamo.Graph.Workspaces
                 }
 
                 var inputPort = node.InPorts[0];
+                // Only handle the simple inline Watch case (one input wire).
                 if (inputPort.Connectors.Count != 1)
                 {
                     continue;
@@ -397,6 +400,7 @@ namespace Dynamo.Graph.Workspaces
                 return;
             }
 
+            // Avoid duplicate reconnects when multiple Watch nodes map to same ports.
             var createdKeys = new HashSet<(Guid StartNode, int StartIndex, Guid EndNode, int EndIndex)>();
 
             foreach (var rewire in rewires)
