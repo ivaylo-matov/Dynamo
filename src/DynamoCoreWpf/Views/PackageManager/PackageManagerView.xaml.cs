@@ -217,6 +217,10 @@ namespace Dynamo.PackageManager.UI
 
         private void ProjectManagerTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            // SelectionChanged is a bubbling event. Ignore selection changes from child controls
+            // inside tab content and only react to actual package manager tab switches.
+            if (!ReferenceEquals(e.OriginalSource, projectManagerTabControl)) return;
+
             UpdatePublishTabKeyNavigation();
             FocusSelectedTabHeader();
         }

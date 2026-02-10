@@ -76,21 +76,7 @@ namespace Dynamo.PackageManager.UI
 
         private bool IsTabStripFocused()
         {
-            if (Keyboard.FocusedElement == this)
-            {
-                return true;
-            }
-
-            for (var index = 0; index < Items.Count; index++)
-            {
-                if (ItemContainerGenerator.ContainerFromIndex(index) is TabItem tabItem &&
-                    tabItem.IsKeyboardFocusWithin)
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return Keyboard.FocusedElement == this || Keyboard.FocusedElement is TabItem;
         }
     }
 }
