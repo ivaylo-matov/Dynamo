@@ -6,7 +6,7 @@ namespace Dynamo.PackageManager.UI
 {
     public class PackageManagerTabControl : TabControl
     {
-        public bool SuppressHomeEndNavigation { get; set; }
+        internal bool SuppressHomeEndNavigation { get; set; }
         internal UIElement SuppressHomeEndNavigationFocusScope { get; set; }
 
         protected override void OnKeyDown(KeyEventArgs e)

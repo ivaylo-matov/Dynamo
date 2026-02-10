@@ -1315,8 +1315,6 @@ Dynamo.PackageManager.UI.PackageManagerSearchView.PackageManagerSearchView(Dynam
 Dynamo.PackageManager.UI.PackageManagerSearchView.ViewModel.get -> Dynamo.PackageManager.PackageManagerSearchViewModel
 Dynamo.PackageManager.UI.PackageManagerTabControl
 Dynamo.PackageManager.UI.PackageManagerTabControl.PackageManagerTabControl() -> void
-Dynamo.PackageManager.UI.PackageManagerTabControl.SuppressHomeEndNavigation.get -> bool
-Dynamo.PackageManager.UI.PackageManagerTabControl.SuppressHomeEndNavigation.set -> void
 Dynamo.PackageManager.UI.PackageManagerView
 Dynamo.PackageManager.UI.PackageManagerView.InitializeComponent() -> void
 Dynamo.PackageManager.UI.PackageManagerView.IsNewPMPublishWizardEnabled.get -> bool
