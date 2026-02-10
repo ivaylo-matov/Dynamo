@@ -239,25 +239,24 @@ namespace Dynamo.Wpf.UI.GuidedTour
         {
             foreach (var tab in dynamoViewModel.SideBarTabItems.OfType<TabItem>())
             {
-                if (tab.Tag is IViewExtension viewExtension && tab.Content is UIElement content)
+                if (tab.Tag is IViewExtension viewExtension)
                 {
-                    AddViewExtensionState(viewExtension, content, ViewExtensionDisplayMode.DockRight);
+                    AddViewExtensionState(viewExtension, tab.Content as UIElement, ViewExtensionDisplayMode.DockRight);
                 }
             }
 
             foreach (var extensionWindow in dynamoView.ExtensionWindows.Values.ToList())
             {
-                if (extensionWindow.Tag is IViewExtension viewExtension &&
-                    extensionWindow.ExtensionContent.Content is UIElement content)
+                if (extensionWindow.Tag is IViewExtension viewExtension)
                 {
-                    AddViewExtensionState(viewExtension, content, ViewExtensionDisplayMode.FloatingWindow);
+                    AddViewExtensionState(viewExtension, extensionWindow.ExtensionContent.Content as UIElement, ViewExtensionDisplayMode.FloatingWindow);
                 }
             }
         }
 
         private void AddViewExtensionState(IViewExtension viewExtension, UIElement content, ViewExtensionDisplayMode displayMode)
         {
-            if (viewExtension == null || content == null) return;
+            if (viewExtension == null) return;
 
             if (closedViewExtensionsDuringTour.Any(state => state.ViewExtension.UniqueId == viewExtension.UniqueId))
             {
@@ -277,12 +276,17 @@ namespace Dynamo.Wpf.UI.GuidedTour
                 {
                     SetViewExtensionDisplayMode(extensionState);
 
+                    if (!string.IsNullOrEmpty(extensionState.ViewExtension.UniqueId))
+                    {
+                        dynamoViewModel.OnViewExtensionOpenRequest(extensionState.ViewExtension.UniqueId);
+                    }
+
                     if (extensionState.ViewExtension is ViewExtensionBase viewExtensionBase)
                     {
                         viewExtensionBase.ReOpen();
                     }
 
-                    if (!IsViewExtensionOpen(dynamoView, extensionState.ViewExtension))
+                    if (!IsViewExtensionOpen(dynamoView, extensionState.ViewExtension) && extensionState.Content != null)
                     {
                         dynamoView.AddOrFocusExtensionControl(extensionState.ViewExtension, extensionState.Content);
                     }
@@ -308,8 +312,7 @@ namespace Dynamo.Wpf.UI.GuidedTour
                 {
                     Name = extensionState.ViewExtension.Name,
                     UniqueId = extensionState.ViewExtension.UniqueId,
-                    DisplayMode = extensionState.DisplayMode,
-                    IsOpen = true
+                    DisplayMode = extensionState.DisplayMode
                 });
             }
             else
