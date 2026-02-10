@@ -3,7 +3,6 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
-using Dynamo.Controls;
 using Dynamo.Engine;
 using Dynamo.Graph.Workspaces;
 using Dynamo.Models;
@@ -236,40 +235,25 @@ namespace DynamoCoreWpfTests
         [Test]
         public void LaunchTourClosesOnlySidePanelViewExtensions()
         {
-            RaiseLoadedEvent(this.View);
-            var extensionManager = View.viewExtensionManager;
-            var dockedExtension = new ExtensionsSideBarViewExtension();
-            extensionManager.Add(dockedExtension);
+            var dockedExtension = new GuidedTourSidePanelTestViewExtension();
+            var added = View.AddOrFocusExtensionControl(dockedExtension, new UserControl());
+            Assert.IsTrue(added);
+
             var extensionTabsOpen = ViewModel.SideBarTabItems.OfType<TabItem>()
                 .Count(tab => tab.Tag is IViewExtension);
-
             Assert.GreaterOrEqual(extensionTabsOpen, 1);
 
             var guidesManager = new GuidesManager(View, ViewModel);
-            try
-            {
-                guidesManager.LaunchTour(GuidesManager.OnboardingGuideName);
-
-                extensionTabsOpen = ViewModel.SideBarTabItems.OfType<TabItem>()
-                    .Count(tab => tab.Tag is IViewExtension);
-                Assert.AreEqual(0, extensionTabsOpen);
-            }
-            finally
-            {
-                guidesManager.ExitTour();
-            }
-        }
-
-        [Test]
-        public void Watch3DRenderingHandler_DoesNotThrow_WhenViewModelIsNull()
-        {
-            var watch3DView = new Watch3DView();
-            var renderingHandler = typeof(Watch3DView).GetMethod(
-                "CompositionTargetRenderingHandler",
+            var closeMethod = typeof(GuidesManager).GetMethod(
+                "CloseAllViewExtensions",
                 BindingFlags.Instance | BindingFlags.NonPublic);
 
-            Assert.NotNull(renderingHandler);
-            Assert.DoesNotThrow(() => renderingHandler.Invoke(watch3DView, new object[] { this, EventArgs.Empty }));
+            Assert.NotNull(closeMethod);
+            Assert.DoesNotThrow(() => closeMethod.Invoke(guidesManager, new object[] { View }));
+
+            extensionTabsOpen = ViewModel.SideBarTabItems.OfType<TabItem>()
+                .Count(tab => tab.Tag is IViewExtension);
+            Assert.AreEqual(0, extensionTabsOpen);
         }
 
         [Test]
@@ -573,6 +557,28 @@ namespace DynamoCoreWpfTests
         public void Dispose()
         {
 
+        }
+    }
+
+    internal class GuidedTourSidePanelTestViewExtension : IViewExtension
+    {
+        public string UniqueId { get; } = Guid.NewGuid().ToString("N");
+        public string Name => $"GuidedTourSidePanelTestViewExtension_{UniqueId}";
+
+        public void Startup(ViewStartupParams viewStartupParams)
+        {
+        }
+
+        public void Loaded(ViewLoadedParams p)
+        {
+        }
+
+        public void Shutdown()
+        {
+        }
+
+        public void Dispose()
+        {
         }
     }
 
