@@ -244,12 +244,7 @@ namespace DynamoCoreWpfTests
             Assert.GreaterOrEqual(extensionTabsOpen, 1);
 
             var guidesManager = new GuidesManager(View, ViewModel);
-            var closeMethod = typeof(GuidesManager).GetMethod(
-                "CloseAllViewExtensions",
-                BindingFlags.Instance | BindingFlags.NonPublic);
-
-            Assert.NotNull(closeMethod);
-            Assert.DoesNotThrow(() => closeMethod.Invoke(guidesManager, new object[] { View }));
+            Assert.DoesNotThrow(() => guidesManager.CloseAllViewExtensions(View));
 
             extensionTabsOpen = ViewModel.SideBarTabItems.OfType<TabItem>()
                 .Count(tab => tab.Tag is IViewExtension);

@@ -198,7 +198,7 @@ namespace Dynamo.Wpf.UI.GuidedTour
             }
         }
 
-        private void CloseAllViewExtensions(DynamoView dynamoView)
+        internal void CloseAllViewExtensions(DynamoView dynamoView)
         {
             if (dynamoView == null || dynamoViewModel == null) return;
 
