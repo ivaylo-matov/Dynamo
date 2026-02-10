@@ -267,6 +267,31 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
+        public void LaunchTourClosesUntrackedOwnerOwnedExtensionWindow()
+        {
+            RaiseLoadedEvent(this.View);
+            var extensionManager = View.viewExtensionManager;
+            var untrackedWindowExtension = new UntrackedWindowOnlyViewExtension();
+            extensionManager.Add(untrackedWindowExtension);
+
+            Assert.IsNotNull(untrackedWindowExtension.ExtensionWindow);
+            Assert.IsTrue(untrackedWindowExtension.ExtensionWindow.IsVisible);
+            Assert.AreEqual(0, View.ExtensionWindows.Count);
+
+            var guidesManager = new GuidesManager(View, ViewModel);
+            try
+            {
+                guidesManager.LaunchTour(GuidesManager.OnboardingGuideName);
+
+                Assert.IsFalse(untrackedWindowExtension.ExtensionWindow.IsVisible);
+            }
+            finally
+            {
+                guidesManager.ExitTour();
+            }
+        }
+
+        [Test]
         public void ExtensionDockAndUndockWithRandomGUID()
         {
             RaiseLoadedEvent(this.View);
@@ -567,6 +592,45 @@ namespace DynamoCoreWpfTests
         public void Dispose()
         {
 
+        }
+    }
+
+    internal class MonocleLikeGraphResizerWindow : Window
+    {
+    }
+
+    internal class UntrackedWindowOnlyViewExtension : IViewExtension
+    {
+        public Window ExtensionWindow { get; private set; }
+        public string UniqueId => "58f53c6a-bb39-4763-a48d-bd8b6b2fd0f8";
+        public string Name => "UntrackedWindowOnlyViewExtension";
+
+        public void Startup(ViewStartupParams viewStartupParams)
+        {
+        }
+
+        public void Loaded(ViewLoadedParams p)
+        {
+            ExtensionWindow = new MonocleLikeGraphResizerWindow
+            {
+                Owner = p.DynamoWindow,
+                Title = "Graph Resizer",
+                Content = new TextBlock { Text = "Graph Resizer" }
+            };
+
+            ExtensionWindow.Show();
+        }
+
+        public void Shutdown()
+        {
+        }
+
+        public void Dispose()
+        {
+            if (ExtensionWindow != null && ExtensionWindow.IsVisible)
+            {
+                ExtensionWindow.Close();
+            }
         }
     }
 }
