@@ -233,7 +233,7 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
-        public void LaunchTourClosesDockedAndFloatingViewExtensions()
+        public void LaunchTourClosesOnlySidePanelViewExtensions()
         {
             RaiseLoadedEvent(this.View);
             var extensionManager = View.viewExtensionManager;
@@ -258,7 +258,9 @@ namespace DynamoCoreWpfTests
                 extensionTabsOpen = ViewModel.SideBarTabItems.OfType<TabItem>()
                     .Count(tab => tab.Tag is IViewExtension);
                 Assert.AreEqual(0, extensionTabsOpen);
-                Assert.AreEqual(0, View.ExtensionWindows.Count);
+                Assert.AreEqual(1, View.ExtensionWindows.Count);
+                Assert.IsTrue(View.ExtensionWindows.ContainsKey(floatingExtension.Name));
+                Assert.IsTrue(View.ExtensionWindows[floatingExtension.Name].IsVisible);
             }
             finally
             {
@@ -267,7 +269,7 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
-        public void LaunchTourClosesUntrackedOwnerOwnedExtensionWindow()
+        public void LaunchTourDoesNotCloseUntrackedOwnerOwnedExtensionWindow()
         {
             RaiseLoadedEvent(this.View);
             var extensionManager = View.viewExtensionManager;
@@ -283,7 +285,7 @@ namespace DynamoCoreWpfTests
             {
                 guidesManager.LaunchTour(GuidesManager.OnboardingGuideName);
 
-                Assert.IsFalse(untrackedWindowExtension.ExtensionWindow.IsVisible);
+                Assert.IsTrue(untrackedWindowExtension.ExtensionWindow.IsVisible);
             }
             finally
             {
