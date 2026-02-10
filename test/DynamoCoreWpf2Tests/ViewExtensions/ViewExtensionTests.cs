@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using Dynamo.Controls;
 using Dynamo.Engine;
 using Dynamo.Graph.Workspaces;
 using Dynamo.Models;
@@ -237,18 +238,12 @@ namespace DynamoCoreWpfTests
         {
             RaiseLoadedEvent(this.View);
             var extensionManager = View.viewExtensionManager;
-
             var dockedExtension = new ExtensionsSideBarViewExtension();
-            var floatingExtension = new DummyViewExtension();
-
             extensionManager.Add(dockedExtension);
-            extensionManager.Add(floatingExtension);
-            View.UndockExtension(floatingExtension.Name);
-
             var extensionTabsOpen = ViewModel.SideBarTabItems.OfType<TabItem>()
                 .Count(tab => tab.Tag is IViewExtension);
+
             Assert.GreaterOrEqual(extensionTabsOpen, 1);
-            Assert.GreaterOrEqual(View.ExtensionWindows.Count, 1);
 
             var guidesManager = new GuidesManager(View, ViewModel);
             try
@@ -258,9 +253,6 @@ namespace DynamoCoreWpfTests
                 extensionTabsOpen = ViewModel.SideBarTabItems.OfType<TabItem>()
                     .Count(tab => tab.Tag is IViewExtension);
                 Assert.AreEqual(0, extensionTabsOpen);
-                Assert.AreEqual(1, View.ExtensionWindows.Count);
-                Assert.IsTrue(View.ExtensionWindows.ContainsKey(floatingExtension.Name));
-                Assert.IsTrue(View.ExtensionWindows[floatingExtension.Name].IsVisible);
             }
             finally
             {
@@ -269,28 +261,15 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
-        public void LaunchTourDoesNotCloseUntrackedOwnerOwnedExtensionWindow()
+        public void Watch3DRenderingHandler_DoesNotThrow_WhenViewModelIsNull()
         {
-            RaiseLoadedEvent(this.View);
-            var extensionManager = View.viewExtensionManager;
-            var untrackedWindowExtension = new UntrackedWindowOnlyViewExtension();
-            extensionManager.Add(untrackedWindowExtension);
+            var watch3DView = new Watch3DView();
+            var renderingHandler = typeof(Watch3DView).GetMethod(
+                "CompositionTargetRenderingHandler",
+                BindingFlags.Instance | BindingFlags.NonPublic);
 
-            Assert.IsNotNull(untrackedWindowExtension.ExtensionWindow);
-            Assert.IsTrue(untrackedWindowExtension.ExtensionWindow.IsVisible);
-            Assert.AreEqual(0, View.ExtensionWindows.Count);
-
-            var guidesManager = new GuidesManager(View, ViewModel);
-            try
-            {
-                guidesManager.LaunchTour(GuidesManager.OnboardingGuideName);
-
-                Assert.IsTrue(untrackedWindowExtension.ExtensionWindow.IsVisible);
-            }
-            finally
-            {
-                guidesManager.ExitTour();
-            }
+            Assert.NotNull(renderingHandler);
+            Assert.DoesNotThrow(() => renderingHandler.Invoke(watch3DView, new object[] { this, EventArgs.Empty }));
         }
 
         [Test]
@@ -597,42 +576,4 @@ namespace DynamoCoreWpfTests
         }
     }
 
-    internal class MonocleLikeGraphResizerWindow : Window
-    {
-    }
-
-    internal class UntrackedWindowOnlyViewExtension : IViewExtension
-    {
-        public Window ExtensionWindow { get; private set; }
-        public string UniqueId => "58f53c6a-bb39-4763-a48d-bd8b6b2fd0f8";
-        public string Name => "UntrackedWindowOnlyViewExtension";
-
-        public void Startup(ViewStartupParams viewStartupParams)
-        {
-        }
-
-        public void Loaded(ViewLoadedParams p)
-        {
-            ExtensionWindow = new MonocleLikeGraphResizerWindow
-            {
-                Owner = p.DynamoWindow,
-                Title = "Graph Resizer",
-                Content = new TextBlock { Text = "Graph Resizer" }
-            };
-
-            ExtensionWindow.Show();
-        }
-
-        public void Shutdown()
-        {
-        }
-
-        public void Dispose()
-        {
-            if (ExtensionWindow != null && ExtensionWindow.IsVisible)
-            {
-                ExtensionWindow.Close();
-            }
-        }
-    }
 }

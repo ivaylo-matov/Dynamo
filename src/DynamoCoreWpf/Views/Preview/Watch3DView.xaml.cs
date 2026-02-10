@@ -79,7 +79,9 @@ namespace Dynamo.Controls
                 watch_view.DataContext = null;
                 watch_view.Dispose();
             }
-        
+
+            // Avoid render-loop callbacks using a partially disposed ViewModel.
+            ViewModel = null;
         }
 
         private void RegisterEventHandlers()
@@ -385,21 +387,30 @@ namespace Dynamo.Controls
         {
             // https://github.com/DynamoDS/Dynamo/issues/7295
             // This should not crash Dynamo when View is null
+            var view = View;
+            var viewModel = ViewModel;
+            if (view == null || viewModel == null || view.Camera == null)
+            {
+                return;
+            }
+
             try
             {
+                var cameraPosition = view.Camera.Position;
+
                 //Do not call the clip plane update on the render loop if the camera is unchanged or
                 //the user is manipulating the view with mouse.  Do run when queued by runUpdateClipPlane bool 
-                if (runUpdateClipPlane || (!View.Camera.Position.Equals(prevCamera) && !View.IsMouseCaptured))
+                if (runUpdateClipPlane || (!cameraPosition.Equals(prevCamera) && !view.IsMouseCaptured))
                 {
-                    ViewModel.UpdateNearClipPlane();
+                    viewModel.UpdateNearClipPlane();
                     runUpdateClipPlane = false;
                 }
-                ViewModel.ComputeFrameUpdate();
-                prevCamera = View.Camera.Position;
+                viewModel.ComputeFrameUpdate();
+                prevCamera = cameraPosition;
             }
             catch(Exception ex)
             {
-                ViewModel.CurrentSpaceViewModel.DynamoViewModel.Model.Logger.Log(ex.ToString());
+                viewModel.CurrentSpaceViewModel?.DynamoViewModel?.Model?.Logger?.Log(ex.ToString());
             }         
         }
 
