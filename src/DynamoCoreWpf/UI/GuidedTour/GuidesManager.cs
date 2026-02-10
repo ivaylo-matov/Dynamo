@@ -7,7 +7,6 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using Dynamo.Controls;
-using Dynamo.Configuration;
 using Dynamo.Logging;
 using Dynamo.ViewModels;
 using Dynamo.Wpf.Extensions;
@@ -41,21 +40,6 @@ namespace Dynamo.Wpf.UI.GuidedTour
         private const string mainGridName = "mainGrid";
         private const string libraryViewName = "Browser";
         private Stopwatch stopwatch;
-        private readonly List<ViewExtensionSessionState> closedViewExtensionsDuringTour = new List<ViewExtensionSessionState>();
-
-        private sealed class ViewExtensionSessionState
-        {
-            internal ViewExtensionSessionState(IViewExtension viewExtension, UIElement content, ViewExtensionDisplayMode displayMode)
-            {
-                ViewExtension = viewExtension;
-                Content = content;
-                DisplayMode = displayMode;
-            }
-
-            internal IViewExtension ViewExtension { get; }
-            internal UIElement Content { get; }
-            internal ViewExtensionDisplayMode DisplayMode { get; }
-        }
         #endregion
 
         #region internal properties
@@ -218,120 +202,37 @@ namespace Dynamo.Wpf.UI.GuidedTour
         {
             if (dynamoView == null || dynamoViewModel == null) return;
 
-            closedViewExtensionsDuringTour.Clear();
+            var extensionsToClose = new List<IViewExtension>();
 
-            CaptureOpenViewExtensionStates(dynamoView);
-
-            foreach (var extensionState in closedViewExtensionsDuringTour.ToList())
-            {
-                try
-                {
-                    dynamoView.CloseExtensionControl(extensionState.ViewExtension);
-                }
-                catch (Exception ex)
-                {
-                    dynamoViewModel.Model.Logger.Log($"Error closing view extension {extensionState.ViewExtension.Name}: {ex.Message}");
-                }
-            }
-        }
-
-        private void CaptureOpenViewExtensionStates(DynamoView dynamoView)
-        {
             foreach (var tab in dynamoViewModel.SideBarTabItems.OfType<TabItem>())
             {
-                if (tab.Tag is IViewExtension viewExtension)
+                if (tab.Tag is IViewExtension viewExtension &&
+                    !extensionsToClose.Any(ext => ext.UniqueId == viewExtension.UniqueId))
                 {
-                    AddViewExtensionState(viewExtension, tab.Content as UIElement, ViewExtensionDisplayMode.DockRight);
+                    extensionsToClose.Add(viewExtension);
                 }
             }
 
             foreach (var extensionWindow in dynamoView.ExtensionWindows.Values.ToList())
             {
-                if (extensionWindow.Tag is IViewExtension viewExtension)
+                if (extensionWindow.Tag is IViewExtension viewExtension &&
+                    !extensionsToClose.Any(ext => ext.UniqueId == viewExtension.UniqueId))
                 {
-                    AddViewExtensionState(viewExtension, extensionWindow.ExtensionContent.Content as UIElement, ViewExtensionDisplayMode.FloatingWindow);
+                    extensionsToClose.Add(viewExtension);
                 }
             }
-        }
 
-        private void AddViewExtensionState(IViewExtension viewExtension, UIElement content, ViewExtensionDisplayMode displayMode)
-        {
-            if (viewExtension == null) return;
-
-            if (closedViewExtensionsDuringTour.Any(state => state.ViewExtension.UniqueId == viewExtension.UniqueId))
-            {
-                return;
-            }
-
-            closedViewExtensionsDuringTour.Add(new ViewExtensionSessionState(viewExtension, content, displayMode));
-        }
-
-        private void RestoreViewExtensions(DynamoView dynamoView)
-        {
-            if (dynamoView == null || dynamoViewModel == null || !closedViewExtensionsDuringTour.Any()) return;
-
-            foreach (var extensionState in closedViewExtensionsDuringTour)
+            foreach (var viewExtension in extensionsToClose)
             {
                 try
                 {
-                    SetViewExtensionDisplayMode(extensionState);
-
-                    if (!string.IsNullOrEmpty(extensionState.ViewExtension.UniqueId))
-                    {
-                        dynamoViewModel.OnViewExtensionOpenRequest(extensionState.ViewExtension.UniqueId);
-                    }
-
-                    if (extensionState.ViewExtension is ViewExtensionBase viewExtensionBase)
-                    {
-                        viewExtensionBase.ReOpen();
-                    }
-
-                    if (!IsViewExtensionOpen(dynamoView, extensionState.ViewExtension) && extensionState.Content != null)
-                    {
-                        dynamoView.AddOrFocusExtensionControl(extensionState.ViewExtension, extensionState.Content);
-                    }
+                    dynamoView.CloseExtensionControl(viewExtension);
                 }
                 catch (Exception ex)
                 {
-                    dynamoViewModel.Model.Logger.Log($"Error restoring view extension {extensionState.ViewExtension.Name}: {ex.Message}");
+                    dynamoViewModel.Model.Logger.Log($"Error closing view extension {viewExtension.Name}: {ex.Message}");
                 }
             }
-
-            closedViewExtensionsDuringTour.Clear();
-        }
-
-        private void SetViewExtensionDisplayMode(ViewExtensionSessionState extensionState)
-        {
-            var extensionSettings = dynamoViewModel.PreferenceSettings?.ViewExtensionSettings;
-            if (extensionSettings == null) return;
-
-            var setting = extensionSettings.Find(s => s.UniqueId == extensionState.ViewExtension.UniqueId);
-            if (setting == null)
-            {
-                extensionSettings.Add(new ViewExtensionSettings
-                {
-                    Name = extensionState.ViewExtension.Name,
-                    UniqueId = extensionState.ViewExtension.UniqueId,
-                    DisplayMode = extensionState.DisplayMode
-                });
-            }
-            else
-            {
-                setting.DisplayMode = extensionState.DisplayMode;
-            }
-        }
-
-        private bool IsViewExtensionOpen(DynamoView dynamoView, IViewExtension viewExtension)
-        {
-            if (viewExtension == null) return false;
-
-            var hasDockedTab = dynamoViewModel.SideBarTabItems.OfType<TabItem>()
-                .Any(tab => tab.Tag is IViewExtension extension && extension.UniqueId == viewExtension.UniqueId);
-
-            if (hasDockedTab) return true;
-
-            return dynamoView.ExtensionWindows.Values
-                .Any(window => window.Tag is IViewExtension extension && extension.UniqueId == viewExtension.UniqueId);
         }
 
         /// <summary>
@@ -396,8 +297,6 @@ namespace Dynamo.Wpf.UI.GuidedTour
 
                 //Hide guide background overlay
                 guideBackgroundElement.Visibility = Visibility.Hidden;
-                var dynamoView = mainRootElement as DynamoView;
-                RestoreViewExtensions(dynamoView);
                 GuidesValidationMethods.CurrentExecutingGuide = null;
                 tourStarted = false;
             }

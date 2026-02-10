@@ -7,6 +7,7 @@ using Dynamo.Engine;
 using Dynamo.Graph.Workspaces;
 using Dynamo.Models;
 using Dynamo.Wpf.Extensions;
+using Dynamo.Wpf.UI.GuidedTour;
 using NUnit.Framework;
 
 namespace DynamoCoreWpfTests
@@ -229,6 +230,40 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, ViewModel.SideBarTabItems.Count);
             Assert.IsTrue(View.ExtensionsCollapsed);
             Assert.AreEqual(0, View.ExtensionWindows.Count);
+        }
+
+        [Test]
+        public void LaunchTourClosesDockedAndFloatingViewExtensions()
+        {
+            RaiseLoadedEvent(this.View);
+            var extensionManager = View.viewExtensionManager;
+
+            var dockedExtension = new ExtensionsSideBarViewExtension();
+            var floatingExtension = new DummyViewExtension();
+
+            extensionManager.Add(dockedExtension);
+            extensionManager.Add(floatingExtension);
+            View.UndockExtension(floatingExtension.Name);
+
+            var extensionTabsOpen = ViewModel.SideBarTabItems.OfType<TabItem>()
+                .Count(tab => tab.Tag is IViewExtension);
+            Assert.GreaterOrEqual(extensionTabsOpen, 1);
+            Assert.GreaterOrEqual(View.ExtensionWindows.Count, 1);
+
+            var guidesManager = new GuidesManager(View, ViewModel);
+            try
+            {
+                guidesManager.LaunchTour(GuidesManager.OnboardingGuideName);
+
+                extensionTabsOpen = ViewModel.SideBarTabItems.OfType<TabItem>()
+                    .Count(tab => tab.Tag is IViewExtension);
+                Assert.AreEqual(0, extensionTabsOpen);
+                Assert.AreEqual(0, View.ExtensionWindows.Count);
+            }
+            finally
+            {
+                guidesManager.ExitTour();
+            }
         }
 
         [Test]
