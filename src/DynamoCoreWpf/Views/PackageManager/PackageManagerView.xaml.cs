@@ -221,6 +221,7 @@ namespace Dynamo.PackageManager.UI
         private void UpdatePublishTabKeyNavigation()
         {
             if (projectManagerTabControl == null) return;
+            projectManagerTabControl.SuppressHomeEndNavigationFocusScope = packageManagerPublishHost?.Wizard ?? packageManagerPublishHost;
             projectManagerTabControl.SuppressHomeEndNavigation = IsNewPMPublishWizardEnabled && publishTab?.IsSelected == true;
         }
 
