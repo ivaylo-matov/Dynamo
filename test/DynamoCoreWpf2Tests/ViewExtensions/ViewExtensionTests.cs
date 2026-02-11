@@ -269,7 +269,7 @@ namespace DynamoCoreWpfTests
             Window ownerOwnedWindow = null;
             try
             {
-                ownerOwnedWindow = new GuidedTourOwnerOwnedTestWindow
+                ownerOwnedWindow = new Window
                 {
                     Owner = View,
                     Tag = extension,
@@ -617,10 +617,6 @@ namespace DynamoCoreWpfTests
         public void Dispose()
         {
         }
-    }
-
-    internal class GuidedTourOwnerOwnedTestWindow : Window
-    {
     }
 
 }
