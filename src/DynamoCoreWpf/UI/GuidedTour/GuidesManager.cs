@@ -225,11 +225,6 @@ namespace Dynamo.Wpf.UI.GuidedTour
                 }
             }
 
-            CloseOwnerOwnedExtensionWindows(dynamoView);
-        }
-
-        private void CloseOwnerOwnedExtensionWindows(DynamoView dynamoView)
-        {
             if (Application.Current == null || dynamoView?.viewExtensionManager == null) return;
 
             var extensionAssemblies = dynamoView.viewExtensionManager.ViewExtensions
@@ -258,22 +253,22 @@ namespace Dynamo.Wpf.UI.GuidedTour
                     dynamoViewModel.Model.Logger.Log($"Error closing extension-owned window '{window.Title}': {ex.Message}");
                 }
             }
-        }
 
-        private static bool IsExtensionWindow(Window window, HashSet<Assembly> extensionAssemblies)
-        {
-            if (window == null || extensionAssemblies == null || extensionAssemblies.Count == 0) return false;
+            bool IsExtensionWindow(Window window, HashSet<Assembly> assemblies)
+            {
+                if (window == null || assemblies == null || assemblies.Count == 0) return false;
 
-            bool IsFromExtensionAssembly(object obj) =>
-                obj != null && extensionAssemblies.Contains(obj.GetType().Assembly);
+                bool IsFromExtensionAssembly(object obj) =>
+                    obj != null && assemblies.Contains(obj.GetType().Assembly);
 
-            if (IsFromExtensionAssembly(window)) return true;
-            if (IsFromExtensionAssembly(window.Tag)) return true;
-            if (IsFromExtensionAssembly(window.DataContext)) return true;
-            if (IsFromExtensionAssembly(window.Content)) return true;
-            if (window.Content is FrameworkElement contentElement && IsFromExtensionAssembly(contentElement.DataContext)) return true;
+                if (IsFromExtensionAssembly(window)) return true;
+                if (IsFromExtensionAssembly(window.Tag)) return true;
+                if (IsFromExtensionAssembly(window.DataContext)) return true;
+                if (IsFromExtensionAssembly(window.Content)) return true;
+                if (window.Content is FrameworkElement contentElement && IsFromExtensionAssembly(contentElement.DataContext)) return true;
 
-            return false;
+                return false;
+            }
         }
 
         /// <summary>
