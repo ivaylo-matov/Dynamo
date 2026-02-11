@@ -261,6 +261,39 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
+        public void CloseAllViewExtensions_ClosesOwnerOwnedExtensionWindows()
+        {
+            var extension = new GuidedTourSidePanelTestViewExtension();
+            View.viewExtensionManager.Add(extension);
+
+            Window ownerOwnedWindow = null;
+            try
+            {
+                ownerOwnedWindow = new GuidedTourOwnerOwnedTestWindow
+                {
+                    Owner = View,
+                    Tag = extension,
+                    Title = "OwnerOwnedExtensionWindow",
+                    Content = new TextBlock { Text = "OwnerOwnedExtensionWindow" }
+                };
+                ownerOwnedWindow.Show();
+                Assert.IsTrue(ownerOwnedWindow.IsVisible);
+
+                var guidesManager = new GuidesManager(View, ViewModel);
+                Assert.DoesNotThrow(() => guidesManager.CloseAllViewExtensions(View));
+
+                Assert.IsFalse(ownerOwnedWindow.IsVisible);
+            }
+            finally
+            {
+                if (ownerOwnedWindow != null && ownerOwnedWindow.IsVisible)
+                {
+                    ownerOwnedWindow.Close();
+                }
+            }
+        }
+
+        [Test]
         public void ExtensionDockAndUndockWithRandomGUID()
         {
             RaiseLoadedEvent(this.View);
@@ -584,6 +617,10 @@ namespace DynamoCoreWpfTests
         public void Dispose()
         {
         }
+    }
+
+    internal class GuidedTourOwnerOwnedTestWindow : Window
+    {
     }
 
 }
