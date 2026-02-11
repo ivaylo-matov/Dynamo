@@ -69,7 +69,12 @@ namespace Dynamo.PackageManager.UI
                 return false;
             }
 
-            return SelectedItem is DependencyObject selectedTab &&
+            if (SelectedItem == null)
+            {
+                return false;
+            }
+
+            return ItemContainerGenerator.ContainerFromItem(SelectedItem) is DependencyObject selectedTab &&
                    GetSuppressHomeEndWhenSelected(selectedTab);
         }
 
