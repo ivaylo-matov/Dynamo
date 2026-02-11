@@ -235,7 +235,7 @@ namespace Dynamo.Wpf.UI.GuidedTour
 
         private void CloseOwnerOwnedExtensionWindows(DynamoView dynamoView)
         {
-            if (Application.Current == null || dynamoView?.viewExtensionManager == null) return;
+            if (dynamoView?.viewExtensionManager == null) return;
 
             var extensionAssemblies = dynamoView.viewExtensionManager.ViewExtensions
                 .Where(ext => ext != null)
@@ -244,7 +244,11 @@ namespace Dynamo.Wpf.UI.GuidedTour
 
             if (!extensionAssemblies.Any()) return;
 
-            var windowsToClose = Application.Current.Windows.OfType<Window>()
+            var ownerOwnedWindows = Application.Current != null
+                ? Application.Current.Windows.OfType<Window>()
+                : dynamoView.OwnedWindows.Cast<Window>();
+
+            var windowsToClose = ownerOwnedWindows
                 .Where(window =>
                     window != null &&
                     window != dynamoView &&

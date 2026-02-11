@@ -8,6 +8,7 @@ using Dynamo.Graph.Workspaces;
 using Dynamo.Models;
 using Dynamo.Wpf.Extensions;
 using Dynamo.Wpf.UI.GuidedTour;
+using DynamoCoreWpfTests.Utility;
 using NUnit.Framework;
 
 namespace DynamoCoreWpfTests
@@ -281,6 +282,7 @@ namespace DynamoCoreWpfTests
 
                 var guidesManager = new GuidesManager(View, ViewModel);
                 Assert.DoesNotThrow(() => guidesManager.CloseAllViewExtensions(View));
+                DispatcherUtil.DoEvents();
 
                 Assert.IsFalse(ownerOwnedWindow.IsVisible);
             }
