@@ -228,6 +228,11 @@ namespace Dynamo.Wpf.UI.GuidedTour
             CloseOwnerOwnedExtensionWindows(dynamoView);
         }
 
+        internal void CloseSideBarViewExtensions(DynamoView dynamoView)
+        {
+            CloseAllViewExtensions(dynamoView);
+        }
+
         private void CloseOwnerOwnedExtensionWindows(DynamoView dynamoView)
         {
             if (Application.Current == null || dynamoView?.viewExtensionManager == null) return;

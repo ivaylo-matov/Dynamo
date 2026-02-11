@@ -233,7 +233,7 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
-        public void LaunchTourClosesOnlySidePanelViewExtensions()
+        public void LaunchTourClosesSidePanelViewExtensions()
         {
             var initialTabsOpen = ViewModel.SideBarTabItems.OfType<TabItem>()
                 .Count(tab => tab.Tag is IViewExtension);
@@ -248,7 +248,7 @@ namespace DynamoCoreWpfTests
             Assert.IsTrue(hasAddedExtensionTab);
 
             var guidesManager = new GuidesManager(View, ViewModel);
-            Assert.DoesNotThrow(() => guidesManager.CloseAllViewExtensions(View));
+            Assert.DoesNotThrow(() => guidesManager.CloseSideBarViewExtensions(View));
 
             hasAddedExtensionTab = ViewModel.SideBarTabItems.OfType<TabItem>().Any(tab =>
                 tab.Tag is IViewExtension extension &&
