@@ -403,6 +403,49 @@ namespace Dynamo.Tests.ModelsTest
             Assert.AreEqual(ParseFixtureId(InlineWatchFixtureWatchNodeId), connectorB.Start.Owner.GUID);
         }
 
+        [Test]
+        [Category("UnitTests")]
+        public void DeleteInlineWatchNode_UndoRedo_PreservesPinTransferSemantics_FromFixture()
+        {
+            OpenInlineWatchDeleteFixtureGraph();
+            var workspace = GetHomeWorkspace();
+            workspace.RunSettings.RunType = RunType.Manual;
+
+            var expectedPinCoordinates = new[] { (120.0, 220.0), (180.0, 260.0) };
+
+            var watchNode = GetNode<Watch>(InlineWatchFixtureWatchNodeId);
+            var incomingConnector = GetConnector(InlineWatchFixtureIncomingConnectorId);
+            incomingConnector.AddPin(new ConnectorPinModel(120.0, 220.0, Guid.NewGuid(), incomingConnector.GUID));
+            incomingConnector.AddPin(new ConnectorPinModel(180.0, 260.0, Guid.NewGuid(), incomingConnector.GUID));
+
+            CurrentDynamoModel.DeleteModelInternal(new List<ModelBase> { watchNode });
+
+            var connectorAAfterDelete = GetConnector(InlineWatchFixtureDownstreamConnectorAId);
+            var connectorBAfterDelete = GetConnector(InlineWatchFixtureDownstreamConnectorBId);
+            CollectionAssert.AreEquivalent(
+                expectedPinCoordinates,
+                connectorAAfterDelete.ConnectorPinModels.Select(pin => (pin.X, pin.Y)).ToList());
+            Assert.AreEqual(0, connectorBAfterDelete.ConnectorPinModels.Count);
+
+            workspace.Undo();
+
+            var incomingConnectorAfterUndo = GetConnector(InlineWatchFixtureIncomingConnectorId);
+            var connectorAAfterUndo = GetConnector(InlineWatchFixtureDownstreamConnectorAId);
+            var connectorBAfterUndo = GetConnector(InlineWatchFixtureDownstreamConnectorBId);
+            Assert.AreEqual(2, incomingConnectorAfterUndo.ConnectorPinModels.Count);
+            Assert.AreEqual(0, connectorAAfterUndo.ConnectorPinModels.Count);
+            Assert.AreEqual(0, connectorBAfterUndo.ConnectorPinModels.Count);
+
+            workspace.Redo();
+
+            var connectorAAfterRedo = GetConnector(InlineWatchFixtureDownstreamConnectorAId);
+            var connectorBAfterRedo = GetConnector(InlineWatchFixtureDownstreamConnectorBId);
+            CollectionAssert.AreEquivalent(
+                expectedPinCoordinates,
+                connectorAAfterRedo.ConnectorPinModels.Select(pin => (pin.X, pin.Y)).ToList());
+            Assert.AreEqual(0, connectorBAfterRedo.ConnectorPinModels.Count);
+        }
+
         private void OpenInlineWatchDeleteFixtureGraph()
         {
             OpenModel(@"core\watch\DeleteInlineWatch_RewireFixture.dyn");
