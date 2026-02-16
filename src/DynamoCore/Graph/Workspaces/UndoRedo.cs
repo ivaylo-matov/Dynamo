@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Xml;
 using Autodesk.DesignScript.Geometry;
 using Dynamo.Core;
@@ -666,6 +667,7 @@ namespace Dynamo.Graph.Workspaces
                 NodeModel nodeModel = NodeFactory.CreateNodeFromXml(modelData, SaveContext.Undo, ElementResolver);
 
                 AddAndRegisterNode(nodeModel);
+                TryRestoreWatchCachedValueFromEngine(nodeModel);
 
                 //check whether this node belongs to a group
                 foreach (var annotation in Annotations)
@@ -676,6 +678,45 @@ namespace Dynamo.Graph.Workspaces
                         annotation.AddToTargetAnnotationModel(nodeModel);
                     }
                 }
+            }
+        }
+
+        private void TryRestoreWatchCachedValueFromEngine(NodeModel nodeModel)
+        {
+            if (nodeModel == null || nodeModel.OutPorts.Count == 0)
+                return;
+
+            if (this is not HomeWorkspaceModel homeWorkspace || homeWorkspace.EngineController == null)
+                return;
+
+            // Watch nodes expose their UI cache through a private callback method.
+            // If execution was intentionally skipped, pull the current mirror value
+            // and invoke that callback so the restored node regains its displayed data.
+            var onEvaluationComplete = nodeModel.GetType().GetMethod(
+                "OnEvaluationComplete",
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new[] { typeof(object) },
+                null);
+
+            if (onEvaluationComplete == null)
+                return;
+
+            var outputIdentifier = nodeModel.GetAstIdentifierForOutputIndex(0)?.Value;
+            if (string.IsNullOrEmpty(outputIdentifier))
+                return;
+
+            var mirrorData = homeWorkspace.EngineController.GetMirror(outputIdentifier)?.GetData();
+            if (mirrorData == null)
+                return;
+
+            try
+            {
+                onEvaluationComplete.Invoke(nodeModel, new object[] { mirrorData.Data });
+            }
+            catch (TargetInvocationException)
+            {
+                // Ignore reflection failures; normal graph execution will refresh value later.
             }
         }
 

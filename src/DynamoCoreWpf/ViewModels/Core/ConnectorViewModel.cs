@@ -1071,11 +1071,19 @@ namespace Dynamo.ViewModels
                     IsHidden = connector.IsHidden;
                     break;
                 case nameof(ConnectorModel.Start):
-                case nameof(ConnectorModel.End):
                     UpdatePortSubscriptions(model.Start, model.End);
                     UpdateNodeViewModelSubscriptions();
                     RaisePropertyChanged(nameof(Nodevm));
+                    RaisePropertyChanged(nameof(CurvePoint0));
+                    RaisePropertyChanged(nameof(PreviewState));
+                    UpdateConnectorDataToolTip();
+                    Redraw();
+                    break;
+                case nameof(ConnectorModel.End):
+                    UpdatePortSubscriptions(model.Start, model.End);
+                    UpdateNodeViewModelSubscriptions();
                     RaisePropertyChanged(nameof(NodeEnd));
+                    RaisePropertyChanged(nameof(CurvePoint3));
                     RaisePropertyChanged(nameof(PreviewState));
                     UpdateConnectorDataToolTip();
                     Redraw();

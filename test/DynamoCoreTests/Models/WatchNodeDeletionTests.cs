@@ -156,6 +156,28 @@ namespace Dynamo.Tests.ModelsTest
             Assert.AreEqual(0, downstreamModifiedEventCountB);
         }
 
+        [Test]
+        [Category("UnitTests")]
+        public void UndoRestoresWatchCachedValueWithoutAdditionalExecution()
+        {
+            var workspace = GetHomeWorkspace();
+            workspace.RunSettings.RunType = RunType.Manual;
+
+            var graph = CreateInlineWatchGraph();
+            BeginRun();
+            var evaluationCountAfterRun = workspace.EvaluationCount;
+
+            CurrentDynamoModel.DeleteModelInternal(new List<ModelBase> { graph.WatchNode });
+            workspace.Undo();
+
+            Assert.AreEqual(evaluationCountAfterRun, workspace.EvaluationCount);
+
+            var restoredWatch = workspace.Nodes.FirstOrDefault(node => node.GUID == graph.WatchNode.GUID) as Watch;
+            Assert.IsNotNull(restoredWatch);
+            Assert.IsTrue(restoredWatch.HasRunOnce);
+            Assert.IsNotNull(restoredWatch.CachedValue);
+        }
+
         private (NodeModel UpstreamNode, NodeModel DownstreamNodeA, NodeModel DownstreamNodeB, Watch WatchNode, ConnectorModel DownstreamConnectorA, ConnectorModel DownstreamConnectorB)
             CreateInlineWatchGraph()
         {
