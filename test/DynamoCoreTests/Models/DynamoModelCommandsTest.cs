@@ -23,21 +23,14 @@ namespace Dynamo.Tests.ModelsTest
     [TestFixture]
     class DynamoModelCommandsTest : DynamoModelTestBase
     {
-        private static readonly Guid InlineWatchFixtureWatchNodeGuid =
-            Guid.Parse("18670ca53bc84350afecb263e3c44dfa");
-        private static readonly Guid InlineWatchFixtureUpstreamNodeGuid =
-            Guid.Parse("55224bcc59764cfea08b07931dc75aea");
-        private static readonly Guid InlineWatchFixtureDownstreamNodeAGuid =
-            Guid.Parse("bf96a26cf0d44bcc9fac21b2233e1bf4");
-        private static readonly Guid InlineWatchFixtureDownstreamNodeBGuid =
-            Guid.Parse("d87460d55bbb4bc2b3c09841ceaa4335");
+        private const string InlineWatchFixtureWatchNodeId = "18670ca53bc84350afecb263e3c44dfa";
+        private const string InlineWatchFixtureUpstreamNodeId = "55224bcc59764cfea08b07931dc75aea";
+        private const string InlineWatchFixtureDownstreamNodeAId = "bf96a26cf0d44bcc9fac21b2233e1bf4";
+        private const string InlineWatchFixtureDownstreamNodeBId = "d87460d55bbb4bc2b3c09841ceaa4335";
 
-        private static readonly Guid InlineWatchFixtureIncomingConnectorGuid =
-            Guid.Parse("006159bed10d41db80438a9e4c9d0640");
-        private static readonly Guid InlineWatchFixtureDownstreamConnectorAGuid =
-            Guid.Parse("7d1ac604ba724e3ba281c3e6742d6aba");
-        private static readonly Guid InlineWatchFixtureDownstreamConnectorBGuid =
-            Guid.Parse("15ee5859ae2845649ebe0ac8bcc70157");
+        private const string InlineWatchFixtureIncomingConnectorId = "006159bed10d41db80438a9e4c9d0640";
+        private const string InlineWatchFixtureDownstreamConnectorAId = "7d1ac604ba724e3ba281c3e6742d6aba";
+        private const string InlineWatchFixtureDownstreamConnectorBId = "15ee5859ae2845649ebe0ac8bcc70157";
 
         /// <summary>
         /// This test method will execute the ForceRunCancelImpl method from the DynamoModel class
@@ -340,19 +333,19 @@ namespace Dynamo.Tests.ModelsTest
             workspace.RunSettings.RunType = RunType.Automatic;
             var evaluationCountBeforeDelete = workspace.EvaluationCount;
 
-            var watchNode = GetNode<Watch>(InlineWatchFixtureWatchNodeGuid);
+            var watchNode = GetNode<Watch>(InlineWatchFixtureWatchNodeId);
             CurrentDynamoModel.DeleteModelInternal(new List<ModelBase> { watchNode });
 
             Assert.AreEqual(evaluationCountBeforeDelete, workspace.EvaluationCount);
-            Assert.IsNull(workspace.Nodes.FirstOrDefault(node => node.GUID == InlineWatchFixtureWatchNodeGuid));
+            Assert.IsNull(workspace.Nodes.FirstOrDefault(node => node.GUID == ParseFixtureId(InlineWatchFixtureWatchNodeId)));
 
-            var connectorA = GetConnector(InlineWatchFixtureDownstreamConnectorAGuid);
-            var connectorB = GetConnector(InlineWatchFixtureDownstreamConnectorBGuid);
+            var connectorA = GetConnector(InlineWatchFixtureDownstreamConnectorAId);
+            var connectorB = GetConnector(InlineWatchFixtureDownstreamConnectorBId);
 
-            Assert.AreEqual(InlineWatchFixtureUpstreamNodeGuid, connectorA.Start.Owner.GUID);
-            Assert.AreEqual(InlineWatchFixtureDownstreamNodeAGuid, connectorA.End.Owner.GUID);
-            Assert.AreEqual(InlineWatchFixtureUpstreamNodeGuid, connectorB.Start.Owner.GUID);
-            Assert.AreEqual(InlineWatchFixtureDownstreamNodeBGuid, connectorB.End.Owner.GUID);
+            Assert.AreEqual(ParseFixtureId(InlineWatchFixtureUpstreamNodeId), connectorA.Start.Owner.GUID);
+            Assert.AreEqual(ParseFixtureId(InlineWatchFixtureDownstreamNodeAId), connectorA.End.Owner.GUID);
+            Assert.AreEqual(ParseFixtureId(InlineWatchFixtureUpstreamNodeId), connectorB.Start.Owner.GUID);
+            Assert.AreEqual(ParseFixtureId(InlineWatchFixtureDownstreamNodeBId), connectorB.End.Owner.GUID);
         }
 
         [Test]
@@ -360,16 +353,16 @@ namespace Dynamo.Tests.ModelsTest
         public void DeleteInlineWatchNode_RecreatesIncomingPinsOnFirstDownstream_FromFixture()
         {
             OpenInlineWatchDeleteFixtureGraph();
-            var watchNode = GetNode<Watch>(InlineWatchFixtureWatchNodeGuid);
+            var watchNode = GetNode<Watch>(InlineWatchFixtureWatchNodeId);
 
-            var incomingConnector = GetConnector(InlineWatchFixtureIncomingConnectorGuid);
+            var incomingConnector = GetConnector(InlineWatchFixtureIncomingConnectorId);
             incomingConnector.AddPin(new ConnectorPinModel(120.0, 220.0, Guid.NewGuid(), incomingConnector.GUID));
             incomingConnector.AddPin(new ConnectorPinModel(180.0, 260.0, Guid.NewGuid(), incomingConnector.GUID));
 
             CurrentDynamoModel.DeleteModelInternal(new List<ModelBase> { watchNode });
 
-            var connectorA = GetConnector(InlineWatchFixtureDownstreamConnectorAGuid);
-            var connectorB = GetConnector(InlineWatchFixtureDownstreamConnectorBGuid);
+            var connectorA = GetConnector(InlineWatchFixtureDownstreamConnectorAId);
+            var connectorB = GetConnector(InlineWatchFixtureDownstreamConnectorBId);
 
             Assert.AreEqual(2, connectorA.ConnectorPinModels.Count);
             Assert.AreEqual(0, connectorB.ConnectorPinModels.Count);
@@ -389,25 +382,25 @@ namespace Dynamo.Tests.ModelsTest
             BeginRun();
 
             var evaluationCountAfterRun = workspace.EvaluationCount;
-            var watchNode = GetNode<Watch>(InlineWatchFixtureWatchNodeGuid);
+            var watchNode = GetNode<Watch>(InlineWatchFixtureWatchNodeId);
             CurrentDynamoModel.DeleteModelInternal(new List<ModelBase> { watchNode });
 
             workspace.Undo();
 
             Assert.AreEqual(evaluationCountAfterRun, workspace.EvaluationCount);
 
-            var restoredWatch = GetNode<Watch>(InlineWatchFixtureWatchNodeGuid);
+            var restoredWatch = GetNode<Watch>(InlineWatchFixtureWatchNodeId);
             Assert.IsTrue(restoredWatch.HasRunOnce);
             Assert.IsNotNull(restoredWatch.CachedValue);
 
-            var incomingConnector = GetConnector(InlineWatchFixtureIncomingConnectorGuid);
-            var connectorA = GetConnector(InlineWatchFixtureDownstreamConnectorAGuid);
-            var connectorB = GetConnector(InlineWatchFixtureDownstreamConnectorBGuid);
+            var incomingConnector = GetConnector(InlineWatchFixtureIncomingConnectorId);
+            var connectorA = GetConnector(InlineWatchFixtureDownstreamConnectorAId);
+            var connectorB = GetConnector(InlineWatchFixtureDownstreamConnectorBId);
 
-            Assert.AreEqual(InlineWatchFixtureUpstreamNodeGuid, incomingConnector.Start.Owner.GUID);
-            Assert.AreEqual(InlineWatchFixtureWatchNodeGuid, incomingConnector.End.Owner.GUID);
-            Assert.AreEqual(InlineWatchFixtureWatchNodeGuid, connectorA.Start.Owner.GUID);
-            Assert.AreEqual(InlineWatchFixtureWatchNodeGuid, connectorB.Start.Owner.GUID);
+            Assert.AreEqual(ParseFixtureId(InlineWatchFixtureUpstreamNodeId), incomingConnector.Start.Owner.GUID);
+            Assert.AreEqual(ParseFixtureId(InlineWatchFixtureWatchNodeId), incomingConnector.End.Owner.GUID);
+            Assert.AreEqual(ParseFixtureId(InlineWatchFixtureWatchNodeId), connectorA.Start.Owner.GUID);
+            Assert.AreEqual(ParseFixtureId(InlineWatchFixtureWatchNodeId), connectorB.Start.Owner.GUID);
         }
 
         private void OpenInlineWatchDeleteFixtureGraph()
@@ -422,18 +415,25 @@ namespace Dynamo.Tests.ModelsTest
             return workspace;
         }
 
-        private T GetNode<T>(Guid nodeGuid) where T : NodeModel
+        private T GetNode<T>(string nodeId) where T : NodeModel
         {
+            var nodeGuid = ParseFixtureId(nodeId);
             var node = CurrentDynamoModel.CurrentWorkspace.Nodes.FirstOrDefault(n => n.GUID == nodeGuid) as T;
             Assert.IsNotNull(node);
             return node;
         }
 
-        private ConnectorModel GetConnector(Guid connectorGuid)
+        private ConnectorModel GetConnector(string connectorId)
         {
+            var connectorGuid = ParseFixtureId(connectorId);
             var connector = CurrentDynamoModel.CurrentWorkspace.Connectors.FirstOrDefault(c => c.GUID == connectorGuid);
             Assert.IsNotNull(connector);
             return connector;
+        }
+
+        private static Guid ParseFixtureId(string id)
+        {
+            return Guid.Parse(id);
         }
     }
 }
