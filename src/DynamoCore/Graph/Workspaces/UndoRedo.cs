@@ -17,6 +17,8 @@ namespace Dynamo.Graph.Workspaces
 {
     public partial class WorkspaceModel
     {
+        private const string WatchNodeTypeName = "CoreNodeModels.Watch";
+
         /// <summary>
         /// Returns the current UndoRedoRecorder that is associated with the current
         /// WorkspaceModel. Note that external parties should not have the needs
@@ -203,6 +205,9 @@ namespace Dynamo.Graph.Workspaces
             if (!ShouldProceedWithRecording(models))
                 return; // There's nothing for deletion.
 
+            var nodesScheduledForDeletion = new HashSet<Guid>(
+                models.OfType<NodeModel>().Select(node => node.GUID));
+
             // Gather a list of connectors first before the nodes they connect
             // to are deleted. We will have to delete the connectors first
             // before
@@ -256,6 +261,10 @@ namespace Dynamo.Graph.Workspaces
                         bool silentFlag = node.RaisesModificationEvents;
                         node.RaisesModificationEvents = false;
 
+                        // Removing an inline Watch node should preserve existing
+                        // downstream connectors by retargeting their start ports.
+                        TryReconnectInlineWatchNode(node, nodesScheduledForDeletion);
+
                         // Note that AllConnectors is duplicated as a separate list
                         // by calling its "ToList" method. This is the because the
                         // "Connectors.Remove" will modify "AllConnectors", causing
@@ -308,6 +317,54 @@ namespace Dynamo.Graph.Workspaces
                     }
                 }
             } // Conclude the deletion.
+        }
+
+        private bool TryReconnectInlineWatchNode(NodeModel node, ISet<Guid> nodesScheduledForDeletion)
+        {
+            if (!IsInlineWatchNode(node))
+                return false;
+
+            var inputPort = node.InPorts[0];
+            var outputPort = node.OutPorts[0];
+            if (inputPort.Connectors.Count != 1 || outputPort.Connectors.Count == 0)
+                return false;
+
+            var incomingConnector = inputPort.Connectors[0];
+            var upstreamPort = incomingConnector.Start;
+            if (upstreamPort == null || upstreamPort.Owner == null)
+                return false;
+
+            if (nodesScheduledForDeletion.Contains(upstreamPort.Owner.GUID))
+                return false;
+
+            var reconnectedAnyConnector = false;
+            foreach (var downstreamConnector in outputPort.Connectors.ToList())
+            {
+                var endOwner = downstreamConnector.End?.Owner;
+                if (endOwner == null || nodesScheduledForDeletion.Contains(endOwner.GUID))
+                    continue;
+
+                undoRecorder.RecordModificationForUndo(downstreamConnector);
+                if (downstreamConnector.TryUpdateStartPort(upstreamPort))
+                {
+                    reconnectedAnyConnector = true;
+                }
+            }
+
+            if (reconnectedAnyConnector && workspaceLoaded)
+            {
+                upstreamPort.Owner.ComputeUpstreamOnDownstreamNodes();
+            }
+
+            return reconnectedAnyConnector;
+        }
+
+        private static bool IsInlineWatchNode(NodeModel node)
+        {
+            return node != null &&
+                   node.InPorts.Count == 1 &&
+                   node.OutPorts.Count == 1 &&
+                   string.Equals(node.GetType().FullName, WatchNodeTypeName, StringComparison.Ordinal);
         }
 
         internal void DeleteSavedModels()
@@ -457,7 +514,32 @@ namespace Dynamo.Graph.Workspaces
             ModelBase model = GetModelForElement(modelData);
             if (model != null)
             {
+                if (model is ConnectorModel connectorModel)
+                {
+                    UpdateConnectorStartFromXml(connectorModel, modelData);
+                }
+
                 model.Deserialize(modelData, SaveContext.Undo);
+            }
+        }
+
+        private void UpdateConnectorStartFromXml(ConnectorModel connectorModel, XmlElement modelData)
+        {
+            var helper = new XmlElementHelper(modelData);
+            var startNodeGuid = helper.ReadGuid("start", Guid.Empty);
+            var startPortIndex = helper.ReadInteger("start_index", -1);
+
+            if (startNodeGuid == Guid.Empty || startPortIndex < 0)
+                return;
+
+            var startNode = Nodes.FirstOrDefault(node => node.GUID == startNodeGuid);
+            if (startNode == null || startPortIndex >= startNode.OutPorts.Count)
+                return;
+
+            var startPort = startNode.OutPorts[startPortIndex];
+            if (!ReferenceEquals(connectorModel.Start, startPort))
+            {
+                connectorModel.TryUpdateStartPort(startPort);
             }
         }
 
