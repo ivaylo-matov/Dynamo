@@ -723,7 +723,7 @@ namespace Dynamo.Graph.Workspaces
             {
                 this.Log(
                     $"Unable to restore watch cache: method '{WatchEvaluationCompleteMethodName}' was not found on node '{nodeModel.GUID}'.",
-                    Logging.WarningLevel.Warning);
+                    Logging.WarningLevel.Moderate);
                 return;
             }
 
@@ -743,13 +743,13 @@ namespace Dynamo.Graph.Workspaces
             {
                 this.Log(
                     $"Failed restoring watch cache for node '{nodeModel.GUID}': {ex.InnerException?.Message ?? ex.Message}",
-                    Logging.WarningLevel.Warning);
+                    Logging.WarningLevel.Moderate);
             }
             catch (Exception ex)
             {
                 this.Log(
                     $"Unexpected error restoring watch cache for node '{nodeModel.GUID}': {ex.Message}",
-                    Logging.WarningLevel.Warning);
+                    Logging.WarningLevel.Moderate);
             }
         }
 
