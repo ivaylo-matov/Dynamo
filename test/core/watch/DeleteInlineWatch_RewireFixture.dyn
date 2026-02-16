@@ -1,0 +1,212 @@
+{
+  "Uuid": "4ac9c541-6a4d-49c3-9129-54e8dacceef3",
+  "IsCustomNode": false,
+  "Description": "",
+  "Name": "DeleteInlineWatch_RewireFixture",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "Id": "55224bcc59764cfea08b07931dc75aea",
+      "NodeType": "CodeBlockNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "9356194eaa5e455198e2c91fde1414ae",
+          "Name": "integer",
+          "Description": "42",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly",
+      "Code": "42;"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "Id": "bf96a26cf0d44bcc9fac21b2233e1bf4",
+      "NodeType": "CodeBlockNode",
+      "Inputs": [
+        {
+          "Id": "bbddc655ad074c91b201f6de36fbf2fe",
+          "Name": "answer",
+          "Description": "answer",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "09dd126457e548b998e1f8d7f6c985ff",
+          "Name": "answer",
+          "Description": "answer",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly",
+      "Code": "answer;"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "Id": "d87460d55bbb4bc2b3c09841ceaa4335",
+      "NodeType": "CodeBlockNode",
+      "Inputs": [
+        {
+          "Id": "3f9094235a114e6fb4f4769f34873c41",
+          "Name": "answer",
+          "Description": "answer",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c5ae6e34f3314107b2ea60447dcec49e",
+          "Name": "function",
+          "Description": "answer * 2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly",
+      "Code": "answer*2;"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 200.0,
+      "WatchHeight": 200.0,
+      "Id": "18670ca53bc84350afecb263e3c44dfa",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "f71b7e4117ff4507af78cce8c19ec87e",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c98ebce5922641b29ba2daa3d585cefd",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualizes a node's output"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "9356194eaa5e455198e2c91fde1414ae",
+      "End": "f71b7e4117ff4507af78cce8c19ec87e",
+      "Id": "006159bed10d41db80438a9e4c9d0640"
+    },
+    {
+      "Start": "c98ebce5922641b29ba2daa3d585cefd",
+      "End": "bbddc655ad074c91b201f6de36fbf2fe",
+      "Id": "7d1ac604ba724e3ba281c3e6742d6aba"
+    },
+    {
+      "Start": "c98ebce5922641b29ba2daa3d585cefd",
+      "End": "3f9094235a114e6fb4f4769f34873c41",
+      "Id": "15ee5859ae2845649ebe0ac8bcc70157"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "4.1.0.2940",
+      "RunType": "Automatic",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "_Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "Id": "55224bcc59764cfea08b07931dc75aea",
+        "Name": "Code Block",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 340.8372921185593,
+        "Y": 245.4572249337586
+      },
+      {
+        "Id": "bf96a26cf0d44bcc9fac21b2233e1bf4",
+        "Name": "Code Block",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 1050.0,
+        "Y": 27.0
+      },
+      {
+        "Id": "d87460d55bbb4bc2b3c09841ceaa4335",
+        "Name": "Code Block",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 1045.7428662711266,
+        "Y": 278.2571337288734
+      },
+      {
+        "Id": "18670ca53bc84350afecb263e3c44dfa",
+        "Name": "Watch",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 710.0,
+        "Y": 135.0
+      }
+    ],
+    "Annotations": [],
+    "X": -225.33366467326164,
+    "Y": 157.5880542794624,
+    "Zoom": 1.1580300308991534
+  }
+}
