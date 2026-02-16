@@ -251,6 +251,51 @@ namespace Dynamo.Graph.Connectors
         }
 
         /// <summary>
+        /// Retarget the start port of this connector while preserving the connector instance.
+        /// </summary>
+        /// <param name="newStart">The new start/output port.</param>
+        /// <returns>True if retargeting was successful, false otherwise.</returns>
+        internal bool TryUpdateStartPort(PortModel newStart)
+        {
+            if (newStart == null || End == null || Start == null)
+                return false;
+
+            if (ReferenceEquals(Start, newStart))
+                return false;
+
+            if (newStart.PortType != PortType.Output)
+                return false;
+
+            if (ReferenceEquals(newStart, End) || newStart.Owner == null || End.Owner == null)
+                return false;
+
+            if (ReferenceEquals(newStart.Owner, End.Owner))
+                return false;
+
+            var oldStart = Start;
+            var endPort = End;
+
+            // Keep node input/output lookup tables synchronized with the moved connector.
+            oldStart.Owner.DisconnectOutput(oldStart.Index, endPort.Index, endPort.Owner);
+            endPort.Owner.DisconnectInput(endPort.Index);
+
+            oldStart.Connectors.Remove(this);
+            Start = newStart;
+            if (!newStart.Connectors.Contains(this))
+            {
+                newStart.Connectors.Add(this);
+            }
+
+            endPort.Owner.ConnectInput(endPort.Index, newStart.Index, newStart.Owner);
+            newStart.Owner.ConnectOutput(newStart.Index, endPort.Index, endPort.Owner);
+
+            RaisePropertyChanged(nameof(Start));
+            endPort.Owner.OnNodeModified();
+
+            return true;
+        }
+
+        /// <summary>
         /// Delete the connector without raising port disconnection events.
         /// </summary>
         internal void Delete()
