@@ -23,14 +23,14 @@ namespace Dynamo.Tests.ModelsTest
     [TestFixture]
     class DynamoModelCommandsTest : DynamoModelTestBase
     {
-        private const string InlineWatchFixtureWatchNodeId = "18670ca53bc84350afecb263e3c44dfa";
-        private const string InlineWatchFixtureUpstreamNodeId = "55224bcc59764cfea08b07931dc75aea";
-        private const string InlineWatchFixtureDownstreamNodeAId = "bf96a26cf0d44bcc9fac21b2233e1bf4";
-        private const string InlineWatchFixtureDownstreamNodeBId = "d87460d55bbb4bc2b3c09841ceaa4335";
+        private const string InlineWatchFixtureWatchNodeId = "7cea46ef214540cdbe0ee876e7fa7694";
+        private const string InlineWatchFixtureUpstreamNodeId = "ba7faaa1a3664a65a43245bd9ca101a4";
+        private const string InlineWatchFixtureDownstreamNodeAId = "038e2da4087e486eae17dbafcb02489b";
+        private const string InlineWatchFixtureDownstreamNodeBId = "f5f7bb5c2efb459bb67cc252d03c9e95";
 
-        private const string InlineWatchFixtureIncomingConnectorId = "006159bed10d41db80438a9e4c9d0640";
-        private const string InlineWatchFixtureDownstreamConnectorAId = "7d1ac604ba724e3ba281c3e6742d6aba";
-        private const string InlineWatchFixtureDownstreamConnectorBId = "15ee5859ae2845649ebe0ac8bcc70157";
+        private const string InlineWatchFixtureIncomingConnectorId = "35b91481-ed3b-47a2-bf3a-607001c64a24";
+        private const string InlineWatchFixtureDownstreamConnectorAId = "6893a374-9463-4ccc-be79-6cbe19800dce";
+        private const string InlineWatchFixtureDownstreamConnectorBId = "ccbd49ec-797d-441a-be32-df772348d4c9";
 
         /// <summary>
         /// This test method will execute the ForceRunCancelImpl method from the DynamoModel class
