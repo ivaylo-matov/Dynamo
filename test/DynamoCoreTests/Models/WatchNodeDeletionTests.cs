@@ -279,5 +279,19 @@ namespace Dynamo.Tests.ModelsTest
             Assert.IsNotNull(homeWorkspace);
             return homeWorkspace;
         }
+
+        private CodeBlockNodeModel CreateCodeBlockNode()
+        {
+            var cbn = new CodeBlockNodeModel(CurrentDynamoModel.LibraryServices);
+            var command = new DynCmd.CreateNodeCommand(cbn, 0, 0, true, false);
+            CurrentDynamoModel.ExecuteCommand(command);
+            return cbn;
+        }
+
+        private void UpdateCodeBlockNodeContent(CodeBlockNodeModel cbn, string value)
+        {
+            var command = new DynCmd.UpdateModelValueCommand(Guid.Empty, cbn.GUID, "Code", value);
+            CurrentDynamoModel.ExecuteCommand(command);
+        }
     }
 }
