@@ -207,12 +207,15 @@ namespace Dynamo.Graph.Workspaces
 
             var nodesScheduledForDeletion = new HashSet<Guid>(
                 models.OfType<NodeModel>().Select(node => node.GUID));
+            // Deleting inline watch nodes can preserve data flow (rewire pass-through connectors),
+            // so we can defer execution until the next explicit graph run.
+            var requestRunOnDispose = !ShouldSuppressRunAfterDelete(models);
 
             // Gather a list of connectors first before the nodes they connect
             // to are deleted. We will have to delete the connectors first
             // before
 
-            using (BeginDelayedGraphExecution())// Delayed execution
+            using (BeginDelayedGraphExecution(requestRunOnDispose))// Delayed execution
             using (undoRecorder.BeginActionGroup()) // Start a new action group.
             {
                 foreach (var model in models)
@@ -357,6 +360,30 @@ namespace Dynamo.Graph.Workspaces
             }
 
             return reconnectedAnyConnector;
+        }
+
+        private bool ShouldSuppressRunAfterDelete(IEnumerable<ModelBase> models)
+        {
+            var deletedModels = models.ToList();
+            var deletedNodes = deletedModels.OfType<NodeModel>().ToList();
+            if (!deletedNodes.Any())
+            {
+                return false;
+            }
+
+            if (deletedNodes.Any(node => !IsInlineWatchNode(node)))
+            {
+                return false;
+            }
+
+            // If connectors/pins are explicitly in the deletion set, keep existing
+            // run behavior because the deletion may include non-watch graph edits.
+            if (deletedModels.Any(model => model is ConnectorModel || model is ConnectorPinModel))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private static bool IsInlineWatchNode(NodeModel node)

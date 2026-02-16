@@ -5,6 +5,8 @@ using CoreNodeModels;
 using Dynamo.Graph;
 using Dynamo.Graph.Connectors;
 using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Workspaces;
+using Dynamo.Models;
 using NUnit.Framework;
 using DynCmd = Dynamo.Models.DynamoModel;
 
@@ -99,6 +101,42 @@ namespace Dynamo.Tests.ModelsTest
                 connector.End.Owner.GUID == graph.DownstreamNodeB.GUID));
         }
 
+        [Test]
+        [Category("UnitTests")]
+        public void DeleteWatchNodeWithoutDownstreamConnectionsDoesNotTriggerAutoRun()
+        {
+            var workspace = GetHomeWorkspace();
+            workspace.RunSettings.RunType = RunType.Manual;
+
+            var graph = CreateWatchSinkGraphWithoutDownstream();
+
+            workspace.RunSettings.RunType = RunType.Automatic;
+            var evaluationCountBeforeDelete = workspace.EvaluationCount;
+
+            CurrentDynamoModel.DeleteModelInternal(new List<ModelBase> { graph.WatchNode });
+
+            Assert.AreEqual(evaluationCountBeforeDelete, workspace.EvaluationCount);
+        }
+
+        [Test]
+        [Category("UnitTests")]
+        public void DeleteWatchNodeWithRewiredDownstreamConnectionsDoesNotTriggerAutoRun()
+        {
+            var workspace = GetHomeWorkspace();
+            workspace.RunSettings.RunType = RunType.Manual;
+
+            var graph = CreateInlineWatchGraph();
+
+            workspace.RunSettings.RunType = RunType.Automatic;
+            var evaluationCountBeforeDelete = workspace.EvaluationCount;
+
+            CurrentDynamoModel.DeleteModelInternal(new List<ModelBase> { graph.WatchNode });
+
+            Assert.AreEqual(evaluationCountBeforeDelete, workspace.EvaluationCount);
+            Assert.IsTrue(graph.DownstreamNodeA.IsModified);
+            Assert.IsTrue(graph.DownstreamNodeB.IsModified);
+        }
+
         private (NodeModel UpstreamNode, NodeModel DownstreamNodeA, NodeModel DownstreamNodeB, Watch WatchNode, ConnectorModel DownstreamConnectorA, ConnectorModel DownstreamConnectorB)
             CreateInlineWatchGraph()
         {
@@ -123,6 +161,27 @@ namespace Dynamo.Tests.ModelsTest
             Assert.IsNotNull(downstreamConnectorB);
 
             return (upstreamNode, downstreamNodeA, downstreamNodeB, watchNode, downstreamConnectorA, downstreamConnectorB);
+        }
+
+        private (NodeModel UpstreamNode, Watch WatchNode) CreateWatchSinkGraphWithoutDownstream()
+        {
+            var upstreamNode = CreateCodeBlockNode();
+            UpdateCodeBlockNodeContent(upstreamNode, "1;");
+
+            var watchNode = new Watch();
+            CurrentDynamoModel.ExecuteCommand(new DynCmd.CreateNodeCommand(watchNode, 0, 0, true, false));
+
+            var upstreamToWatch = ConnectorModel.Make(upstreamNode, watchNode, 0, 0);
+            Assert.IsNotNull(upstreamToWatch);
+
+            return (upstreamNode, watchNode);
+        }
+
+        private HomeWorkspaceModel GetHomeWorkspace()
+        {
+            var homeWorkspace = CurrentDynamoModel.CurrentWorkspace as HomeWorkspaceModel;
+            Assert.IsNotNull(homeWorkspace);
+            return homeWorkspace;
         }
     }
 }
