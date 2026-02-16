@@ -341,7 +341,12 @@ namespace Dynamo.Graph.Workspaces
             if (nodesScheduledForDeletion.Contains(upstreamPort.Owner.GUID))
                 return false;
 
+            var incomingPinCoordinates = incomingConnector.ConnectorPinModels
+                .Select(pin => (pin.X, pin.Y))
+                .ToList();
+
             var reconnectedAnyConnector = false;
+            ConnectorModel firstReconnectedConnector = null;
             foreach (var downstreamConnector in outputPort.Connectors.ToList())
             {
                 var endOwner = downstreamConnector.End?.Owner;
@@ -352,6 +357,17 @@ namespace Dynamo.Graph.Workspaces
                 if (downstreamConnector.TryUpdateStartPort(upstreamPort, notifyEndNodeModified: false))
                 {
                     reconnectedAnyConnector = true;
+                    firstReconnectedConnector ??= downstreamConnector;
+                }
+            }
+
+            if (firstReconnectedConnector != null && incomingPinCoordinates.Count > 0)
+            {
+                foreach (var (x, y) in incomingPinCoordinates)
+                {
+                    var recreatedPin = new ConnectorPinModel(x, y, Guid.NewGuid(), firstReconnectedConnector.GUID);
+                    firstReconnectedConnector.AddPin(recreatedPin);
+                    undoRecorder.RecordCreationForUndo(recreatedPin);
                 }
             }
 

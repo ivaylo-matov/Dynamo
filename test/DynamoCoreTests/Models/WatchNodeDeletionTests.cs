@@ -178,7 +178,30 @@ namespace Dynamo.Tests.ModelsTest
             Assert.IsNotNull(restoredWatch.CachedValue);
         }
 
-        private (NodeModel UpstreamNode, NodeModel DownstreamNodeA, NodeModel DownstreamNodeB, Watch WatchNode, ConnectorModel DownstreamConnectorA, ConnectorModel DownstreamConnectorB)
+        [Test]
+        [Category("UnitTests")]
+        public void DeleteInlineWatchNodeRecreatesIncomingPinsOnFirstDownstreamConnectorOnly()
+        {
+            var graph = CreateInlineWatchGraph();
+
+            graph.IncomingConnector.AddPin(new ConnectorPinModel(120.0, 220.0, Guid.NewGuid(), graph.IncomingConnector.GUID));
+            graph.IncomingConnector.AddPin(new ConnectorPinModel(180.0, 260.0, Guid.NewGuid(), graph.IncomingConnector.GUID));
+
+            CurrentDynamoModel.DeleteModelInternal(new List<ModelBase> { graph.WatchNode });
+
+            var workspace = CurrentDynamoModel.CurrentWorkspace;
+            var firstDownstream = workspace.Connectors.First(connector => connector.GUID == graph.DownstreamConnectorA.GUID);
+            var secondDownstream = workspace.Connectors.First(connector => connector.GUID == graph.DownstreamConnectorB.GUID);
+
+            Assert.AreEqual(2, firstDownstream.ConnectorPinModels.Count);
+            Assert.AreEqual(0, secondDownstream.ConnectorPinModels.Count);
+            Assert.IsTrue(firstDownstream.ConnectorPinModels.All(pin => pin.ConnectorId == firstDownstream.GUID));
+            CollectionAssert.AreEquivalent(
+                new[] { (120.0, 220.0), (180.0, 260.0) },
+                firstDownstream.ConnectorPinModels.Select(pin => (pin.X, pin.Y)).ToList());
+        }
+
+        private (NodeModel UpstreamNode, NodeModel DownstreamNodeA, NodeModel DownstreamNodeB, Watch WatchNode, ConnectorModel IncomingConnector, ConnectorModel DownstreamConnectorA, ConnectorModel DownstreamConnectorB)
             CreateInlineWatchGraph()
         {
             var upstreamNode = CreateCodeBlockNode();
@@ -201,7 +224,7 @@ namespace Dynamo.Tests.ModelsTest
             Assert.IsNotNull(downstreamConnectorA);
             Assert.IsNotNull(downstreamConnectorB);
 
-            return (upstreamNode, downstreamNodeA, downstreamNodeB, watchNode, downstreamConnectorA, downstreamConnectorB);
+            return (upstreamNode, downstreamNodeA, downstreamNodeB, watchNode, upstreamToWatch, downstreamConnectorA, downstreamConnectorB);
         }
 
         private (NodeModel UpstreamNode, Watch WatchNode) CreateWatchSinkGraphWithoutDownstream()
