@@ -135,6 +135,15 @@ namespace Dynamo.Tests.ModelsTest
             Assert.AreEqual(evaluationCountBeforeDelete, workspace.EvaluationCount);
             Assert.IsTrue(graph.DownstreamNodeA.IsModified);
             Assert.IsTrue(graph.DownstreamNodeB.IsModified);
+            Assert.IsNull(workspace.Nodes.FirstOrDefault(node => node.GUID == graph.WatchNode.GUID));
+            Assert.IsTrue(workspace.Connectors.Any(connector =>
+                connector.GUID == graph.DownstreamConnectorA.GUID &&
+                connector.Start.Owner.GUID == graph.UpstreamNode.GUID &&
+                connector.End.Owner.GUID == graph.DownstreamNodeA.GUID));
+            Assert.IsTrue(workspace.Connectors.Any(connector =>
+                connector.GUID == graph.DownstreamConnectorB.GUID &&
+                connector.Start.Owner.GUID == graph.UpstreamNode.GUID &&
+                connector.End.Owner.GUID == graph.DownstreamNodeB.GUID));
         }
 
         [Test]
@@ -199,6 +208,29 @@ namespace Dynamo.Tests.ModelsTest
             CollectionAssert.AreEquivalent(
                 new[] { (120.0, 220.0), (180.0, 260.0) },
                 firstDownstream.ConnectorPinModels.Select(pin => (pin.X, pin.Y)).ToList());
+        }
+
+        [Test]
+        [Category("UnitTests")]
+        public void DeleteWatchNodeInAutomaticModeUndoTriggersRunAndRestoresWatchData()
+        {
+            var workspace = GetHomeWorkspace();
+            workspace.RunSettings.RunType = RunType.Manual;
+
+            var graph = CreateInlineWatchGraph();
+            BeginRun();
+
+            workspace.RunSettings.RunType = RunType.Automatic;
+            CurrentDynamoModel.DeleteModelInternal(new List<ModelBase> { graph.WatchNode });
+            var evaluationCountBeforeUndo = workspace.EvaluationCount;
+
+            workspace.Undo();
+
+            Assert.Greater(workspace.EvaluationCount, evaluationCountBeforeUndo);
+            var restoredWatch = workspace.Nodes.FirstOrDefault(node => node.GUID == graph.WatchNode.GUID) as Watch;
+            Assert.IsNotNull(restoredWatch);
+            Assert.IsTrue(restoredWatch.HasRunOnce);
+            Assert.IsNotNull(restoredWatch.CachedValue);
         }
 
         private (NodeModel UpstreamNode, NodeModel DownstreamNodeA, NodeModel DownstreamNodeB, Watch WatchNode, ConnectorModel IncomingConnector, ConnectorModel DownstreamConnectorA, ConnectorModel DownstreamConnectorB)
