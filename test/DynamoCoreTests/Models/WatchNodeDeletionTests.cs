@@ -137,6 +137,25 @@ namespace Dynamo.Tests.ModelsTest
             Assert.IsTrue(graph.DownstreamNodeB.IsModified);
         }
 
+        [Test]
+        [Category("UnitTests")]
+        public void DeleteWatchNodeRewireMarksDownstreamDirtyWithoutRaisingModifiedEvent()
+        {
+            var graph = CreateInlineWatchGraph();
+
+            var downstreamModifiedEventCountA = 0;
+            var downstreamModifiedEventCountB = 0;
+            graph.DownstreamNodeA.Modified += _ => downstreamModifiedEventCountA++;
+            graph.DownstreamNodeB.Modified += _ => downstreamModifiedEventCountB++;
+
+            CurrentDynamoModel.DeleteModelInternal(new List<ModelBase> { graph.WatchNode });
+
+            Assert.IsTrue(graph.DownstreamNodeA.IsModified);
+            Assert.IsTrue(graph.DownstreamNodeB.IsModified);
+            Assert.AreEqual(0, downstreamModifiedEventCountA);
+            Assert.AreEqual(0, downstreamModifiedEventCountB);
+        }
+
         private (NodeModel UpstreamNode, NodeModel DownstreamNodeA, NodeModel DownstreamNodeB, Watch WatchNode, ConnectorModel DownstreamConnectorA, ConnectorModel DownstreamConnectorB)
             CreateInlineWatchGraph()
         {

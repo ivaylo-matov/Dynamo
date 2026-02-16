@@ -254,8 +254,12 @@ namespace Dynamo.Graph.Connectors
         /// Retarget the start port of this connector while preserving the connector instance.
         /// </summary>
         /// <param name="newStart">The new start/output port.</param>
+        /// <param name="notifyEndNodeModified">
+        /// If true, triggers node-modified events on the downstream node.
+        /// If false, only marks the downstream node as dirty.
+        /// </param>
         /// <returns>True if retargeting was successful, false otherwise.</returns>
-        internal bool TryUpdateStartPort(PortModel newStart)
+        internal bool TryUpdateStartPort(PortModel newStart, bool notifyEndNodeModified = true)
         {
             if (newStart == null || End == null || Start == null)
                 return false;
@@ -290,7 +294,14 @@ namespace Dynamo.Graph.Connectors
             newStart.Owner.ConnectOutput(newStart.Index, endPort.Index, endPort.Owner);
 
             RaisePropertyChanged(nameof(Start));
-            endPort.Owner.OnNodeModified();
+            if (notifyEndNodeModified)
+            {
+                endPort.Owner.OnNodeModified();
+            }
+            else
+            {
+                endPort.Owner.MarkNodeAsModified();
+            }
 
             return true;
         }

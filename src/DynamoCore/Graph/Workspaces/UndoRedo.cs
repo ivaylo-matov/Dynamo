@@ -348,7 +348,7 @@ namespace Dynamo.Graph.Workspaces
                     continue;
 
                 undoRecorder.RecordModificationForUndo(downstreamConnector);
-                if (downstreamConnector.TryUpdateStartPort(upstreamPort))
+                if (downstreamConnector.TryUpdateStartPort(upstreamPort, notifyEndNodeModified: false))
                 {
                     reconnectedAnyConnector = true;
                 }
@@ -566,7 +566,7 @@ namespace Dynamo.Graph.Workspaces
             var startPort = startNode.OutPorts[startPortIndex];
             if (!ReferenceEquals(connectorModel.Start, startPort))
             {
-                connectorModel.TryUpdateStartPort(startPort);
+                connectorModel.TryUpdateStartPort(startPort, notifyEndNodeModified: false);
             }
         }
 
