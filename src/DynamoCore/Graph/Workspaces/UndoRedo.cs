@@ -326,6 +326,36 @@ namespace Dynamo.Graph.Workspaces
 
         private bool TryReconnectInlineWatchNode(NodeModel node, ISet<Guid> nodesScheduledForDeletion)
         {
+            if (!TryGetWatchReconnectContext(
+                    node,
+                    nodesScheduledForDeletion,
+                    out var upstreamPort,
+                    out var downstreamConnectors,
+                    out var incomingPinCoordinates))
+            {
+                return false;
+            }
+
+            var (reconnectedAnyConnector, firstReconnectedConnector) =
+                ReconnectWatchDownstreamConnectors(downstreamConnectors, upstreamPort, nodesScheduledForDeletion);
+
+            RecreateIncomingPinsOnFirstReconnectedConnector(firstReconnectedConnector, incomingPinCoordinates);
+            UpdateUpstreamCacheAfterWatchRewire(reconnectedAnyConnector, upstreamPort);
+
+            return reconnectedAnyConnector;
+        }
+
+        private bool TryGetWatchReconnectContext(
+            NodeModel node,
+            ISet<Guid> nodesScheduledForDeletion,
+            out PortModel upstreamPort,
+            out List<ConnectorModel> downstreamConnectors,
+            out List<(double x, double y)> incomingPinCoordinates)
+        {
+            upstreamPort = null;
+            downstreamConnectors = null;
+            incomingPinCoordinates = null;
+
             if (!IsInlineWatchNode(node))
                 return false;
 
@@ -335,49 +365,73 @@ namespace Dynamo.Graph.Workspaces
                 return false;
 
             var incomingConnector = inputPort.Connectors[0];
-            var upstreamPort = incomingConnector.Start;
+            upstreamPort = incomingConnector.Start;
             if (upstreamPort == null || upstreamPort.Owner == null)
                 return false;
 
             if (nodesScheduledForDeletion.Contains(upstreamPort.Owner.GUID))
                 return false;
 
-            var incomingPinCoordinates = incomingConnector.ConnectorPinModels
+            downstreamConnectors = outputPort.Connectors.ToList();
+            incomingPinCoordinates = incomingConnector.ConnectorPinModels
                 .Select(pin => (pin.X, pin.Y))
                 .ToList();
+            return true;
+        }
 
+        private (bool reconnectedAnyConnector, ConnectorModel firstReconnectedConnector) ReconnectWatchDownstreamConnectors(
+            IEnumerable<ConnectorModel> downstreamConnectors,
+            PortModel upstreamPort,
+            ISet<Guid> nodesScheduledForDeletion)
+        {
             var reconnectedAnyConnector = false;
             ConnectorModel firstReconnectedConnector = null;
-            foreach (var downstreamConnector in outputPort.Connectors.ToList())
+
+            foreach (var downstreamConnector in downstreamConnectors)
             {
-                var endOwner = downstreamConnector.End?.Owner;
-                if (endOwner == null || nodesScheduledForDeletion.Contains(endOwner.GUID))
+                if (ShouldSkipReconnectionTarget(downstreamConnector, nodesScheduledForDeletion))
                     continue;
 
                 undoRecorder.RecordModificationForUndo(downstreamConnector);
-                if (downstreamConnector.TryUpdateStartPort(upstreamPort, notifyEndNodeModified: false))
-                {
-                    reconnectedAnyConnector = true;
-                    firstReconnectedConnector ??= downstreamConnector;
-                }
+                if (!downstreamConnector.TryUpdateStartPort(upstreamPort, notifyEndNodeModified: false))
+                    continue;
+
+                reconnectedAnyConnector = true;
+                firstReconnectedConnector ??= downstreamConnector;
             }
 
-            if (firstReconnectedConnector != null && incomingPinCoordinates.Count > 0)
+            return (reconnectedAnyConnector, firstReconnectedConnector);
+        }
+
+        private static bool ShouldSkipReconnectionTarget(
+            ConnectorModel downstreamConnector,
+            ISet<Guid> nodesScheduledForDeletion)
+        {
+            var endOwner = downstreamConnector.End?.Owner;
+            return endOwner == null || nodesScheduledForDeletion.Contains(endOwner.GUID);
+        }
+
+        private void RecreateIncomingPinsOnFirstReconnectedConnector(
+            ConnectorModel firstReconnectedConnector,
+            IEnumerable<(double x, double y)> incomingPinCoordinates)
+        {
+            if (firstReconnectedConnector == null)
+                return;
+
+            foreach (var (x, y) in incomingPinCoordinates)
             {
-                foreach (var (x, y) in incomingPinCoordinates)
-                {
-                    var recreatedPin = new ConnectorPinModel(x, y, Guid.NewGuid(), firstReconnectedConnector.GUID);
-                    firstReconnectedConnector.AddPin(recreatedPin);
-                    undoRecorder.RecordCreationForUndo(recreatedPin);
-                }
+                var recreatedPin = new ConnectorPinModel(x, y, Guid.NewGuid(), firstReconnectedConnector.GUID);
+                firstReconnectedConnector.AddPin(recreatedPin);
+                undoRecorder.RecordCreationForUndo(recreatedPin);
             }
+        }
 
+        private void UpdateUpstreamCacheAfterWatchRewire(bool reconnectedAnyConnector, PortModel upstreamPort)
+        {
             if (reconnectedAnyConnector && workspaceLoaded)
             {
                 upstreamPort.Owner.ComputeUpstreamOnDownstreamNodes();
             }
-
-            return reconnectedAnyConnector;
         }
 
         private bool ShouldSuppressRunAfterDelete(IEnumerable<ModelBase> models)
