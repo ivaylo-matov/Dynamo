@@ -324,7 +324,7 @@ namespace Dynamo.Graph.Workspaces
             } // Conclude the deletion.
         }
 
-        private bool TryReconnectInlineWatchNode(NodeModel node, ISet<Guid> nodesScheduledForDeletion)
+        private void TryReconnectInlineWatchNode(NodeModel node, ISet<Guid> nodesScheduledForDeletion)
         {
             if (!TryGetWatchReconnectContext(
                     node,
@@ -333,7 +333,7 @@ namespace Dynamo.Graph.Workspaces
                     out var downstreamConnectors,
                     out var incomingPinCoordinates))
             {
-                return false;
+                return;
             }
 
             var (reconnectedAnyConnector, firstReconnectedConnector) =
@@ -341,8 +341,6 @@ namespace Dynamo.Graph.Workspaces
 
             RecreateIncomingPinsOnFirstReconnectedConnector(firstReconnectedConnector, incomingPinCoordinates);
             UpdateUpstreamCacheAfterWatchRewire(reconnectedAnyConnector, upstreamPort);
-
-            return reconnectedAnyConnector;
         }
 
         private bool TryGetWatchReconnectContext(
