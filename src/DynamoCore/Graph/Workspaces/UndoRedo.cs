@@ -412,14 +412,14 @@ namespace Dynamo.Graph.Workspaces
 
         private void RecreateIncomingPinsOnFirstReconnectedConnector(
             ConnectorModel firstReconnectedConnector,
-            IEnumerable<(double x, double y)> incomingPinCoordinates)
+            IEnumerable<(double pinX, double pinY)> incomingPinCoordinates)
         {
             if (firstReconnectedConnector == null)
                 return;
 
-            foreach (var (x, y) in incomingPinCoordinates)
+            foreach (var (pinX, pinY) in incomingPinCoordinates)
             {
-                var recreatedPin = new ConnectorPinModel(x, y, Guid.NewGuid(), firstReconnectedConnector.GUID);
+                var recreatedPin = new ConnectorPinModel(pinX, pinY, Guid.NewGuid(), firstReconnectedConnector.GUID);
                 firstReconnectedConnector.AddPin(recreatedPin);
                 undoRecorder.RecordCreationForUndo(recreatedPin);
             }
@@ -433,7 +433,7 @@ namespace Dynamo.Graph.Workspaces
             }
         }
 
-        private bool ShouldSuppressRunAfterDelete(IEnumerable<ModelBase> models)
+        private static bool ShouldSuppressRunAfterDelete(IEnumerable<ModelBase> models)
         {
             var deletedModels = models.ToList();
             var deletedNodes = deletedModels.OfType<NodeModel>().ToList();
