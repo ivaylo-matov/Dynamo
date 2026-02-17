@@ -1153,6 +1153,34 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
+        /// Adds non-model-backed pin view models to an in-progress connector so
+        /// pins remain visible while reconnecting an existing wire.
+        /// </summary>
+        /// <param name="connectorPins">Pins from the connector being reconnected.</param>
+        internal void AddTransientConnectorPins(IEnumerable<ConnectorPinModel> connectorPins)
+        {
+            if (connectorPins is null) { return; }
+
+            foreach (var connectorPin in connectorPins)
+            {
+                var transientPinModel = new ConnectorPinModel(
+                    connectorPin.X,
+                    connectorPin.Y,
+                    Guid.NewGuid(),
+                    Guid.Empty);
+
+                var transientPinViewModel = new ConnectorPinViewModel(this.workspaceViewModel, transientPinModel)
+                {
+                    IsCollapsed = this.IsCollapsed,
+                    IsHidden = this.IsHidden,
+                    IsTemporarilyVisible = isTemporarilyVisible
+                };
+
+                ConnectorPinViewCollection.Add(transientPinViewModel);
+            }
+        }
+
+        /// <summary>
         /// Checking to see if any connector pin is selected, if so
         /// global 'AnyPinSelected' is set to true and wire Preview State is set to 'Selected'
         /// </summary>
@@ -1435,14 +1463,18 @@ namespace Dynamo.ViewModels
         /// to all previous pins is required for undo/redo recorder.</param>
         internal void DiscardAllConnectorPinModels(List<ModelBase> allDeletedModels = null)
         {
-            foreach (var pin in ConnectorPinViewCollection)
+            foreach (var pin in ConnectorPinViewCollection.ToList())
             {
                 workspaceViewModel.Pins.Remove(pin);
-                ConnectorModel.RemovePin(pin.Model);
 
-                if(allDeletedModels != null)
+                if (ConnectorModel != null)
                 {
-                    allDeletedModels.Add(pin.Model);
+                    ConnectorModel.RemovePin(pin.Model);
+
+                    if (allDeletedModels != null)
+                    {
+                        allDeletedModels.Add(pin.Model);
+                    }
                 }
                 pin.Model.Dispose();
                 pin.Dispose();

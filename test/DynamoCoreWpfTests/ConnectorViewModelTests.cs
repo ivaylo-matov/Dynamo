@@ -506,15 +506,23 @@ namespace DynamoCoreWpfTests
                 new DynamoModel.MakeConnectionCommand(startNode.GUID, startPortIndex, PortType.Output,
                 MakeConnectionCommand.Mode.BeginShiftReconnections));
 
+            // While moving the wire, pins should stay visible on the transient connector.
+            Assert.IsNotNull(this.ViewModel.CurrentSpaceViewModel.FirstActiveConnector);
+            Assert.AreEqual(
+                initialConnectorPinCount + 1,
+                this.ViewModel.CurrentSpaceViewModel.FirstActiveConnector.ConnectorPinViewCollection.Count);
+
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(
                 new DynamoModel.MakeConnectionCommand(codeblock.GUID, 0, PortType.Output,
                 MakeConnectionCommand.Mode.EndShiftReconnections));
 
-            // Validate that the pin does not exists anymore
+            // Validate that the pin persists after reconnection
             var connectorAfterReconnect = this.ViewModel.CurrentSpaceViewModel.Connectors;
             Assert.AreEqual(1, connectorAfterReconnect.Count());
-            Assert.AreEqual(0, connectorAfterReconnect.First().ConnectorPinViewCollection.Count());
+            Assert.AreEqual(
+                initialConnectorPinCount + 1,
+                connectorAfterReconnect.First().ConnectorPinViewCollection.Count());
 
             // --- Undo ---
             Model.ExecuteCommand(new UndoRedoCommand(UndoRedoCommand.Operation.Undo));

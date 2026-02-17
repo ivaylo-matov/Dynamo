@@ -200,10 +200,15 @@ namespace Dynamo.ViewModels
             // to somewhere else (we don't allow the grabbing of the start connector).
             if (portModel.Connectors.Count > 0 && portModel.Connectors[0].Start != portModel)
             {
+                var connectorToReconnect = portModel.Connectors[0];
+
                 // Define the new active connector
-                var c = new ConnectorViewModel[] { new ConnectorViewModel(this, portModel.Connectors[0].Start) };
+                var activeConnector = new ConnectorViewModel(this, connectorToReconnect.Start);
+                activeConnector.AddTransientConnectorPins(connectorToReconnect.ConnectorPinModels);
+
+                var c = new ConnectorViewModel[] { activeConnector };
                 this.SetActiveConnectors(c);
-                firstStartPort = portModel.Connectors[0].Start;
+                firstStartPort = connectorToReconnect.Start;
             }
             else
             {
@@ -230,18 +235,20 @@ namespace Dynamo.ViewModels
             if (portModel.Connectors.Count <= 0) return;
 
             // Try to obtain connectors for selected nodes
-            var selected = portModel.Connectors.Where(x => x.End.Owner.IsSelected).Select(y => y.End);
+            var selectedConnectors = portModel.Connectors.Where(x => x.End.Owner.IsSelected).ToList();
 
             // If there are no selected nodes, obtain all the associated connectors
-            if (selected.Count() <= 0)
+            if (selectedConnectors.Count <= 0)
             {
-                selected = portModel.Connectors.Select(y => y.End);
+                selectedConnectors = portModel.Connectors.ToList();
             }
 
-            var connectorsAr = new ConnectorViewModel[selected.Count()];
-            for (int i = 0; i < selected.Count(); i++)
+            var connectorsAr = new ConnectorViewModel[selectedConnectors.Count];
+            for (int i = 0; i < selectedConnectors.Count; i++)
             {
-                var c = new ConnectorViewModel(this, selected.ElementAt(i));
+                var selectedConnector = selectedConnectors[i];
+                var c = new ConnectorViewModel(this, selectedConnector.End);
+                c.AddTransientConnectorPins(selectedConnector.ConnectorPinModels);
                 connectorsAr[i] = c;
             }
 
