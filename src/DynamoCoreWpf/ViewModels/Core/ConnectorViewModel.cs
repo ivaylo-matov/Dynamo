@@ -1520,6 +1520,12 @@ namespace Dynamo.ViewModels
                         this.Redraw(this.ConnectorModel.End.Center);
                     }
                 }
+                else if (ConnectorPinViewCollection?.Count > 0)
+                {
+                    // Transient connectors being re-routed have no ConnectorModel.
+                    // Redraw against the current endpoint so retained pins are reflected immediately.
+                    Redraw(CurvePoint3);
+                }
 
                 this.SetCollapsedByNodeViewModel();
                 RaisePropertyChanged(nameof(ZIndex));
