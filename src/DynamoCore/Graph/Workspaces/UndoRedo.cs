@@ -326,12 +326,14 @@ namespace Dynamo.Graph.Workspaces
 
         private void TryReconnectInlineWatchNode(NodeModel node, ISet<Guid> nodesScheduledForDeletion)
         {
-            if (!TryGetWatchReconnectContext(
-                    node,
-                    nodesScheduledForDeletion,
-                    out var upstreamPort,
-                    out var downstreamConnectors,
-                    out var incomingPinCoordinates))
+            TryGetWatchReconnectContext(
+                node,
+                nodesScheduledForDeletion,
+                out var upstreamPort,
+                out var downstreamConnectors,
+                out var incomingPinCoordinates);
+
+            if (upstreamPort == null || downstreamConnectors == null || incomingPinCoordinates == null)
             {
                 return;
             }
@@ -343,7 +345,7 @@ namespace Dynamo.Graph.Workspaces
             UpdateUpstreamCacheAfterWatchRewire(reconnectedAnyConnector, upstreamPort);
         }
 
-        private bool TryGetWatchReconnectContext(
+        private void TryGetWatchReconnectContext(
             NodeModel node,
             ISet<Guid> nodesScheduledForDeletion,
             out PortModel upstreamPort,
@@ -355,26 +357,25 @@ namespace Dynamo.Graph.Workspaces
             incomingPinCoordinates = null;
 
             if (!IsInlineWatchNode(node))
-                return false;
+                return;
 
             var inputPort = node.InPorts[0];
             var outputPort = node.OutPorts[0];
             if (inputPort.Connectors.Count != 1 || outputPort.Connectors.Count == 0)
-                return false;
+                return;
 
             var incomingConnector = inputPort.Connectors[0];
             upstreamPort = incomingConnector.Start;
             if (upstreamPort == null || upstreamPort.Owner == null)
-                return false;
+                return;
 
             if (nodesScheduledForDeletion.Contains(upstreamPort.Owner.GUID))
-                return false;
+                return;
 
             downstreamConnectors = outputPort.Connectors.ToList();
             incomingPinCoordinates = incomingConnector.ConnectorPinModels
                 .Select(pin => (pin.X, pin.Y))
                 .ToList();
-            return true;
         }
 
         private (bool reconnectedAnyConnector, ConnectorModel firstReconnectedConnector) ReconnectWatchDownstreamConnectors(
