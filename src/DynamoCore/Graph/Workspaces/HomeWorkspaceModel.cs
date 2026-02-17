@@ -512,6 +512,11 @@ namespace Dynamo.Graph.Workspaces
             base.DisposeNode(node);
         }
 
+        protected override EngineController GetEngineControllerForWatchCacheRestore()
+        {
+            return EngineController;
+        }
+
         /// <summary>
         /// Called when the RequestSilenceNodeModifiedEvents event is emitted from a Node
         /// </summary>

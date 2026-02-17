@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Xml;
 using Autodesk.DesignScript.Geometry;
 using Dynamo.Core;
+using Dynamo.Engine;
 using Dynamo.Graph.Annotations;
 using Dynamo.Graph.Connectors;
 using Dynamo.Graph.Nodes;
@@ -756,7 +757,8 @@ namespace Dynamo.Graph.Workspaces
             if (nodeModel == null || nodeModel.OutPorts.Count == 0)
                 return;
 
-            if (this is not HomeWorkspaceModel homeWorkspace || homeWorkspace.EngineController == null)
+            var engineController = GetEngineControllerForWatchCacheRestore();
+            if (engineController == null)
                 return;
 
             if (!string.Equals(nodeModel.GetType().FullName, WatchNodeTypeName, StringComparison.Ordinal))
@@ -784,7 +786,7 @@ namespace Dynamo.Graph.Workspaces
             if (string.IsNullOrEmpty(outputIdentifier))
                 return;
 
-            var mirrorData = homeWorkspace.EngineController.GetMirror(outputIdentifier)?.GetData();
+            var mirrorData = engineController.GetMirror(outputIdentifier)?.GetData();
             if (mirrorData == null)
                 return;
 
@@ -804,6 +806,11 @@ namespace Dynamo.Graph.Workspaces
                     $"Unexpected error restoring watch cache for node '{nodeModel.GUID}': {ex.Message}",
                     Logging.WarningLevel.Moderate);
             }
+        }
+
+        protected virtual EngineController GetEngineControllerForWatchCacheRestore()
+        {
+            return null;
         }
 
         /// <summary>
