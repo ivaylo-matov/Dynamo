@@ -2770,6 +2770,17 @@ namespace Dynamo.Graph.Nodes
         }
 
         /// <summary>
+        /// Allows node types to restore custom UI-facing cache data from mirror output
+        /// when models are reloaded through undo/redo without triggering execution.
+        /// </summary>
+        /// <param name="cachedData">Mirror payload associated with output index 0.</param>
+        /// <returns>True when restoration is handled by the node type.</returns>
+        internal virtual bool TryRestoreCachedValueFromUndo(object cachedData)
+        {
+            return false;
+        }
+
+        /// <summary>
         /// Call this method to asynchronously regenerate render package for
         /// this node. This method accesses core properties of a NodeModel and
         /// therefore is typically called on the main/UI thread.

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
 using System.Xml;
 using Autodesk.DesignScript.Geometry;
 using Dynamo.Core;
@@ -20,7 +19,6 @@ namespace Dynamo.Graph.Workspaces
     public partial class WorkspaceModel
     {
         private const string WatchNodeTypeName = "CoreNodeModels.Watch";
-        private const string WatchEvaluationCompleteMethodName = "OnEvaluationComplete";
 
         /// <summary>
         /// Returns the current UndoRedoRecorder that is associated with the current
@@ -764,24 +762,6 @@ namespace Dynamo.Graph.Workspaces
             if (!string.Equals(nodeModel.GetType().FullName, WatchNodeTypeName, StringComparison.Ordinal))
                 return;
 
-            // Watch nodes expose their UI cache through a private callback method.
-            // If execution was intentionally skipped, pull the current mirror value
-            // and invoke that callback so the restored node regains its displayed data.
-            var onEvaluationComplete = nodeModel.GetType().GetMethod(
-                WatchEvaluationCompleteMethodName,
-                BindingFlags.Instance | BindingFlags.NonPublic,
-                null,
-                new[] { typeof(object) },
-                null);
-
-            if (onEvaluationComplete == null)
-            {
-                this.Log(
-                    $"Unable to restore watch cache: method '{WatchEvaluationCompleteMethodName}' was not found on node '{nodeModel.GUID}'.",
-                    Logging.WarningLevel.Moderate);
-                return;
-            }
-
             var outputIdentifier = nodeModel.GetAstIdentifierForOutputIndex(0)?.Value;
             if (string.IsNullOrEmpty(outputIdentifier))
                 return;
@@ -792,18 +772,17 @@ namespace Dynamo.Graph.Workspaces
 
             try
             {
-                onEvaluationComplete.Invoke(nodeModel, new object[] { mirrorData.Data });
-            }
-            catch (TargetInvocationException ex)
-            {
-                this.Log(
-                    $"Failed restoring watch cache for node '{nodeModel.GUID}': {ex.InnerException?.Message ?? ex.Message}",
-                    Logging.WarningLevel.Moderate);
+                if (!nodeModel.TryRestoreCachedValueFromUndo(mirrorData.Data))
+                {
+                    this.Log(
+                        $"Unable to restore watch cache for node '{nodeModel.GUID}': node does not support undo cache restoration.",
+                        Logging.WarningLevel.Moderate);
+                }
             }
             catch (Exception ex)
             {
                 this.Log(
-                    $"Unexpected error restoring watch cache for node '{nodeModel.GUID}': {ex.Message}",
+                    $"Failed restoring watch cache for node '{nodeModel.GUID}': {ex.Message}",
                     Logging.WarningLevel.Moderate);
             }
         }
