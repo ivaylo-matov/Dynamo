@@ -511,6 +511,11 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(
                 initialConnectorPinCount + 1,
                 this.ViewModel.CurrentSpaceViewModel.FirstActiveConnector.ConnectorPinViewCollection.Count);
+            this.ViewModel.CurrentSpaceViewModel.UpdateActiveConnector(new System.Windows.Point(700, 278));
+            Assert.Greater(
+                this.ViewModel.CurrentSpaceViewModel.FirstActiveConnector.ComputedBezierPathGeometry.Figures.Count,
+                1,
+                "Active connector should route through the retained pin while reconnecting.");
 
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(

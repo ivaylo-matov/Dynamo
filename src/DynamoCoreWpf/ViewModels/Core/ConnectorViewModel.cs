@@ -1538,6 +1538,11 @@ namespace Dynamo.ViewModels
         /// </summary>
         private void SetCollapsedByNodeViewModel()
         {
+            if (ConnectorModel?.Start == null || ConnectorModel?.End == null)
+            {
+                return;
+            }
+
             // Check if the connector is between two proxy ports. 
             // Connectors between proxy ports should not be collapsed.
             bool bothEndsAreProxyPorts = ConnectorModel.Start.IsProxyPort && ConnectorModel.End.IsProxyPort;
@@ -1563,6 +1568,12 @@ namespace Dynamo.ViewModels
             else if (parameter is Point2D d)
             {
                 p2 = d.AsWindowsType();
+            }
+
+            if (ConnectorPinViewCollection?.Count > 0)
+            {
+                RedrawBezierManyPoints(p2);
+                return;
             }
 
             CurvePoint3 = p2;
@@ -1638,22 +1649,20 @@ namespace Dynamo.ViewModels
 
         private void RedrawBezierManyPoints()
         {
-            var parameter = this.ConnectorModel.End.Center;
-            var param = parameter as object;
+            if (this.ConnectorModel?.End == null)
+            {
+                return;
+            }
 
+            RedrawBezierManyPoints(this.ConnectorModel.End.Center.AsWindowsType());
+        }
+
+        private void RedrawBezierManyPoints(Point endPoint)
+        {
             var controlPoints = new List<Point[]>();
             try
             {
-                var p2 = new Point();
-
-                if (parameter is Point)
-                {
-                    p2 = (Point)param;
-                }
-                else if (parameter is Point2D)
-                {
-                    p2 = ((Point2D)param).AsWindowsType();
-                }
+                var p2 = endPoint;
 
                 CurvePoint3 = p2;
 
