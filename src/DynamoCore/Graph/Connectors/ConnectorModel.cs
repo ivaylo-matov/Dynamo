@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Xml;
 using Dynamo.Configuration;
 using Dynamo.Graph.Nodes;
@@ -103,6 +104,21 @@ namespace Dynamo.Graph.Connectors
         internal void RemovePin(ConnectorPinModel connectorPinModel)
         {
             ConnectorPinModels.Remove(connectorPinModel);
+        }
+
+        /// <summary>
+        /// Returns a snapshot of pin top-left canvas coordinates for this connector.
+        /// </summary>
+        internal IEnumerable<(double X, double Y)> GetPinLocations()
+        {
+            if (ConnectorPinModels == null || ConnectorPinModels.Count == 0)
+            {
+                return Enumerable.Empty<(double X, double Y)>();
+            }
+
+            return ConnectorPinModels
+                .Select(pin => (pin.X, pin.Y))
+                .ToList();
         }
 
         /// <summary>

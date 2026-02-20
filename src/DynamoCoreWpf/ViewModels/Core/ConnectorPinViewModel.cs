@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Dynamo.Configuration;
 using Dynamo.Graph;
@@ -45,7 +45,7 @@ namespace Dynamo.ViewModels
         public event EventHandler RequestRemove;
         public virtual void OnRequestRemove(Object sender, EventArgs e)
         {
-            RequestRemove(this, e);
+            RequestRemove?.Invoke(this, e);
         }
         /// <summary>
         /// Raises a 'remove from group' event for this ConnectorPinViewModel
@@ -222,6 +222,23 @@ namespace Dynamo.ViewModels
             {
                 isTemporarilyVisible = value;
                 RaisePropertyChanged(nameof(IsTemporarilyVisible));
+            }
+        }
+
+        private bool isInteractive = true;
+        [JsonIgnore]
+        public bool IsInteractive
+        {
+            get => isInteractive;
+            set
+            {
+                if (isInteractive == value)
+                {
+                    return;
+                }
+
+                isInteractive = value;
+                RaisePropertyChanged(nameof(IsInteractive));
             }
         }
 

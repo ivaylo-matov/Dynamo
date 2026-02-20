@@ -374,7 +374,7 @@ namespace Dynamo.Models
         {
             bool isInPort = portType == PortType.Input;
             activeStartPorts = null;
-            reconnectionPinLocationsByStartPortId = null;
+            ClearReconnectionPinLocations();
 
             if (CurrentWorkspace.GetModelInternal(nodeId) is not NodeModel node)
                 return;
@@ -414,7 +414,7 @@ namespace Dynamo.Models
 
         private void BeginDuplicateConnection(Guid nodeId, int portIndex, PortType portType)
         {
-            reconnectionPinLocationsByStartPortId = null;
+            ClearReconnectionPinLocations();
 
             // If the port clicked is an output port, begin connection as per normal
             if (portType == PortType.Output)
@@ -446,7 +446,7 @@ namespace Dynamo.Models
         {
             if (portType == PortType.Input) return; //only handle multiple connections when the port selected is an output port
             if (!(CurrentWorkspace.GetModelInternal(nodeId) is NodeModel node)) return;
-            reconnectionPinLocationsByStartPortId = null;
+            ClearReconnectionPinLocations();
 
             PortModel selectedPort = node.OutPorts[portIndex];
 
@@ -496,7 +496,7 @@ namespace Dynamo.Models
             WorkspaceModel.RecordModelsForUndo(models, CurrentWorkspace.UndoRecorder);
             activeStartPorts = null;
             firstStartPort = null;
-            reconnectionPinLocationsByStartPortId = null;
+            ClearReconnectionPinLocations();
         }
 
         private void EndShiftReconnections(Guid nodeId, int portIndex, PortType portType)
@@ -524,7 +524,7 @@ namespace Dynamo.Models
             }
             WorkspaceModel.RecordModelsForUndo(firstModel, CurrentWorkspace.UndoRecorder);
             activeStartPorts = null;
-            reconnectionPinLocationsByStartPortId = null;
+            ClearReconnectionPinLocations();
             return;
         }
 
@@ -546,7 +546,7 @@ namespace Dynamo.Models
             CurrentWorkspace.DeleteSavedModels();
             activeStartPorts = null;
             firstStartPort = null;
-            reconnectionPinLocationsByStartPortId = null;
+            ClearReconnectionPinLocations();
             return;
         }
 
@@ -621,9 +621,12 @@ namespace Dynamo.Models
             }
 
             reconnectionPinLocationsByStartPortId ??= new Dictionary<Guid, List<(double X, double Y)>>();
-            reconnectionPinLocationsByStartPortId[activeStartPort.GUID] = connector.ConnectorPinModels
-                .Select(pin => (pin.X, pin.Y))
-                .ToList();
+            reconnectionPinLocationsByStartPortId[activeStartPort.GUID] = connector.GetPinLocations().ToList();
+        }
+
+        private void ClearReconnectionPinLocations()
+        {
+            reconnectionPinLocationsByStartPortId = null;
         }
 
         private IEnumerable<(double X, double Y)> ConsumeReconnectionPinLocations(PortModel activeStartPort)
