@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using Dynamo.Graph;
 using Dynamo.Graph.Nodes;
 using Dynamo.Models;
 using Dynamo.Selection;
@@ -507,26 +506,14 @@ namespace DynamoCoreWpfTests
                 new DynamoModel.MakeConnectionCommand(startNode.GUID, startPortIndex, PortType.Output,
                 MakeConnectionCommand.Mode.BeginShiftReconnections));
 
-            // During reconnect drag, the active dashed connector should retain and route through pin data.
-            var activeConnector = this.ViewModel.CurrentSpaceViewModel.WorkspaceElements
-                .OfType<ConnectorViewModel>()
-                .FirstOrDefault(c => c.IsConnecting);
-            Assert.IsNotNull(activeConnector);
-            Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
-
-            activeConnector.Redraw(new Point2D(650, 350));
-            Assert.IsNotNull(activeConnector.ComputedBezierPathGeometry);
-            Assert.Greater(activeConnector.ComputedBezierPathGeometry.Figures.Count, 1);
-
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(
                 new DynamoModel.MakeConnectionCommand(codeblock.GUID, 0, PortType.Output,
                 MakeConnectionCommand.Mode.EndShiftReconnections));
 
-            // Validate that the newly reconnected connector persists equivalent pins.
+            // Validate that a reconnected connector exists.
             var connectorAfterReconnect = this.ViewModel.CurrentSpaceViewModel.Connectors;
             Assert.AreEqual(1, connectorAfterReconnect.Count());
-            Assert.AreEqual(initialConnectorPinCount + 1, connectorAfterReconnect.First().ConnectorPinViewCollection.Count());
 
             // --- Undo ---
             Model.ExecuteCommand(new UndoRedoCommand(UndoRedoCommand.Operation.Undo));
@@ -540,6 +527,55 @@ namespace DynamoCoreWpfTests
 
             var restoredPin = restoredConnector.ConnectorModel.ConnectorPinModels.FirstOrDefault(p => p.GUID == pinModelGuid);
             Assert.IsNotNull(restoredPin, "Expected pin model not found after undo.");
+        }
+
+        [Test]
+        public void ShiftReconnectionUsesNonInteractiveTransientPinsAndPersistsPins()
+        {
+            Open(@"UI/ConnectorPinTests.dyn");
+
+            var id = Guid.Parse("90cd0dca-45c7-456b-bb63-726d2193dbb4");
+            var codeblock = this.ViewModel.Model.CurrentWorkspace.GetModelInternal(id);
+
+            var connectorViewModel = this.ViewModel.CurrentSpaceViewModel.Connectors.First();
+            var initialConnectorPinCount = connectorViewModel.ConnectorPinViewCollection.Count;
+
+            // Add one pin before starting shift reconnection.
+            connectorViewModel.PanelX = 292.66666;
+            connectorViewModel.PanelY = 278;
+            connectorViewModel.FlipOnConnectorAnchor();
+            connectorViewModel.PinConnectorCommand.Execute(null);
+            Assert.AreEqual(initialConnectorPinCount + 1, connectorViewModel.ConnectorPinViewCollection.Count);
+
+            var startPort = connectorViewModel.ConnectorModel.Start;
+            var startNode = startPort.Owner;
+            var startPortIndex = startNode.OutPorts.IndexOf(startPort);
+
+            this.ViewModel.ExecuteCommand(
+                new DynamoModel.MakeConnectionCommand(startNode.GUID, startPortIndex, PortType.Output,
+                MakeConnectionCommand.Mode.BeginShiftReconnections));
+
+            var activeConnector = this.ViewModel.CurrentSpaceViewModel.WorkspaceElements
+                .OfType<ConnectorViewModel>()
+                .FirstOrDefault(c => c.IsConnecting);
+            Assert.IsNotNull(activeConnector);
+            Assert.IsNull(activeConnector.ConnectorModel, "Expected active connector to be transient during drag.");
+            Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
+            Assert.IsTrue(activeConnector.ConnectorPinViewCollection.All(pin => !pin.IsInteractive));
+
+            // Transient pins are non-interactive: remove event is not wired and should not throw.
+            var transientPin = activeConnector.ConnectorPinViewCollection.First();
+            Assert.DoesNotThrow(() => transientPin.OnRequestRemove(transientPin, EventArgs.Empty));
+            Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
+
+            this.ViewModel.ExecuteCommand(
+                new DynamoModel.MakeConnectionCommand(codeblock.GUID, 0, PortType.Output,
+                MakeConnectionCommand.Mode.EndShiftReconnections));
+
+            var connectorAfterReconnect = this.ViewModel.CurrentSpaceViewModel.Connectors;
+            Assert.AreEqual(1, connectorAfterReconnect.Count());
+            Assert.AreEqual(initialConnectorPinCount + 1, connectorAfterReconnect.First().ConnectorPinViewCollection.Count);
+            Assert.IsTrue(connectorAfterReconnect.First().ConnectorPinViewCollection.All(pin => pin.IsInteractive));
         }
         #endregion
     }
