@@ -1646,15 +1646,12 @@ namespace Dynamo.ViewModels
 
             if (constrainTransientStartReconnectionOffset)
             {
-                var horizontalDelta = endPt.X - startPt.X;
-                if (horizontalDelta > 0)
-                {
-                    // Prevent strong S-bends on transient reconnect drag when the free end is
-                    // nearly vertical relative to the last pin. This preserves rightward tangents
-                    // at both endpoints while avoiding the control handle crossing back past the pin.
-                    var maxOffset = Math.Max(horizontalDelta * 0.8, ConnectorPinModel.StaticWidth * 0.25);
-                    offset = Math.Min(offset, maxOffset);
-                }
+                // Prevent strong S-bends on transient reconnect drag when adjacent points are
+                // mostly vertical. Use horizontal spacing to bound handle length so local tangents
+                // remain stable around pins and start/end anchors.
+                var horizontalDelta = Math.Abs(endPt.X - startPt.X);
+                var maxOffset = Math.Max(horizontalDelta * 0.45, ConnectorPinModel.StaticWidth * 0.25);
+                offset = Math.Min(offset, maxOffset);
             }
 
             var pt1 = new Point(startPt.X + offset, startPt.Y);
@@ -1748,7 +1745,6 @@ namespace Dynamo.ViewModels
                     ConnectorModel == null &&
                     IsConnecting &&
                     ActiveStartPort?.PortType == PortType.Input;
-                var lastSegmentIndex = pointPairs.GetLength(0) - 1;
                 for (int i = 0; i < pointPairs.GetLength(0); i++)
                 {
                     //each segment starts here
@@ -1759,7 +1755,7 @@ namespace Dynamo.ViewModels
                         segmentList.Add(pointPairs[i, j]);
                     }
 
-                    var constrainOffset = isTransientStartReconnection && i == lastSegmentIndex;
+                    var constrainOffset = isTransientStartReconnection;
                     var pathFigure = DrawSegmentBetweenPointPairs(
                         segmentList[0],
                         segmentList[1],

@@ -359,10 +359,16 @@ namespace DynamoCoreWpfTests
                 lastTransientSegment[2].X,
                 lastTransientSegment[3].X,
                 "Expected free side to depart right during transient start reconnection.");
+
+            var transientPinCenter = lastTransientSegment[0];
+            Assert.Less(
+                firstTransientSegment[2].X,
+                transientPinCenter.X,
+                "Expected segment into pin to approach from the left.");
             Assert.Greater(
-                lastTransientSegment[2].X,
-                lastTransientSegment[0].X,
-                "Expected last transient segment to remain to the right of the pin near the free side.");
+                lastTransientSegment[1].X,
+                transientPinCenter.X,
+                "Expected segment out of pin to depart to the right.");
 
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(
