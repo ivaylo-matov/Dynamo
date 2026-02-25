@@ -1694,6 +1694,16 @@ namespace Dynamo.ViewModels
             return false;
         }
 
+        private bool IsInputStartReconnection()
+        {
+            return ActiveStartPort?.PortType == PortType.Input;
+        }
+
+        private bool ShouldApplyTransientStartReconnectionRules()
+        {
+            return ConnectorModel == null && IsConnecting && IsInputStartReconnection();
+        }
+
         private void RedrawBezierManyPoints(object parameter)
         {
             if (!TryGetEndPoint(parameter, out var p2))
@@ -1716,9 +1726,9 @@ namespace Dynamo.ViewModels
                 CurvePoint2 = new Point(p2.X - offset, p2.Y);
 
                 //if connector is dragged from an input port
-                if (ActiveStartPort != null && ActiveStartPort.PortType == PortType.Input)
+                if (IsInputStartReconnection())
                 {
-                    CurvePoint1 = new Point(CurvePoint0.X - offset, CurvePoint1.Y); ;
+                    CurvePoint1 = new Point(CurvePoint0.X - offset, CurvePoint1.Y);
                     CurvePoint2 = new Point(p2.X + offset, p2.Y);
                 }
 
@@ -1726,77 +1736,49 @@ namespace Dynamo.ViewModels
                 dotLeft = CurvePoint3.X - EndDotSize / 2;
 
                 // Add chain of points including start/end
-                Point[] points = new Point[ConnectorPinViewCollection.Count];
-                int count = 0;
-                foreach (var wirePin in ConnectorPinViewCollection)
-                {
-                    points[count] = new Point(wirePin.Left+ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5), wirePin.Top+ ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5));
-                    count++;
-                }
+                var points = ConnectorPinViewCollection
+                    .Select(wirePin => new Point(
+                        wirePin.Left + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5),
+                        wirePin.Top + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5)))
+                    .ToArray();
 
-                var isInputStartReconnection = ActiveStartPort?.PortType == PortType.Input;
-                var orderedPoints = isInputStartReconnection
+                var orderedPoints = IsInputStartReconnection()
                     ? points.OrderByDescending(p => p.X).ToList()
                     : points.OrderBy(p => p.X).ToList();
 
                 orderedPoints.Insert(0, CurvePoint0);
                 orderedPoints.Insert(orderedPoints.Count, CurvePoint3);
 
-                Point[,] pointPairs = BreakIntoPointPairs(orderedPoints);
-
                 PathFigureCollection pathFigureCollection = new PathFigureCollection();
 
-                var isTransientStartReconnection =
-                    ConnectorModel == null &&
-                    IsConnecting &&
-                    ActiveStartPort?.PortType == PortType.Input;
-                for (int i = 0; i < pointPairs.GetLength(0); i++)
+                var isTransientStartReconnection = ShouldApplyTransientStartReconnectionRules();
+                for (int i = 0; i < orderedPoints.Count - 1; i++)
                 {
-                    //each segment starts here
-                    var segmentList = new List<Point>();
-
-                    for (int j = 0; j < pointPairs.GetLength(1); j++)
-                    {
-                        segmentList.Add(pointPairs[i, j]);
-                    }
-
                     var constrainOffset = isTransientStartReconnection;
                     var pathFigure = DrawSegmentBetweenPointPairs(
-                        segmentList[0],
-                        segmentList[1],
+                        orderedPoints[i],
+                        orderedPoints[i + 1],
                         ref controlPoints,
                         constrainOffset,
                         invertTangents: isTransientStartReconnection);
                     pathFigureCollection.Add(pathFigure);
                 }
 
-                BezierControlPoints = new List<Point[]>();
                 BezierControlPoints = controlPoints;
 
-                ComputedBezierPathGeometry = new PathGeometry();
-                ComputedBezierPathGeometry.Figures = pathFigureCollection;
-                ComputedBezierPath = new Path();
-                ComputedBezierPath.Data = ComputedBezierPathGeometry;
+                ComputedBezierPathGeometry = new PathGeometry
+                {
+                    Figures = pathFigureCollection
+                };
+                ComputedBezierPath = new Path
+                {
+                    Data = ComputedBezierPathGeometry
+                };
             }
             catch (Exception ex)
             {
                 string mess = ex.Message;
             }
-        }
-
-        /// <summary>
-        /// Point pairs from a chain of sorted points.
-        /// </summary>
-        /// <param name="points"></param>
-        /// <returns></returns>
-        private Point[,] BreakIntoPointPairs(List<Point> points)
-        {
-            Point[,] outPointPairs = new Point[points.Count - 1, 2];
-
-            for (int i = 0; i < points.Count - 1; i++)
-                for (int j = 0; j < 2; j++)
-                    outPointPairs[i, j] = points[i + j];
-            return outPointPairs;
         }
 
         private bool CanRedraw(object parameter)
