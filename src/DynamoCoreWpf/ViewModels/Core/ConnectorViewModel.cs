@@ -1636,7 +1636,8 @@ namespace Dynamo.ViewModels
             Point startPt,
             Point endPt,
             ref List<Point[]> controlPointList,
-            bool constrainTransientStartReconnectionOffset = false)
+            bool constrainTransientStartReconnectionOffset = false,
+            bool invertTangents = false)
         {
             var offset = 0.0;
             double distance = 0;
@@ -1654,8 +1655,12 @@ namespace Dynamo.ViewModels
                 offset = Math.Min(offset, maxOffset);
             }
 
-            var pt1 = new Point(startPt.X + offset, startPt.Y);
-            var pt2 = new Point(endPt.X - offset, endPt.Y);
+            var pt1 = invertTangents
+                ? new Point(startPt.X - offset, startPt.Y)
+                : new Point(startPt.X + offset, startPt.Y);
+            var pt2 = invertTangents
+                ? new Point(endPt.X + offset, endPt.Y)
+                : new Point(endPt.X - offset, endPt.Y);
 
 
             PathFigure pathFigure = new PathFigure();
@@ -1760,7 +1765,8 @@ namespace Dynamo.ViewModels
                         segmentList[0],
                         segmentList[1],
                         ref controlPoints,
-                        constrainOffset);
+                        constrainOffset,
+                        invertTangents: isTransientStartReconnection);
                     pathFigureCollection.Add(pathFigure);
                 }
 

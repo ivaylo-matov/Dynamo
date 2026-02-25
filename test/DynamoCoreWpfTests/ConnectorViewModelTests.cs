@@ -351,24 +351,24 @@ namespace DynamoCoreWpfTests
             var firstTransientSegment = activeConnector.BezierControlPoints.First();
             var lastTransientSegment = activeConnector.BezierControlPoints.Last();
 
-            Assert.Greater(
+            Assert.Less(
                 firstTransientSegment[1].X,
                 firstTransientSegment[0].X,
-                "Expected anchored side to depart right during transient start reconnection.");
-            Assert.Less(
+                "Expected anchored control to point left (equivalent to rightward free-start flow).");
+            Assert.Greater(
                 lastTransientSegment[2].X,
                 lastTransientSegment[3].X,
-                "Expected free side to depart right during transient start reconnection.");
+                "Expected free start control to stay on the right side of the free endpoint.");
 
             var transientPinCenter = lastTransientSegment[0];
-            Assert.Less(
+            Assert.Greater(
                 firstTransientSegment[2].X,
                 transientPinCenter.X,
-                "Expected segment into pin to approach from the left.");
-            Assert.Greater(
+                "Expected segment into pin to be controlled from the right side.");
+            Assert.Less(
                 lastTransientSegment[1].X,
                 transientPinCenter.X,
-                "Expected segment out of pin to depart to the right.");
+                "Expected segment out of pin to be controlled from the left side.");
 
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(
