@@ -1632,7 +1632,12 @@ namespace Dynamo.ViewModels
             };
         }
 
-        private PathFigure DrawSegmentBetweenPointPairs(Point startPt, Point endPt, ref List<Point[]> controlPointList)
+        private PathFigure DrawSegmentBetweenPointPairs(
+            Point startPt,
+            Point endPt,
+            ref List<Point[]> controlPointList,
+            int startDirection = 1,
+            int endDirection = -1)
         {
             var offset = 0.0;
             double distance = 0;
@@ -1640,8 +1645,8 @@ namespace Dynamo.ViewModels
             distance = Math.Sqrt(Math.Pow(endPt.X - startPt.X, 2) + Math.Pow(endPt.Y - startPt.Y, 2));
             offset = .45 * distance;
 
-            var pt1 = new Point(startPt.X + offset, startPt.Y);
-            var pt2 = new Point(endPt.X - offset, endPt.Y);
+            var pt1 = new Point(startPt.X + (startDirection * offset), startPt.Y);
+            var pt2 = new Point(endPt.X + (endDirection * offset), endPt.Y);
 
 
             PathFigure pathFigure = new PathFigure();
@@ -1715,7 +1720,10 @@ namespace Dynamo.ViewModels
                     count++;
                 }
 
-                var orderedPoints = points.OrderBy(p => p.X).ToList();
+                var isInputStartReconnection = ActiveStartPort?.PortType == PortType.Input;
+                var orderedPoints = isInputStartReconnection
+                    ? points.OrderByDescending(p => p.X).ToList()
+                    : points.OrderBy(p => p.X).ToList();
 
                 orderedPoints.Insert(0, CurvePoint0);
                 orderedPoints.Insert(orderedPoints.Count, CurvePoint3);
@@ -1724,6 +1732,7 @@ namespace Dynamo.ViewModels
 
                 PathFigureCollection pathFigureCollection = new PathFigureCollection();
 
+                var lastSegmentIndex = pointPairs.GetLength(0) - 1;
                 for (int i = 0; i < pointPairs.GetLength(0); i++)
                 {
                     //each segment starts here
@@ -1734,7 +1743,30 @@ namespace Dynamo.ViewModels
                         segmentList.Add(pointPairs[i, j]);
                     }
 
-                    var pathFigure = DrawSegmentBetweenPointPairs(segmentList[0], segmentList[1], ref controlPoints);
+                    var startDirection = 1;
+                    var endDirection = -1;
+
+                    if (isInputStartReconnection)
+                    {
+                        // Keep transient reconnect drag behavior aligned with single-segment redraw:
+                        // anchored input side departs left, free dragged side departs right.
+                        if (i == 0)
+                        {
+                            startDirection = -1;
+                        }
+
+                        if (i == lastSegmentIndex)
+                        {
+                            endDirection = 1;
+                        }
+                    }
+
+                    var pathFigure = DrawSegmentBetweenPointPairs(
+                        segmentList[0],
+                        segmentList[1],
+                        ref controlPoints,
+                        startDirection,
+                        endDirection);
                     pathFigureCollection.Add(pathFigure);
                 }
 

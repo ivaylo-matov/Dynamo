@@ -345,6 +345,20 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
             Assert.IsTrue(activeConnector.ConnectorPinViewCollection.All(pin => !pin.IsInteractive));
 
+            activeConnector.Redraw(new Point2D(650, 350));
+            Assert.IsNotNull(activeConnector.BezierControlPoints);
+            var firstTransientSegment = activeConnector.BezierControlPoints.First();
+            var lastTransientSegment = activeConnector.BezierControlPoints.Last();
+
+            Assert.Less(
+                firstTransientSegment[1].X,
+                firstTransientSegment[0].X,
+                "Expected anchored input side to depart left during transient start reconnection.");
+            Assert.Greater(
+                lastTransientSegment[2].X,
+                lastTransientSegment[3].X,
+                "Expected free transient start side to depart right during reconnection drag.");
+
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(
                 new DynamoModel.MakeConnectionCommand(codeblock.GUID, 0, PortType.Output,
