@@ -1632,13 +1632,30 @@ namespace Dynamo.ViewModels
             };
         }
 
-        private PathFigure DrawSegmentBetweenPointPairs(Point startPt, Point endPt, ref List<Point[]> controlPointList)
+        private PathFigure DrawSegmentBetweenPointPairs(
+            Point startPt,
+            Point endPt,
+            ref List<Point[]> controlPointList,
+            bool constrainTransientStartReconnectionOffset = false)
         {
             var offset = 0.0;
             double distance = 0;
 
             distance = Math.Sqrt(Math.Pow(endPt.X - startPt.X, 2) + Math.Pow(endPt.Y - startPt.Y, 2));
             offset = .45 * distance;
+
+            if (constrainTransientStartReconnectionOffset)
+            {
+                var horizontalDelta = endPt.X - startPt.X;
+                if (horizontalDelta > 0)
+                {
+                    // Prevent strong S-bends on transient reconnect drag when the free end is
+                    // nearly vertical relative to the last pin. This preserves rightward tangents
+                    // at both endpoints while avoiding the control handle crossing back past the pin.
+                    var maxOffset = Math.Max(horizontalDelta * 0.8, ConnectorPinModel.StaticWidth * 0.25);
+                    offset = Math.Min(offset, maxOffset);
+                }
+            }
 
             var pt1 = new Point(startPt.X + offset, startPt.Y);
             var pt2 = new Point(endPt.X - offset, endPt.Y);
@@ -1727,6 +1744,11 @@ namespace Dynamo.ViewModels
 
                 PathFigureCollection pathFigureCollection = new PathFigureCollection();
 
+                var isTransientStartReconnection =
+                    ConnectorModel == null &&
+                    IsConnecting &&
+                    ActiveStartPort?.PortType == PortType.Input;
+                var lastSegmentIndex = pointPairs.GetLength(0) - 1;
                 for (int i = 0; i < pointPairs.GetLength(0); i++)
                 {
                     //each segment starts here
@@ -1737,7 +1759,12 @@ namespace Dynamo.ViewModels
                         segmentList.Add(pointPairs[i, j]);
                     }
 
-                    var pathFigure = DrawSegmentBetweenPointPairs(segmentList[0], segmentList[1], ref controlPoints);
+                    var constrainOffset = isTransientStartReconnection && i == lastSegmentIndex;
+                    var pathFigure = DrawSegmentBetweenPointPairs(
+                        segmentList[0],
+                        segmentList[1],
+                        ref controlPoints,
+                        constrainOffset);
                     pathFigureCollection.Add(pathFigure);
                 }
 

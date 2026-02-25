@@ -345,7 +345,8 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
             Assert.IsTrue(activeConnector.ConnectorPinViewCollection.All(pin => !pin.IsInteractive));
 
-            activeConnector.Redraw(new Point2D(650, 350));
+            var transientPin = activeConnector.ConnectorPinViewCollection.Last();
+            activeConnector.Redraw(new Point2D(transientPin.Left + 30, transientPin.Top + 120));
             Assert.IsNotNull(activeConnector.BezierControlPoints);
             var firstTransientSegment = activeConnector.BezierControlPoints.First();
             var lastTransientSegment = activeConnector.BezierControlPoints.Last();
@@ -358,6 +359,10 @@ namespace DynamoCoreWpfTests
                 lastTransientSegment[2].X,
                 lastTransientSegment[3].X,
                 "Expected free side to depart right during transient start reconnection.");
+            Assert.Greater(
+                lastTransientSegment[2].X,
+                lastTransientSegment[0].X,
+                "Expected last transient segment to remain to the right of the pin near the free side.");
 
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(
