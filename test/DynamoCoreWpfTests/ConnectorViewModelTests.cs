@@ -6,6 +6,7 @@ using Dynamo.Models;
 using Dynamo.Selection;
 using Dynamo.Utilities;
 using Dynamo.ViewModels;
+using DynamoCoreWpfTests.Utility;
 using NUnit.Framework;
 using static Dynamo.Models.DynamoModel;
 
@@ -352,6 +353,7 @@ namespace DynamoCoreWpfTests
             this.ViewModel.ExecuteCommand(
                 new DynamoModel.MakeConnectionCommand(codeblock.GUID, 0, PortType.Output,
                 MakeConnectionCommand.Mode.EndShiftReconnections));
+            DispatcherUtil.DoEvents();
 
             // Assert that after reconnection, the new connector has the same number of pins and they are interactive
             var connectorAfterReconnect = this.ViewModel.CurrentSpaceViewModel.Connectors;
@@ -580,6 +582,7 @@ namespace DynamoCoreWpfTests
             this.ViewModel.ExecuteCommand(
                 new DynamoModel.MakeConnectionCommand(codeblock.GUID, 0, PortType.Output,
                 MakeConnectionCommand.Mode.EndShiftReconnections));
+            DispatcherUtil.DoEvents();
 
             // Validate that the newly reconnected connector persists equivalent pins.
             var connectorAfterReconnect = this.ViewModel.CurrentSpaceViewModel.Connectors;

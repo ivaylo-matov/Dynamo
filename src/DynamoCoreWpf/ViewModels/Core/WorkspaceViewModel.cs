@@ -961,6 +961,11 @@ namespace Dynamo.ViewModels
             return true;
         }
 
+        internal bool HasCachedConnectorPinViewModel(Guid pinGuid)
+        {
+            return cachedConnectorPinsByPinGuid.ContainsKey(pinGuid);
+        }
+
         internal void DiscardCachedConnectorPinViewModels()
         {
             var cachedPins = cachedConnectorPinsByPinGuid.Values.Distinct().ToList();

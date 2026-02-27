@@ -61,6 +61,8 @@ namespace Dynamo.ViewModels
         private bool suppressConnectorPinCollectionRedraw;
         private bool connectorPinRedrawScheduled;
         private bool isDisposed;
+        private bool cachedPinAttachmentScheduled;
+        private readonly List<ConnectorPinModel> queuedCachedPinsToAttach = new List<ConnectorPinModel>();
 
         /// <summary>
         /// Required timer for desired delay prior to ' connector anchor' display.
@@ -1113,12 +1115,20 @@ namespace Dynamo.ViewModels
                 case NotifyCollectionChangedAction.Add:
                     foreach (ConnectorPinModel newItem in e.NewItems)
                     {
-                        AddConnectorPinViewModel(newItem);
+                        if (workspaceViewModel.HasCachedConnectorPinViewModel(newItem.GUID))
+                        {
+                            QueueCachedPinAttachment(newItem);
+                        }
+                        else
+                        {
+                            AddConnectorPinViewModel(newItem);
+                        }
                     }
                     break;
                 case NotifyCollectionChangedAction.Remove:
                     foreach (ConnectorPinModel oldItem in e.OldItems)
                     {
+                        queuedCachedPinsToAttach.RemoveAll(pin => pin.GUID == oldItem.GUID);
                         if (!TryCacheConnectorPinViewModelForReconnection(oldItem))
                         {
                             RemoveConnectorPinModelViewModel(oldItem);
@@ -1127,6 +1137,54 @@ namespace Dynamo.ViewModels
                     break;
                 default: break;
             }
+        }
+
+        private void QueueCachedPinAttachment(ConnectorPinModel pinModel)
+        {
+            if (pinModel == null)
+            {
+                return;
+            }
+
+            if (queuedCachedPinsToAttach.All(pin => pin.GUID != pinModel.GUID))
+            {
+                queuedCachedPinsToAttach.Add(pinModel);
+            }
+
+            if (cachedPinAttachmentScheduled)
+            {
+                return;
+            }
+
+            cachedPinAttachmentScheduled = true;
+            var dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+            dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(FlushQueuedCachedPinAttachments));
+        }
+
+        private void FlushQueuedCachedPinAttachments()
+        {
+            cachedPinAttachmentScheduled = false;
+            if (isDisposed || queuedCachedPinsToAttach.Count == 0)
+            {
+                queuedCachedPinsToAttach.Clear();
+                return;
+            }
+
+            suppressConnectorPinCollectionRedraw = true;
+            try
+            {
+                foreach (var pinModel in queuedCachedPinsToAttach.ToList())
+                {
+                    AddConnectorPinViewModel(pinModel);
+                }
+            }
+            finally
+            {
+                queuedCachedPinsToAttach.Clear();
+                suppressConnectorPinCollectionRedraw = false;
+            }
+
+            QueueConnectorPinRedraw();
         }
         /// <summary>
         /// Removes connectorPinViewModel, given a model
@@ -1352,6 +1410,8 @@ namespace Dynamo.ViewModels
         {
             isDisposed = true;
             connectorPinRedrawScheduled = false;
+            cachedPinAttachmentScheduled = false;
+            queuedCachedPinsToAttach.Clear();
 
             if (model != null)
             {
