@@ -5,6 +5,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
@@ -57,6 +58,9 @@ namespace Dynamo.ViewModels
         private Point curvePoint3;
         private List<Point> transientConnectorPinPositions = new List<Point>();
         private Guid? reconnectionPinCacheKey;
+        private bool suppressConnectorPinCollectionRedraw;
+        private bool connectorPinRedrawScheduled;
+        private bool isDisposed;
 
         /// <summary>
         /// Required timer for desired delay prior to ' connector anchor' display.
@@ -1047,9 +1051,17 @@ namespace Dynamo.ViewModels
 
             if (connectorModel.ConnectorPinModels != null)
             {
-                foreach (var p in connectorModel.ConnectorPinModels)
+                suppressConnectorPinCollectionRedraw = true;
+                try
                 {
-                    AddConnectorPinViewModel(p);
+                    foreach (var p in connectorModel.ConnectorPinModels)
+                    {
+                        AddConnectorPinViewModel(p);
+                    }
+                }
+                finally
+                {
+                    suppressConnectorPinCollectionRedraw = false;
                 }
             }
 
@@ -1286,7 +1298,33 @@ namespace Dynamo.ViewModels
 
         private void HandleCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            Redraw();
+            if (suppressConnectorPinCollectionRedraw)
+            {
+                return;
+            }
+
+            QueueConnectorPinRedraw();
+        }
+
+        private void QueueConnectorPinRedraw()
+        {
+            if (connectorPinRedrawScheduled)
+            {
+                return;
+            }
+
+            connectorPinRedrawScheduled = true;
+            var dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+            dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
+            {
+                connectorPinRedrawScheduled = false;
+                if (isDisposed)
+                {
+                    return;
+                }
+
+                Redraw();
+            }));
         }
 
         private void WorkspaceViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -1312,6 +1350,9 @@ namespace Dynamo.ViewModels
         /// </summary>
         public override void Dispose()
         {
+            isDisposed = true;
+            connectorPinRedrawScheduled = false;
+
             if (model != null)
             {
                 model.PropertyChanged -= HandleConnectorPropertyChanged;
