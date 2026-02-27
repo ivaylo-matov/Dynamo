@@ -51,6 +51,7 @@ namespace Dynamo.ViewModels
         private double endDotSize = 6;
         private double zIndex = 3;
         private double dynamicStrokeThickness;
+        private List<Point> transientConnectorPinRoutingPoints;
 
         private Point curvePoint1;
         private Point curvePoint2;
@@ -1489,27 +1490,58 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        /// Creates transient pin visuals for a temporary connector (ConnectorModel == null).
+        /// Stores cached transient pin routing points for a temporary connector (ConnectorModel == null).
+        /// No transient pin view-models are created to keep reconnection start responsive.
         /// </summary>
         /// <param name="pinLocations">Pin top-left canvas coordinates.</param>
         internal void SetTransientConnectorPinPositions(IEnumerable<(double X, double Y)> pinLocations)
         {
-            if (ConnectorModel != null || pinLocations == null)
+            if (ConnectorModel != null)
             {
                 return;
             }
 
-            DiscardAllConnectorPinModels();
-            foreach (var pinLocation in pinLocations)
-            {
-                var transientPinModel = new ConnectorPinModel(
-                    pinLocation.X,
-                    pinLocation.Y,
-                    Guid.NewGuid(),
-                    Guid.Empty);
+            transientConnectorPinRoutingPoints = pinLocations?
+                .Select(pinLocation => ConvertModelPinLocationToBezierPoint(pinLocation.X, pinLocation.Y))
+                .ToList()
+                ?? new List<Point>();
+        }
 
-                AddConnectorPinViewModel(transientPinModel, true);
+        private static Point ConvertConnectorPinViewToBezierPoint(ConnectorPinViewModel wirePin)
+        {
+            return ConvertPinCanvasPointToBezierPoint(wirePin.Left, wirePin.Top);
+        }
+
+        private static Point ConvertModelPinLocationToBezierPoint(double x, double y)
+        {
+            // ConnectorPinModel.Y is offset from Canvas.Top by OneThirdWidth.
+            var top = y - ConnectorPinViewModel.OneThirdWidth;
+            return ConvertPinCanvasPointToBezierPoint(x, top);
+        }
+
+        private static Point ConvertPinCanvasPointToBezierPoint(double left, double top)
+        {
+            return new Point(
+                left + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5),
+                top + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5));
+        }
+
+        private bool HasRoutingPoints()
+        {
+            return (ConnectorPinViewCollection?.Count > 0)
+                || (transientConnectorPinRoutingPoints?.Count > 0);
+        }
+
+        private List<Point> GetRoutingPoints()
+        {
+            if (ConnectorPinViewCollection?.Count > 0)
+            {
+                return ConnectorPinViewCollection
+                    .Select(ConvertConnectorPinViewToBezierPoint)
+                    .ToList();
             }
+
+            return transientConnectorPinRoutingPoints?.ToList() ?? new List<Point>();
         }
 
         #region ConnectorRedraw
@@ -1521,7 +1553,7 @@ namespace Dynamo.ViewModels
         {
             try
             {
-                if (ConnectorPinViewCollection?.Count > 0)
+                if (HasRoutingPoints())
                 {
                     if (this.ConnectorModel?.End != null)
                     {
@@ -1575,7 +1607,7 @@ namespace Dynamo.ViewModels
         /// <param name="parameter">The position of the end point</param>
         public void Redraw(object parameter)
         {
-            if (ConnectorPinViewCollection?.Count > 0)
+            if (HasRoutingPoints())
             {
                 RedrawBezierManyPoints(parameter);
                 return;
@@ -1714,19 +1746,11 @@ namespace Dynamo.ViewModels
                 dotTop = CurvePoint3.Y - EndDotSize / 2;
                 dotLeft = CurvePoint3.X - EndDotSize / 2;
 
-                // Add chain of points including start/end
-                Point[] points = new Point[ConnectorPinViewCollection.Count];
-                int count = 0;
-                foreach (var wirePin in ConnectorPinViewCollection)
-                {
-                    points[count] = new Point(wirePin.Left+ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5), wirePin.Top+ ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5));
-                    count++;
-                }
-
                 var isInputStartReconnection = ActiveStartPort?.PortType == PortType.Input;
+                var routingPoints = GetRoutingPoints();
                 var orderedPoints = isInputStartReconnection
-                    ? points.OrderByDescending(p => p.X).ToList()
-                    : points.OrderBy(p => p.X).ToList();
+                    ? routingPoints.OrderByDescending(p => p.X).ToList()
+                    : routingPoints.OrderBy(p => p.X).ToList();
 
                 orderedPoints.Insert(0, CurvePoint0);
                 orderedPoints.Insert(orderedPoints.Count, CurvePoint3);

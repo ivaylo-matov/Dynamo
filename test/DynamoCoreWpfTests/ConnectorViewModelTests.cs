@@ -306,7 +306,7 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
-        public void ShiftReconnectionUsesNonInteractiveTransientPinsAndPersistsPins()
+        public void ShiftReconnectionUsesCachedTransientPinRoutingAndPersistsPins()
         {
             // Open a test graph with at least two connected nodes
             Open(@"UI/ConnectorPinTests.dyn");
@@ -339,11 +339,15 @@ namespace DynamoCoreWpfTests
                 .OfType<ConnectorViewModel>()
                 .FirstOrDefault(c => c.IsConnecting);
 
-            // Assert that during shift reconnection, a transient connector is created that has the same number of pins
+            // Assert that during shift reconnection, transient connector does not create pin VMs.
             Assert.IsNotNull(activeConnector);
             Assert.IsNull(activeConnector.ConnectorModel, "Expected active connector to be transient during drag.");
-            Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
-            Assert.IsTrue(activeConnector.ConnectorPinViewCollection.All(pin => !pin.IsInteractive));
+            Assert.AreEqual(0, activeConnector.ConnectorPinViewCollection.Count);
+
+            // Cached routing points should still produce a multi-segment wire path while dragging.
+            activeConnector.Redraw(new Point2D(650, 350));
+            Assert.IsNotNull(activeConnector.ComputedBezierPathGeometry);
+            Assert.Greater(activeConnector.ComputedBezierPathGeometry.Figures.Count, 1);
 
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(
@@ -562,7 +566,7 @@ namespace DynamoCoreWpfTests
                 .OfType<ConnectorViewModel>()
                 .FirstOrDefault(c => c.IsConnecting);
             Assert.IsNotNull(activeConnector);
-            Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
+            Assert.AreEqual(0, activeConnector.ConnectorPinViewCollection.Count);
 
             activeConnector.Redraw(new Point2D(650, 350));
             Assert.IsNotNull(activeConnector.ComputedBezierPathGeometry);
