@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using Dynamo.Graph;
 using Dynamo.Graph.Nodes;
 using Dynamo.Models;
 using Dynamo.Selection;
@@ -325,6 +326,12 @@ namespace DynamoCoreWpfTests
 
             // Assert that the pin was added
             Assert.AreEqual(initialConnectorPinCount + 1, connectorViewModel.ConnectorPinViewCollection.Count);
+            var expectedAnchorPoints = connectorViewModel.ConnectorPinViewCollection
+                .Select(pin => (
+                    X: pin.Left + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5),
+                    Y: pin.Top + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5)))
+                .OrderBy(point => point.X)
+                .ToList();
 
             // Begin reconnection – simulate grabbing the connector and starting a shift drag
             var startPort = connectorViewModel.ConnectorModel.Start;
@@ -348,6 +355,18 @@ namespace DynamoCoreWpfTests
             activeConnector.Redraw(new Point2D(650, 350));
             Assert.IsNotNull(activeConnector.ComputedBezierPathGeometry);
             Assert.Greater(activeConnector.ComputedBezierPathGeometry.Figures.Count, 1);
+            var transientSegmentEndPoints = activeConnector.ComputedBezierPathGeometry.Figures
+                .SelectMany(figure => figure.Segments.OfType<System.Windows.Media.BezierSegment>())
+                .Select(segment => segment.Point3)
+                .ToList();
+            foreach (var expected in expectedAnchorPoints)
+            {
+                Assert.IsTrue(
+                    transientSegmentEndPoints.Any(point =>
+                        Math.Abs(point.X - expected.X) < 0.001 &&
+                        Math.Abs(point.Y - expected.Y) < 0.001),
+                    $"Expected transient path to include cached anchor point ({expected.X}, {expected.Y}).");
+            }
 
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(
@@ -550,6 +569,12 @@ namespace DynamoCoreWpfTests
             // Sanity check: we added 1 pin
             Assert.AreEqual(initialConnectorPinCount + 1, connectorViewModel.ConnectorPinViewCollection.Count);
             var pinModelGuid = connectorViewModel.ConnectorModel.ConnectorPinModels.First().GUID;
+            var expectedAnchorPoints = connectorViewModel.ConnectorPinViewCollection
+                .Select(pin => (
+                    X: pin.Left + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5),
+                    Y: pin.Top + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5)))
+                .OrderBy(point => point.X)
+                .ToList();
 
             // Begin reconnection – simulate grabbing the connector and starting a shift drag
             var connectorGuid = connectorViewModel.ConnectorModel.GUID;
@@ -571,6 +596,18 @@ namespace DynamoCoreWpfTests
             activeConnector.Redraw(new Point2D(650, 350));
             Assert.IsNotNull(activeConnector.ComputedBezierPathGeometry);
             Assert.Greater(activeConnector.ComputedBezierPathGeometry.Figures.Count, 1);
+            var transientSegmentEndPoints = activeConnector.ComputedBezierPathGeometry.Figures
+                .SelectMany(figure => figure.Segments.OfType<System.Windows.Media.BezierSegment>())
+                .Select(segment => segment.Point3)
+                .ToList();
+            foreach (var expected in expectedAnchorPoints)
+            {
+                Assert.IsTrue(
+                    transientSegmentEndPoints.Any(point =>
+                        Math.Abs(point.X - expected.X) < 0.001 &&
+                        Math.Abs(point.Y - expected.Y) < 0.001),
+                    $"Expected transient path to include cached anchor point ({expected.X}, {expected.Y}).");
+            }
 
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(

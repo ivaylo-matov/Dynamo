@@ -51,7 +51,7 @@ namespace Dynamo.ViewModels
         private double endDotSize = 6;
         private double zIndex = 3;
         private double dynamicStrokeThickness;
-        private List<Point> transientConnectorPinRoutingPoints;
+        private List<Point> transientConnectorPinCanvasPoints;
 
         private Point curvePoint1;
         private Point curvePoint2;
@@ -1501,8 +1501,27 @@ namespace Dynamo.ViewModels
                 return;
             }
 
-            transientConnectorPinRoutingPoints = pinLocations?
-                .Select(pinLocation => ConvertModelPinLocationToBezierPoint(pinLocation.X, pinLocation.Y))
+            transientConnectorPinCanvasPoints = pinLocations?
+                .Select(pinLocation => new Point(pinLocation.X, pinLocation.Y - ConnectorPinViewModel.OneThirdWidth))
+                .OrderBy(pinLocation => pinLocation.X)
+                .ToList()
+                ?? new List<Point>();
+        }
+
+        /// <summary>
+        /// Caches transient pin canvas points directly from connector view-model pin positions.
+        /// This avoids model/view coordinate conversion drift and preserves anchor routing.
+        /// </summary>
+        /// <param name="pinCanvasLocations">Pin top-left canvas coordinates.</param>
+        internal void SetTransientConnectorPinCanvasPositions(IEnumerable<Point> pinCanvasLocations)
+        {
+            if (ConnectorModel != null)
+            {
+                return;
+            }
+
+            transientConnectorPinCanvasPoints = pinCanvasLocations?
+                .OrderBy(pinLocation => pinLocation.X)
                 .ToList()
                 ?? new List<Point>();
         }
@@ -1510,13 +1529,6 @@ namespace Dynamo.ViewModels
         private static Point ConvertConnectorPinViewToBezierPoint(ConnectorPinViewModel wirePin)
         {
             return ConvertPinCanvasPointToBezierPoint(wirePin.Left, wirePin.Top);
-        }
-
-        private static Point ConvertModelPinLocationToBezierPoint(double x, double y)
-        {
-            // ConnectorPinModel.Y is offset from Canvas.Top by OneThirdWidth.
-            var top = y - ConnectorPinViewModel.OneThirdWidth;
-            return ConvertPinCanvasPointToBezierPoint(x, top);
         }
 
         private static Point ConvertPinCanvasPointToBezierPoint(double left, double top)
@@ -1529,19 +1541,24 @@ namespace Dynamo.ViewModels
         private bool HasRoutingPoints()
         {
             return (ConnectorPinViewCollection?.Count > 0)
-                || (transientConnectorPinRoutingPoints?.Count > 0);
+                || (transientConnectorPinCanvasPoints?.Count > 0);
         }
 
-        private List<Point> GetRoutingPoints()
+        private List<Point> GetRoutingPoints(out bool areTransientCachedPoints)
         {
             if (ConnectorPinViewCollection?.Count > 0)
             {
+                areTransientCachedPoints = false;
                 return ConnectorPinViewCollection
                     .Select(ConvertConnectorPinViewToBezierPoint)
                     .ToList();
             }
 
-            return transientConnectorPinRoutingPoints?.ToList() ?? new List<Point>();
+            areTransientCachedPoints = transientConnectorPinCanvasPoints?.Count > 0;
+            return transientConnectorPinCanvasPoints?
+                .Select(pinCanvasPoint => ConvertPinCanvasPointToBezierPoint(pinCanvasPoint.X, pinCanvasPoint.Y))
+                .ToList()
+                ?? new List<Point>();
         }
 
         #region ConnectorRedraw
@@ -1747,10 +1764,14 @@ namespace Dynamo.ViewModels
                 dotLeft = CurvePoint3.X - EndDotSize / 2;
 
                 var isInputStartReconnection = ActiveStartPort?.PortType == PortType.Input;
-                var routingPoints = GetRoutingPoints();
-                var orderedPoints = isInputStartReconnection
-                    ? routingPoints.OrderByDescending(p => p.X).ToList()
-                    : routingPoints.OrderBy(p => p.X).ToList();
+                var routingPoints = GetRoutingPoints(out var areTransientCachedPoints);
+                var orderedPoints = areTransientCachedPoints
+                    ? (isInputStartReconnection
+                        ? routingPoints.AsEnumerable().Reverse().ToList()
+                        : routingPoints.ToList())
+                    : (isInputStartReconnection
+                        ? routingPoints.OrderByDescending(p => p.X).ToList()
+                        : routingPoints.OrderBy(p => p.X).ToList());
 
                 orderedPoints.Insert(0, CurvePoint0);
                 orderedPoints.Insert(orderedPoints.Count, CurvePoint3);
