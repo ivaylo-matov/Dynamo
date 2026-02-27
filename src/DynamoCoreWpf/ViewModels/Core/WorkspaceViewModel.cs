@@ -303,6 +303,10 @@ namespace Dynamo.ViewModels
         [JsonIgnore]
         public ObservableCollection<ConnectorPinViewModel> Pins { get; } = new ObservableCollection<ConnectorPinViewModel>();
 
+        // Stores detached pin view models while connector reconnection is in flight.
+        private readonly Dictionary<Guid, ConnectorPinViewModel> cachedConnectorPinsByPinGuid = new();
+        private readonly Dictionary<Guid, HashSet<Guid>> cachedPinGuidsByReconnectionKey = new();
+
         [JsonIgnore]
         public ObservableCollection<InfoBubbleViewModel> Errors { get; } = new ObservableCollection<InfoBubbleViewModel>();
         public ObservableCollection<AnnotationViewModel> Annotations { get; } = new ObservableCollection<AnnotationViewModel>();
@@ -753,6 +757,7 @@ namespace Dynamo.ViewModels
             Annotations.ToList().ForEach(AnnotationViewModel => AnnotationViewModel.Dispose());
             Nodes.Clear();
             Notes.Clear();
+            DiscardCachedConnectorPinViewModels();
             Pins.Clear();
             Connectors.Clear();
             Errors.Clear();
@@ -920,6 +925,53 @@ namespace Dynamo.ViewModels
             {
                 Connectors.Remove(connector);
                 connector.Dispose();
+            }
+        }
+
+        internal void CacheConnectorPinViewModelForReconnection(Guid reconnectionKey, ConnectorPinViewModel pinViewModel)
+        {
+            if (pinViewModel == null)
+            {
+                return;
+            }
+
+            cachedConnectorPinsByPinGuid[pinViewModel.Model.GUID] = pinViewModel;
+            if (!cachedPinGuidsByReconnectionKey.TryGetValue(reconnectionKey, out var pinGuids))
+            {
+                pinGuids = new HashSet<Guid>();
+                cachedPinGuidsByReconnectionKey[reconnectionKey] = pinGuids;
+            }
+
+            pinGuids.Add(pinViewModel.Model.GUID);
+        }
+
+        internal bool TryConsumeCachedConnectorPinViewModel(Guid pinGuid, out ConnectorPinViewModel pinViewModel)
+        {
+            if (!cachedConnectorPinsByPinGuid.TryGetValue(pinGuid, out pinViewModel))
+            {
+                return false;
+            }
+
+            cachedConnectorPinsByPinGuid.Remove(pinGuid);
+            foreach (var pinGuids in cachedPinGuidsByReconnectionKey.Values)
+            {
+                pinGuids.Remove(pinGuid);
+            }
+
+            return true;
+        }
+
+        internal void DiscardCachedConnectorPinViewModels()
+        {
+            var cachedPins = cachedConnectorPinsByPinGuid.Values.Distinct().ToList();
+            cachedConnectorPinsByPinGuid.Clear();
+            cachedPinGuidsByReconnectionKey.Clear();
+
+            foreach (var pinViewModel in cachedPins)
+            {
+                Pins.Remove(pinViewModel);
+                pinViewModel.Model?.Dispose();
+                pinViewModel.Dispose();
             }
         }
 

@@ -325,6 +325,8 @@ namespace DynamoCoreWpfTests
 
             // Assert that the pin was added
             Assert.AreEqual(initialConnectorPinCount + 1, connectorViewModel.ConnectorPinViewCollection.Count);
+            var cachedPinViewModel = connectorViewModel.ConnectorPinViewCollection.First();
+            var cachedPinModel = cachedPinViewModel.Model;
 
             // Begin reconnection – simulate grabbing the connector and starting a shift drag
             var startPort = connectorViewModel.ConnectorModel.Start;
@@ -342,8 +344,9 @@ namespace DynamoCoreWpfTests
             // Assert that during shift reconnection, a transient connector is created that has the same number of pins
             Assert.IsNotNull(activeConnector);
             Assert.IsNull(activeConnector.ConnectorModel, "Expected active connector to be transient during drag.");
-            Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
-            Assert.IsTrue(activeConnector.ConnectorPinViewCollection.All(pin => !pin.IsInteractive));
+            Assert.AreEqual(0, activeConnector.ConnectorPinViewCollection.Count);
+            Assert.IsTrue(this.ViewModel.CurrentSpaceViewModel.Pins.Contains(cachedPinViewModel));
+            Assert.IsFalse(cachedPinViewModel.IsInteractive);
 
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(
@@ -355,6 +358,8 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(1, connectorAfterReconnect.Count());
             Assert.AreEqual(initialConnectorPinCount + 1, connectorAfterReconnect.First().ConnectorPinViewCollection.Count);
             Assert.IsTrue(connectorAfterReconnect.First().ConnectorPinViewCollection.All(pin => pin.IsInteractive));
+            Assert.AreSame(cachedPinModel, connectorAfterReconnect.First().ConnectorModel.ConnectorPinModels.First());
+            Assert.AreSame(cachedPinViewModel, connectorAfterReconnect.First().ConnectorPinViewCollection.First());
         }
         #endregion
 
@@ -545,6 +550,7 @@ namespace DynamoCoreWpfTests
 
             // Sanity check: we added 1 pin
             Assert.AreEqual(initialConnectorPinCount + 1, connectorViewModel.ConnectorPinViewCollection.Count);
+            var pinViewModelBeforeReconnect = connectorViewModel.ConnectorPinViewCollection.First();
             var pinModelGuid = connectorViewModel.ConnectorModel.ConnectorPinModels.First().GUID;
 
             // Begin reconnection – simulate grabbing the connector and starting a shift drag
@@ -562,7 +568,9 @@ namespace DynamoCoreWpfTests
                 .OfType<ConnectorViewModel>()
                 .FirstOrDefault(c => c.IsConnecting);
             Assert.IsNotNull(activeConnector);
-            Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
+            Assert.AreEqual(0, activeConnector.ConnectorPinViewCollection.Count);
+            Assert.IsTrue(this.ViewModel.CurrentSpaceViewModel.Pins.Contains(pinViewModelBeforeReconnect));
+            Assert.IsFalse(pinViewModelBeforeReconnect.IsInteractive);
 
             activeConnector.Redraw(new Point2D(650, 350));
             Assert.IsNotNull(activeConnector.ComputedBezierPathGeometry);
@@ -577,6 +585,7 @@ namespace DynamoCoreWpfTests
             var connectorAfterReconnect = this.ViewModel.CurrentSpaceViewModel.Connectors;
             Assert.AreEqual(1, connectorAfterReconnect.Count());
             Assert.AreEqual(initialConnectorPinCount + 1, connectorAfterReconnect.First().ConnectorPinViewCollection.Count());
+            Assert.AreSame(pinViewModelBeforeReconnect, connectorAfterReconnect.First().ConnectorPinViewCollection.First());
 
             // --- Undo ---
             Model.ExecuteCommand(new UndoRedoCommand(UndoRedoCommand.Operation.Undo));

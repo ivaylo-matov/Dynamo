@@ -202,6 +202,8 @@ namespace Dynamo.ViewModels
             if (portModel.Connectors.Count > 0 && portModel.Connectors[0].Start != portModel)
             {
                 var existingConnector = portModel.Connectors[0];
+                var existingConnectorViewModel = Connectors.FirstOrDefault(c => c.ConnectorModel == existingConnector);
+                existingConnectorViewModel?.BeginReconnectionPinCaching(existingConnector.Start.GUID);
 
                 // Define the new active connector
                 var activeConnector = new ConnectorViewModel(this, existingConnector.Start);
@@ -248,6 +250,8 @@ namespace Dynamo.ViewModels
             for (int i = 0; i < selectedConnectors.Count; i++)
             {
                 var selectedConnector = selectedConnectors[i];
+                var selectedConnectorViewModel = Connectors.FirstOrDefault(c => c.ConnectorModel == selectedConnector);
+                selectedConnectorViewModel?.BeginReconnectionPinCaching(selectedConnector.End.GUID);
                 var c = new ConnectorViewModel(this, selectedConnector.End);
                 c.SetTransientConnectorPinPositions(selectedConnector.GetPinLocations());
                 c.Redraw(selectedConnector.Start.Center);
@@ -319,6 +323,7 @@ namespace Dynamo.ViewModels
         {
             multipleConnections = false;
             this.SetActiveConnectors(null);
+            DiscardCachedConnectorPinViewModels();
             firstStartPort = null;
         }
 
