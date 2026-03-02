@@ -1117,7 +1117,14 @@ namespace Dynamo.ViewModels
         /// <param name="connectorPin"></param>
         private void RemoveConnectorPinModelViewModel(ConnectorPinModel connectorPin)
         {
-            var matchingConnectorPinViewModel = this.workspaceViewModel.Pins.FirstOrDefault(x => x.Model.GUID == connectorPin.GUID);
+            var matchingConnectorPinViewModel = ConnectorPinViewCollection
+                .FirstOrDefault(x => x.Model.GUID == connectorPin.GUID);
+
+            // Fallback to workspace-level lookup for legacy edge cases where the
+            // pin may no longer be tracked in this connector collection.
+            matchingConnectorPinViewModel ??= this.workspaceViewModel.Pins
+                .FirstOrDefault(x => x.Model.GUID == connectorPin.GUID);
+
             if (matchingConnectorPinViewModel is null) return;
             RemoveConnectorPinModelViewModel(matchingConnectorPinViewModel);
         }
@@ -1509,6 +1516,29 @@ namespace Dynamo.ViewModels
                     Guid.Empty);
 
                 AddConnectorPinViewModel(transientPinModel, true);
+            }
+        }
+
+        /// <summary>
+        /// Reuses existing pin models as transient pin visuals for a temporary connector (ConnectorModel == null).
+        /// </summary>
+        /// <param name="pinModels">Existing pin models detached from the original connector.</param>
+        internal void SetTransientConnectorPins(IEnumerable<ConnectorPinModel> pinModels)
+        {
+            if (ConnectorModel != null || pinModels == null)
+            {
+                return;
+            }
+
+            DiscardAllConnectorPinModels();
+            foreach (var pinModel in pinModels)
+            {
+                if (pinModel == null)
+                {
+                    continue;
+                }
+
+                AddConnectorPinViewModel(pinModel, true);
             }
         }
 
