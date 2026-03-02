@@ -55,6 +55,8 @@ namespace Dynamo.ViewModels
         private Point curvePoint1;
         private Point curvePoint2;
         private Point curvePoint3;
+        private readonly List<ConnectorPinViewModel> transientCachedPinVisuals = new List<ConnectorPinViewModel>();
+        private readonly List<Point> transientCachedPinLocations = new List<Point>();
 
         /// <summary>
         /// Required timer for desired delay prior to ' connector anchor' display.
@@ -241,6 +243,11 @@ namespace Dynamo.ViewModels
             {
                 pin.IsCollapsed = isCollapsed;
             }
+
+            foreach (var pin in transientCachedPinVisuals)
+            {
+                pin.IsCollapsed = isCollapsed;
+            }
         }
         private void SetVisibilityOfPins(bool isHidden)
         {
@@ -250,12 +257,22 @@ namespace Dynamo.ViewModels
             {
                 pin.IsHidden = isHidden;
             }
+
+            foreach (var pin in transientCachedPinVisuals)
+            {
+                pin.IsHidden = isHidden;
+            }
         }
         private void SetPartialVisibilityOfPins(bool isHidden)
         {
             if (ConnectorPinViewCollection is null) { return; }
 
             foreach (var pin in ConnectorPinViewCollection)
+            {
+                pin.IsTemporarilyVisible = isHidden;
+            }
+
+            foreach (var pin in transientCachedPinVisuals)
             {
                 pin.IsTemporarilyVisible = isHidden;
             }
@@ -1120,11 +1137,6 @@ namespace Dynamo.ViewModels
             var matchingConnectorPinViewModel = ConnectorPinViewCollection
                 .FirstOrDefault(x => x.Model.GUID == connectorPin.GUID);
 
-            // Fallback to workspace-level lookup for legacy edge cases where the
-            // pin may no longer be tracked in this connector collection.
-            matchingConnectorPinViewModel ??= this.workspaceViewModel.Pins
-                .FirstOrDefault(x => x.Model.GUID == connectorPin.GUID);
-
             if (matchingConnectorPinViewModel is null) return;
             RemoveConnectorPinModelViewModel(matchingConnectorPinViewModel);
         }
@@ -1284,6 +1296,7 @@ namespace Dynamo.ViewModels
             }
 
             this.PropertyChanged -= ConnectorViewModelPropertyChanged;
+            ClearTransientPinCache();
             DiscardAllConnectorPinModels();
 
             if (ConnectorContextMenuViewModel != null)
@@ -1506,6 +1519,7 @@ namespace Dynamo.ViewModels
                 return;
             }
 
+            ClearTransientPinCache();
             DiscardAllConnectorPinModels();
             foreach (var pinLocation in pinLocations)
             {
@@ -1520,7 +1534,8 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        /// Reuses existing pin models as transient pin visuals for a temporary connector (ConnectorModel == null).
+        /// Caches existing pins for transient reconnection without attaching them to the transient connector.
+        /// Their positions are used for transient bezier routing while the cached pin visuals remain visible.
         /// </summary>
         /// <param name="pinModels">Existing pin models detached from the original connector.</param>
         internal void SetTransientConnectorPins(IEnumerable<ConnectorPinModel> pinModels)
@@ -1530,7 +1545,9 @@ namespace Dynamo.ViewModels
                 return;
             }
 
+            ClearTransientPinCache();
             DiscardAllConnectorPinModels();
+
             foreach (var pinModel in pinModels)
             {
                 if (pinModel == null)
@@ -1538,7 +1555,17 @@ namespace Dynamo.ViewModels
                     continue;
                 }
 
-                AddConnectorPinViewModel(pinModel, true);
+                transientCachedPinLocations.Add(new Point(pinModel.X, pinModel.Y));
+
+                var cachedPinViewModel = new ConnectorPinViewModel(this.workspaceViewModel, pinModel)
+                {
+                    IsHidden = this.IsHidden,
+                    IsTemporarilyVisible = isTemporarilyVisible,
+                    IsInteractive = false
+                };
+
+                workspaceViewModel.Pins.Add(cachedPinViewModel);
+                transientCachedPinVisuals.Add(cachedPinViewModel);
             }
         }
 
@@ -1551,7 +1578,7 @@ namespace Dynamo.ViewModels
         {
             try
             {
-                if (ConnectorPinViewCollection?.Count > 0)
+                if ((ConnectorPinViewCollection?.Count > 0) || transientCachedPinLocations.Count > 0)
                 {
                     if (this.ConnectorModel?.End != null)
                     {
@@ -1605,7 +1632,7 @@ namespace Dynamo.ViewModels
         /// <param name="parameter">The position of the end point</param>
         public void Redraw(object parameter)
         {
-            if (ConnectorPinViewCollection?.Count > 0)
+            if ((ConnectorPinViewCollection?.Count > 0) || transientCachedPinLocations.Count > 0)
             {
                 RedrawBezierManyPoints(parameter);
                 return;
@@ -1744,19 +1771,17 @@ namespace Dynamo.ViewModels
                 dotTop = CurvePoint3.Y - EndDotSize / 2;
                 dotLeft = CurvePoint3.X - EndDotSize / 2;
 
-                // Add chain of points including start/end
-                Point[] points = new Point[ConnectorPinViewCollection.Count];
-                int count = 0;
-                foreach (var wirePin in ConnectorPinViewCollection)
-                {
-                    points[count] = new Point(wirePin.Left+ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5), wirePin.Top+ ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5));
-                    count++;
-                }
-
                 var isInputStartReconnection = ActiveStartPort?.PortType == PortType.Input;
-                var orderedPoints = isInputStartReconnection
-                    ? points.OrderByDescending(p => p.X).ToList()
-                    : points.OrderBy(p => p.X).ToList();
+                var orderedPoints = GetBezierPinPoints()
+                    .OrderBy(p => p.X)
+                    .ToList();
+
+                if (isInputStartReconnection)
+                {
+                    orderedPoints = orderedPoints
+                        .OrderByDescending(p => p.X)
+                        .ToList();
+                }
 
                 orderedPoints.Insert(0, CurvePoint0);
                 orderedPoints.Insert(orderedPoints.Count, CurvePoint3);
@@ -1815,6 +1840,35 @@ namespace Dynamo.ViewModels
                 for (int j = 0; j < 2; j++)
                     outPointPairs[i, j] = points[i + j];
             return outPointPairs;
+        }
+
+        private IEnumerable<Point> GetBezierPinPoints()
+        {
+            if (ConnectorPinViewCollection?.Count > 0)
+            {
+                return ConnectorPinViewCollection
+                    .Select(wirePin => new Point(
+                        wirePin.Left + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5),
+                        wirePin.Top + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5)));
+            }
+
+            return transientCachedPinLocations
+                .Select(pinLocation => new Point(
+                    pinLocation.X + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5),
+                    pinLocation.Y + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5)));
+        }
+
+        private void ClearTransientPinCache()
+        {
+            foreach (var pinViewModel in transientCachedPinVisuals.ToList())
+            {
+                workspaceViewModel.Pins.Remove(pinViewModel);
+                pinViewModel.Model.Dispose();
+                pinViewModel.Dispose();
+            }
+
+            transientCachedPinVisuals.Clear();
+            transientCachedPinLocations.Clear();
         }
 
         private bool CanRedraw(object parameter)
