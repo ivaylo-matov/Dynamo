@@ -306,7 +306,7 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
-        public void ShiftReconnectionUsesNonInteractiveTransientPinsAndPersistsPins()
+        public void ShiftReconnectionUsesTransientRoutingPointsAndPersistsPins()
         {
             // Open a test graph with at least two connected nodes
             Open(@"UI/ConnectorPinTests.dyn");
@@ -325,6 +325,7 @@ namespace DynamoCoreWpfTests
 
             // Assert that the pin was added
             Assert.AreEqual(initialConnectorPinCount + 1, connectorViewModel.ConnectorPinViewCollection.Count);
+            var pinModelGuid = connectorViewModel.ConnectorModel.ConnectorPinModels.First().GUID;
 
             // Begin reconnection – simulate grabbing the connector and starting a shift drag
             var startPort = connectorViewModel.ConnectorModel.Start;
@@ -339,11 +340,14 @@ namespace DynamoCoreWpfTests
                 .OfType<ConnectorViewModel>()
                 .FirstOrDefault(c => c.IsConnecting);
 
-            // Assert that during shift reconnection, a transient connector is created that has the same number of pins
+            // Assert that during shift reconnection, the transient connector has no pins but still routes through pin positions.
             Assert.IsNotNull(activeConnector);
             Assert.IsNull(activeConnector.ConnectorModel, "Expected active connector to be transient during drag.");
-            Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
-            Assert.IsTrue(activeConnector.ConnectorPinViewCollection.All(pin => !pin.IsInteractive));
+            Assert.AreEqual(0, activeConnector.ConnectorPinViewCollection.Count);
+
+            activeConnector.Redraw(new Point2D(650, 350));
+            Assert.IsNotNull(activeConnector.ComputedBezierPathGeometry);
+            Assert.Greater(activeConnector.ComputedBezierPathGeometry.Figures.Count, 1);
 
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(
@@ -355,6 +359,7 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(1, connectorAfterReconnect.Count());
             Assert.AreEqual(initialConnectorPinCount + 1, connectorAfterReconnect.First().ConnectorPinViewCollection.Count);
             Assert.IsTrue(connectorAfterReconnect.First().ConnectorPinViewCollection.All(pin => pin.IsInteractive));
+            Assert.IsTrue(connectorAfterReconnect.First().ConnectorModel.ConnectorPinModels.Any(pin => pin.GUID == pinModelGuid));
         }
         #endregion
 
@@ -562,7 +567,7 @@ namespace DynamoCoreWpfTests
                 .OfType<ConnectorViewModel>()
                 .FirstOrDefault(c => c.IsConnecting);
             Assert.IsNotNull(activeConnector);
-            Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
+            Assert.AreEqual(0, activeConnector.ConnectorPinViewCollection.Count);
 
             activeConnector.Redraw(new Point2D(650, 350));
             Assert.IsNotNull(activeConnector.ComputedBezierPathGeometry);
@@ -577,6 +582,7 @@ namespace DynamoCoreWpfTests
             var connectorAfterReconnect = this.ViewModel.CurrentSpaceViewModel.Connectors;
             Assert.AreEqual(1, connectorAfterReconnect.Count());
             Assert.AreEqual(initialConnectorPinCount + 1, connectorAfterReconnect.First().ConnectorPinViewCollection.Count());
+            Assert.IsTrue(connectorAfterReconnect.First().ConnectorModel.ConnectorPinModels.Any(p => p.GUID == pinModelGuid));
 
             // --- Undo ---
             Model.ExecuteCommand(new UndoRedoCommand(UndoRedoCommand.Operation.Undo));

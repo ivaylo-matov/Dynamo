@@ -149,14 +149,6 @@ namespace Dynamo.Graph.Workspaces
 
             using (recorder.BeginActionGroup())
             {
-                if (null != savedModels)
-                {
-                    foreach (var modelPair in savedModels)
-                    {
-                        recorder.RecordDeletionForUndo(modelPair);
-                    }
-                    savedModels = null;
-                }
                 foreach (var modelPair in models)
                 {
                     switch (modelPair.Value)
@@ -171,6 +163,15 @@ namespace Dynamo.Graph.Workspaces
                             recorder.RecordModificationForUndo(modelPair.Key);
                             break;
                     }
+                }
+
+                if (null != savedModels)
+                {
+                    foreach (var modelPair in savedModels)
+                    {
+                        recorder.RecordDeletionForUndo(modelPair);
+                    }
+                    savedModels = null;
                 }
             }
         }
@@ -455,6 +456,33 @@ namespace Dynamo.Graph.Workspaces
         public void ReloadModel(XmlElement modelData)
         {
             ModelBase model = GetModelForElement(modelData);
+            if (model is ConnectorPinModel connectorPinModel)
+            {
+                var helper = new XmlElementHelper(modelData);
+                var targetConnectorId = helper.ReadGuid("connectorId");
+                var currentConnector = Connectors.FirstOrDefault(
+                    connector => connector.ConnectorPinModels.Contains(connectorPinModel));
+                var targetConnector = Connectors.FirstOrDefault(
+                    connector => connector.GUID == targetConnectorId);
+
+                model.Deserialize(modelData, SaveContext.Undo);
+
+                if (currentConnector != null &&
+                    targetConnector != null &&
+                    currentConnector.GUID != targetConnectorId)
+                {
+                    currentConnector.RemovePin(connectorPinModel);
+                }
+
+                if (targetConnector != null &&
+                    !targetConnector.ConnectorPinModels.Contains(connectorPinModel))
+                {
+                    targetConnector.AddPin(connectorPinModel);
+                }
+
+                return;
+            }
+
             if (model != null)
             {
                 model.Deserialize(modelData, SaveContext.Undo);
