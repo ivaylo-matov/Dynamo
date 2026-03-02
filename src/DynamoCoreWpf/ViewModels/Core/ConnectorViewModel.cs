@@ -1148,12 +1148,25 @@ namespace Dynamo.ViewModels
         /// <param name="pinModel"></param>
         private void AddConnectorPinViewModel(ConnectorPinModel pinModel, bool isTransientPin = false)
         {
-            var pinViewModel = new ConnectorPinViewModel(this.workspaceViewModel, pinModel)
+            ConnectorPinViewModel pinViewModel;
+            if (!isTransientPin &&
+                workspaceViewModel.TryTakePreservedConnectorPinViewModel(pinModel.GUID, out var preservedPinViewModel))
             {
-                IsHidden = this.IsHidden,
-                IsTemporarilyVisible = isTemporarilyVisible,
-                IsInteractive = !isTransientPin
-            };
+                pinViewModel = preservedPinViewModel;
+                pinViewModel.IsHidden = this.IsHidden;
+                pinViewModel.IsTemporarilyVisible = isTemporarilyVisible;
+                pinViewModel.IsInteractive = true;
+            }
+            else
+            {
+                pinViewModel = new ConnectorPinViewModel(this.workspaceViewModel, pinModel)
+                {
+                    IsHidden = this.IsHidden,
+                    IsTemporarilyVisible = isTemporarilyVisible,
+                    IsInteractive = !isTransientPin
+                };
+            }
+
             pinViewModel.PropertyChanged += PinViewModelPropertyChanged;
 
             pinViewModel.RequestSelect += HandleRequestSelected;
@@ -1163,7 +1176,10 @@ namespace Dynamo.ViewModels
                 pinViewModel.RequestRemove += HandleConnectorPinViewModelRemove;
             }
 
-            workspaceViewModel.Pins.Add(pinViewModel);
+            if (!workspaceViewModel.Pins.Contains(pinViewModel))
+            {
+                workspaceViewModel.Pins.Add(pinViewModel);
+            }
             ConnectorPinViewCollection.Add(pinViewModel);
         }
 
@@ -1239,6 +1255,8 @@ namespace Dynamo.ViewModels
         /// </summary>
         public override void Dispose()
         {
+            var preservePinsForReconnection = model?.PreservePinsDuringReconnection == true;
+
             if (model != null)
             {
                 model.PropertyChanged -= HandleConnectorPropertyChanged;
@@ -1272,13 +1290,24 @@ namespace Dynamo.ViewModels
 
                 foreach (var pin in ConnectorPinViewCollection.ToList())
                 {
+                    pin.PropertyChanged -= PinViewModelPropertyChanged;
                     pin.RequestRedraw -= HandlerRedrawRequest;
                     pin.RequestSelect -= HandleRequestSelected;
+                    pin.RequestRemove -= HandleConnectorPinViewModelRemove;
+
+                    if (preservePinsForReconnection)
+                    {
+                        workspaceViewModel.PreserveConnectorPinViewModelForReconnection(pin);
+                        ConnectorPinViewCollection.Remove(pin);
+                    }
                 }
             }
 
             this.PropertyChanged -= ConnectorViewModelPropertyChanged;
-            DiscardAllConnectorPinModels();
+            if (!preservePinsForReconnection)
+            {
+                DiscardAllConnectorPinModels();
+            }
 
             if (ConnectorContextMenuViewModel != null)
             {

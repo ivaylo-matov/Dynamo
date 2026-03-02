@@ -320,6 +320,7 @@ namespace Dynamo.ViewModels
             multipleConnections = false;
             this.SetActiveConnectors(null);
             firstStartPort = null;
+            DiscardPreservedConnectorPinViewModels();
         }
 
         internal void UpdateActiveConnector(System.Windows.Point mouseCursor)

@@ -650,6 +650,7 @@ namespace Dynamo.Models
                 return;
             }
 
+            connector.PreservePinsDuringReconnection = true;
             reconnectionPinsByActivePortId ??= new Dictionary<Guid, List<ConnectorPinModel>>();
             reconnectionPinsByActivePortId[activeStartPort.GUID] = connector.ConnectorPinModels.ToList();
         }

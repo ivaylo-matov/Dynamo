@@ -62,6 +62,12 @@ namespace Dynamo.Graph.Connectors
                 RaisePropertyChanged(nameof(IsTransient));
             }
         }
+
+        /// <summary>
+        /// Indicates that this connector is being temporarily removed for reconnection.
+        /// In this mode pin view models are preserved and rebound to the replacement connector.
+        /// </summary>
+        internal bool PreservePinsDuringReconnection { get; set; } = false;
         
         /// <summary>
         /// Returns start port model.

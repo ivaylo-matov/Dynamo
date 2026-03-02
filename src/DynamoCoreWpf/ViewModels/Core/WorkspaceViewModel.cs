@@ -303,6 +303,8 @@ namespace Dynamo.ViewModels
         [JsonIgnore]
         public ObservableCollection<ConnectorPinViewModel> Pins { get; } = new ObservableCollection<ConnectorPinViewModel>();
 
+        private readonly Dictionary<Guid, ConnectorPinViewModel> preservedConnectorPinViewModels = new Dictionary<Guid, ConnectorPinViewModel>();
+
         [JsonIgnore]
         public ObservableCollection<InfoBubbleViewModel> Errors { get; } = new ObservableCollection<InfoBubbleViewModel>();
         public ObservableCollection<AnnotationViewModel> Annotations { get; } = new ObservableCollection<AnnotationViewModel>();
@@ -751,6 +753,7 @@ namespace Dynamo.ViewModels
             Notes.ToList().ForEach(noteViewModel => noteViewModel.Dispose());
             Connectors.ToList().ForEach(connectorViewmModel => connectorViewmModel.Dispose());
             Annotations.ToList().ForEach(AnnotationViewModel => AnnotationViewModel.Dispose());
+            DiscardPreservedConnectorPinViewModels();
             Nodes.Clear();
             Notes.Clear();
             Pins.Clear();
@@ -763,6 +766,45 @@ namespace Dynamo.ViewModels
 
             DelayNodePreviewControl?.Dispose();
             DelayNodePreviewControl = null;
+        }
+
+        internal void PreserveConnectorPinViewModelForReconnection(ConnectorPinViewModel pinViewModel)
+        {
+            if (pinViewModel?.Model == null)
+            {
+                return;
+            }
+
+            preservedConnectorPinViewModels[pinViewModel.Model.GUID] = pinViewModel;
+            Pins.Remove(pinViewModel);
+        }
+
+        internal bool TryTakePreservedConnectorPinViewModel(Guid pinModelGuid, out ConnectorPinViewModel pinViewModel)
+        {
+            if (!preservedConnectorPinViewModels.TryGetValue(pinModelGuid, out pinViewModel))
+            {
+                return false;
+            }
+
+            preservedConnectorPinViewModels.Remove(pinModelGuid);
+            if (!Pins.Contains(pinViewModel))
+            {
+                Pins.Add(pinViewModel);
+            }
+
+            return true;
+        }
+
+        internal void DiscardPreservedConnectorPinViewModels()
+        {
+            foreach (var pinViewModel in preservedConnectorPinViewModels.Values.ToList())
+            {
+                Pins.Remove(pinViewModel);
+                pinViewModel.Model?.Dispose();
+                pinViewModel.Dispose();
+            }
+
+            preservedConnectorPinViewModels.Clear();
         }
 
         internal void ZoomInInternal()

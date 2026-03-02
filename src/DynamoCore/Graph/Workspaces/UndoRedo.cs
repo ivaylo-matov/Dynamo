@@ -286,7 +286,7 @@ namespace Dynamo.Graph.Workspaces
                     }
                     else if (model is ConnectorModel conn)
                     {
-                        if (conn.ConnectorPinModels.Count > 0)
+                        if (!conn.PreservePinsDuringReconnection && conn.ConnectorPinModels.Count > 0)
                         {
                             foreach (var connectorPin in conn.ConnectorPinModels.ToList())
                             {
@@ -323,6 +323,7 @@ namespace Dynamo.Graph.Workspaces
                 // Add connector pins if any
                 var allPins = models
                     .OfType<ConnectorModel>()
+                    .Where(connector => !connector.PreservePinsDuringReconnection)
                     .SelectMany(connector => connector.ConnectorPinModels)
                     .Cast<ModelBase>()
                     .ToList();
