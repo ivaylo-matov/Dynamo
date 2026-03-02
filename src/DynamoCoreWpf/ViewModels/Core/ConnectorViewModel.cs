@@ -55,6 +55,7 @@ namespace Dynamo.ViewModels
         private Point curvePoint1;
         private Point curvePoint2;
         private Point curvePoint3;
+        private bool suppressPinViewModelRemovalFromModelCollection;
         private readonly List<ConnectorPinViewModel> transientCachedPinVisuals = new List<ConnectorPinViewModel>();
         private readonly List<Point> transientCachedPinLocations = new List<Point>();
 
@@ -1120,6 +1121,11 @@ namespace Dynamo.ViewModels
                     }
                     break;
                 case NotifyCollectionChangedAction.Remove:
+                    if (suppressPinViewModelRemovalFromModelCollection)
+                    {
+                        break;
+                    }
+
                     foreach (ConnectorPinModel oldItem in e.OldItems)
                     {
                         RemoveConnectorPinModelViewModel(oldItem);
@@ -1534,13 +1540,47 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        /// Caches existing pins for transient reconnection without attaching them to the transient connector.
-        /// Their positions are used for transient bezier routing while the cached pin visuals remain visible.
+        /// Extracts connector pin view models so they can be cached and displayed during transient reconnection.
         /// </summary>
-        /// <param name="pinModels">Existing pin models detached from the original connector.</param>
-        internal void SetTransientConnectorPins(IEnumerable<ConnectorPinModel> pinModels)
+        /// <returns>Pin view models detached from this connector.</returns>
+        internal List<ConnectorPinViewModel> ExtractPinsForTransientConnector()
         {
-            if (ConnectorModel != null || pinModels == null)
+            suppressPinViewModelRemovalFromModelCollection = true;
+            var extractedPins = new List<ConnectorPinViewModel>();
+
+            if (ConnectorPinViewCollection == null || ConnectorPinViewCollection.Count == 0)
+            {
+                return extractedPins;
+            }
+
+            foreach (var pinViewModel in ConnectorPinViewCollection.ToList())
+            {
+                pinViewModel.PropertyChanged -= PinViewModelPropertyChanged;
+                pinViewModel.RequestSelect -= HandleRequestSelected;
+                pinViewModel.RequestRedraw -= HandlerRedrawRequest;
+                pinViewModel.RequestRemove -= HandleConnectorPinViewModelRemove;
+                ConnectorPinViewCollection.Remove(pinViewModel);
+                pinViewModel.IsInteractive = false;
+                extractedPins.Add(pinViewModel);
+            }
+
+            if (ConnectorPinViewCollection.Count == 0)
+            {
+                BezierControlPoints = null;
+            }
+
+            return extractedPins;
+        }
+
+        /// <summary>
+        /// Caches existing pin view models for transient reconnection without attaching them
+        /// to the transient connector pin collection. Their positions are used for transient
+        /// bezier routing while the cached pin visuals remain visible.
+        /// </summary>
+        /// <param name="pinViewModels">Existing pin view models detached from the original connector.</param>
+        internal void SetTransientConnectorPins(IEnumerable<ConnectorPinViewModel> pinViewModels)
+        {
+            if (ConnectorModel != null || pinViewModels == null)
             {
                 return;
             }
@@ -1548,24 +1588,25 @@ namespace Dynamo.ViewModels
             ClearTransientPinCache();
             DiscardAllConnectorPinModels();
 
-            foreach (var pinModel in pinModels)
+            foreach (var pinViewModel in pinViewModels)
             {
-                if (pinModel == null)
+                if (pinViewModel == null)
                 {
                     continue;
                 }
 
-                transientCachedPinLocations.Add(new Point(pinModel.X, pinModel.Y));
+                pinViewModel.IsHidden = this.IsHidden;
+                pinViewModel.IsTemporarilyVisible = isTemporarilyVisible;
+                pinViewModel.IsCollapsed = this.IsCollapsed;
+                pinViewModel.IsInteractive = false;
 
-                var cachedPinViewModel = new ConnectorPinViewModel(this.workspaceViewModel, pinModel)
+                transientCachedPinLocations.Add(new Point(pinViewModel.Left, pinViewModel.Top));
+                if (!workspaceViewModel.Pins.Contains(pinViewModel))
                 {
-                    IsHidden = this.IsHidden,
-                    IsTemporarilyVisible = isTemporarilyVisible,
-                    IsInteractive = false
-                };
+                    workspaceViewModel.Pins.Add(pinViewModel);
+                }
 
-                workspaceViewModel.Pins.Add(cachedPinViewModel);
-                transientCachedPinVisuals.Add(cachedPinViewModel);
+                transientCachedPinVisuals.Add(pinViewModel);
             }
         }
 

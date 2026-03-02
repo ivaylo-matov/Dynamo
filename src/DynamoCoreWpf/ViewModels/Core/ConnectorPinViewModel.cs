@@ -346,8 +346,15 @@ namespace Dynamo.ViewModels
 
         public override void Dispose()
         {
-            model.PropertyChanged -= OnPinPropertyChanged;
-            DynamoSelection.Instance.Selection.CollectionChanged -= SelectionOnCollectionChanged;
+            if (model != null)
+            {
+                model.PropertyChanged -= OnPinPropertyChanged;
+            }
+
+            if (DynamoSelection.Instance?.Selection != null)
+            {
+                DynamoSelection.Instance.Selection.CollectionChanged -= SelectionOnCollectionChanged;
+            }
             base.Dispose();
         }
 
