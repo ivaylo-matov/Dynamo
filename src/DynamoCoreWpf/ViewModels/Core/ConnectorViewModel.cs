@@ -56,6 +56,7 @@ namespace Dynamo.ViewModels
         private Point curvePoint2;
         private Point curvePoint3;
         private bool suppressPinViewModelRemovalFromModelCollection;
+        private bool suppressRedrawFromCollectionChanges;
         private readonly List<ConnectorPinViewModel> transientCachedPinVisuals = new List<ConnectorPinViewModel>();
         private readonly List<Point> transientCachedPinLocations = new List<Point>();
 
@@ -1237,6 +1238,11 @@ namespace Dynamo.ViewModels
 
         private void HandleCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
+            if (suppressRedrawFromCollectionChanges)
+            {
+                return;
+            }
+
             Redraw();
         }
 
@@ -1553,15 +1559,23 @@ namespace Dynamo.ViewModels
                 return extractedPins;
             }
 
-            foreach (var pinViewModel in ConnectorPinViewCollection.ToList())
+            suppressRedrawFromCollectionChanges = true;
+            try
             {
-                pinViewModel.PropertyChanged -= PinViewModelPropertyChanged;
-                pinViewModel.RequestSelect -= HandleRequestSelected;
-                pinViewModel.RequestRedraw -= HandlerRedrawRequest;
-                pinViewModel.RequestRemove -= HandleConnectorPinViewModelRemove;
-                ConnectorPinViewCollection.Remove(pinViewModel);
-                pinViewModel.IsInteractive = false;
-                extractedPins.Add(pinViewModel);
+                foreach (var pinViewModel in ConnectorPinViewCollection.ToList())
+                {
+                    pinViewModel.PropertyChanged -= PinViewModelPropertyChanged;
+                    pinViewModel.RequestSelect -= HandleRequestSelected;
+                    pinViewModel.RequestRedraw -= HandlerRedrawRequest;
+                    pinViewModel.RequestRemove -= HandleConnectorPinViewModelRemove;
+                    ConnectorPinViewCollection.Remove(pinViewModel);
+                    pinViewModel.IsInteractive = false;
+                    extractedPins.Add(pinViewModel);
+                }
+            }
+            finally
+            {
+                suppressRedrawFromCollectionChanges = false;
             }
 
             if (ConnectorPinViewCollection.Count == 0)
