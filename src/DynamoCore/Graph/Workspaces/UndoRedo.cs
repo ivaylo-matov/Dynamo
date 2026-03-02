@@ -411,6 +411,13 @@ namespace Dynamo.Graph.Workspaces
             else if (model is ConnectorModel)
             {
                 var connector = model as ConnectorModel;
+                if (connector.ConnectorPinModels.Count > 0)
+                {
+                    // Connector deletions coming through undo/redo should detach
+                    // pins in the view first, then let the corresponding pin
+                    // actions in the same undo group reconcile final ownership.
+                    connector.PreservePinsOnDeleteForReconnection = true;
+                }
                 connector.Delete();
             }
             else if (model is ConnectorPinModel connectorPin)
