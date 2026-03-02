@@ -1118,7 +1118,9 @@ namespace Dynamo.ViewModels
         /// <param name="connectorPin"></param>
         private void RemoveConnectorPinModelViewModel(ConnectorPinModel connectorPin)
         {
-            var matchingConnectorPinViewModel = this.workspaceViewModel.Pins.FirstOrDefault(x => x.Model.GUID == connectorPin.GUID);
+            var matchingConnectorPinViewModel =
+                this.workspaceViewModel.Pins.FirstOrDefault(x => x.Model.GUID == connectorPin.GUID) ??
+                ConnectorPinViewCollection.FirstOrDefault(x => x.Model.GUID == connectorPin.GUID);
             if (matchingConnectorPinViewModel is null) return;
             RemoveConnectorPinModelViewModel(matchingConnectorPinViewModel);
         }
@@ -1494,16 +1496,27 @@ namespace Dynamo.ViewModels
         /// to all previous pins is required for undo/redo recorder.</param>
         internal void DiscardAllConnectorPinModels(List<ModelBase> allDeletedModels = null)
         {
-            foreach (var pin in ConnectorPinViewCollection)
+            foreach (var pin in ConnectorPinViewCollection.ToList())
             {
                 workspaceViewModel.Pins.Remove(pin);
-                ConnectorModel?.RemovePin(pin.Model);
+                var pinStillBelongsToThisConnector =
+                    ConnectorModel != null &&
+                    pin.Model != null &&
+                    pin.Model.ConnectorId == ConnectorModel.GUID;
 
-                if (ConnectorModel != null && allDeletedModels != null)
+                // Only dispose the pin model when this connector still owns it.
+                // During undo/redo a stale pin view can transiently remain while the
+                // pin model has already been moved to a different connector.
+                if (pinStillBelongsToThisConnector)
                 {
-                    allDeletedModels.Add(pin.Model);
+                    ConnectorModel.RemovePin(pin.Model);
+
+                    if (allDeletedModels != null)
+                    {
+                        allDeletedModels.Add(pin.Model);
+                    }
+                    pin.Model.Dispose();
                 }
-                pin.Model.Dispose();
                 pin.Dispose();
             }
 

@@ -599,6 +599,59 @@ namespace DynamoCoreWpfTests
             var restoredPin = restoredConnector.ConnectorModel.ConnectorPinModels.FirstOrDefault(p => p.GUID == pinModelGuid);
             Assert.IsNotNull(restoredPin, "Expected pin model not found after undo.");
         }
+
+        [Test]
+        public void CanUndoInputPortReconnectionWithConnectorPin()
+        {
+            Open(@"UI/ConnectorPinTests.dyn");
+
+            var targetOutputNodeId = Guid.Parse("90cd0dca-45c7-456b-bb63-726d2193dbb4");
+            var targetOutputNode = this.ViewModel.Model.CurrentWorkspace.GetModelInternal(targetOutputNodeId) as NodeModel;
+            Assert.IsNotNull(targetOutputNode);
+
+            var connectorViewModel = this.ViewModel.CurrentSpaceViewModel.Connectors.First();
+            var initialConnectorPinCount = connectorViewModel.ConnectorPinViewCollection.Count;
+
+            connectorViewModel.PanelX = 292.66666;
+            connectorViewModel.PanelY = 278;
+            connectorViewModel.FlipOnConnectorAnchor();
+            connectorViewModel.PinConnectorCommand.Execute(null);
+
+            Assert.AreEqual(initialConnectorPinCount + 1, connectorViewModel.ConnectorPinViewCollection.Count);
+            var pinModelGuid = connectorViewModel.ConnectorModel.ConnectorPinModels.First().GUID;
+            var originalConnectorGuid = connectorViewModel.ConnectorModel.GUID;
+
+            var endPort = connectorViewModel.ConnectorModel.End;
+            var endNode = endPort.Owner;
+            var endPortIndex = endNode.InPorts.IndexOf(endPort);
+
+            this.ViewModel.ExecuteCommand(
+                new DynamoModel.MakeConnectionCommand(endNode.GUID, endPortIndex, PortType.Input,
+                MakeConnectionCommand.Mode.Begin));
+
+            var activeConnector = this.ViewModel.CurrentSpaceViewModel.WorkspaceElements
+                .OfType<ConnectorViewModel>()
+                .FirstOrDefault(c => c.IsConnecting);
+            Assert.IsNotNull(activeConnector);
+            Assert.AreEqual(0, activeConnector.ConnectorPinViewCollection.Count);
+
+            this.ViewModel.ExecuteCommand(
+                new DynamoModel.MakeConnectionCommand(targetOutputNode.GUID, 0, PortType.Output,
+                MakeConnectionCommand.Mode.End));
+
+            var connectorAfterReconnect = this.ViewModel.CurrentSpaceViewModel.Connectors;
+            Assert.AreEqual(1, connectorAfterReconnect.Count());
+            Assert.IsTrue(connectorAfterReconnect.First().ConnectorModel.ConnectorPinModels.Any(p => p.GUID == pinModelGuid));
+
+            Model.ExecuteCommand(new UndoRedoCommand(UndoRedoCommand.Operation.Undo));
+
+            var restoredConnector = this.ViewModel.CurrentSpaceViewModel.Connectors
+                .FirstOrDefault(c => c.ConnectorModel.GUID == originalConnectorGuid);
+
+            Assert.IsNotNull(restoredConnector);
+            Assert.AreEqual(initialConnectorPinCount + 1, restoredConnector.ConnectorPinViewCollection.Count);
+            Assert.IsTrue(restoredConnector.ConnectorModel.ConnectorPinModels.Any(p => p.GUID == pinModelGuid));
+        }
         #endregion
     }
 }
