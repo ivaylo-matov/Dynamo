@@ -157,7 +157,7 @@ namespace Dynamo.Graph.Workspaces
                     }
                     savedModels = null;
                 }
-                foreach (var modelPair in models)
+                foreach (var modelPair in GetUndoRecordingOrder(models))
                 {
                     switch (modelPair.Value)
                     {
@@ -173,6 +173,38 @@ namespace Dynamo.Graph.Workspaces
                     }
                 }
             }
+        }
+
+        private static IEnumerable<KeyValuePair<ModelBase, UndoRedoRecorder.UserAction>> GetUndoRecordingOrder(
+            Dictionary<ModelBase, UndoRedoRecorder.UserAction> models)
+        {
+            return models
+                .OrderBy(modelPair => GetActionRank(modelPair.Value))
+                .ThenBy(modelPair => GetModelRank(modelPair.Key, modelPair.Value))
+                .ThenBy(modelPair => modelPair.Key.GUID);
+        }
+
+        private static int GetActionRank(UndoRedoRecorder.UserAction action)
+        {
+            return action switch
+            {
+                UndoRedoRecorder.UserAction.Deletion => 0,
+                UndoRedoRecorder.UserAction.Modification => 1,
+                UndoRedoRecorder.UserAction.Creation => 2,
+                _ => 3
+            };
+        }
+
+        private static int GetModelRank(ModelBase model, UndoRedoRecorder.UserAction action)
+        {
+            return action switch
+            {
+                UndoRedoRecorder.UserAction.Creation when model is ConnectorModel => 0,
+                UndoRedoRecorder.UserAction.Creation when model is ConnectorPinModel => 1,
+                UndoRedoRecorder.UserAction.Deletion when model is ConnectorPinModel => 0,
+                UndoRedoRecorder.UserAction.Deletion when model is ConnectorModel => 1,
+                _ => 2
+            };
         }
 
         internal void RecordCreatedModel(ModelBase model)
@@ -411,13 +443,6 @@ namespace Dynamo.Graph.Workspaces
             else if (model is ConnectorModel)
             {
                 var connector = model as ConnectorModel;
-                if (connector.ConnectorPinModels.Count > 0)
-                {
-                    // Connector deletions coming through undo/redo should detach
-                    // pins in the view first, then let the corresponding pin
-                    // actions in the same undo group reconcile final ownership.
-                    connector.PreservePinsOnDeleteForReconnection = true;
-                }
                 connector.Delete();
             }
             else if (model is ConnectorPinModel connectorPin)

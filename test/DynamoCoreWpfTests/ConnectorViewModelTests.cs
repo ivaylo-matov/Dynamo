@@ -601,6 +601,39 @@ namespace DynamoCoreWpfTests
 
             var restoredPin = restoredConnector.ConnectorModel.ConnectorPinModels.FirstOrDefault(p => p.GUID == pinModelGuid);
             Assert.IsNotNull(restoredPin, "Expected pin model not found after undo.");
+
+            restoredConnector.Redraw();
+            Assert.IsNotNull(restoredConnector.ComputedBezierPathGeometry);
+            Assert.Greater(restoredConnector.ComputedBezierPathGeometry.Figures.Count, 1);
+        }
+
+        [Test]
+        public void CanUndoDeleteConnectorWithPinAndRestorePinAttachment()
+        {
+            Open(@"UI/ConnectorPinTests.dyn");
+            var connectorViewModel = this.ViewModel.CurrentSpaceViewModel.Connectors.First();
+
+            connectorViewModel.PanelX = 292.66666;
+            connectorViewModel.PanelY = 278;
+            connectorViewModel.FlipOnConnectorAnchor();
+            connectorViewModel.PinConnectorCommand.Execute(null);
+
+            var connectorGuid = connectorViewModel.ConnectorModel.GUID;
+            var pinGuid = connectorViewModel.ConnectorModel.ConnectorPinModels.First().GUID;
+
+            Model.ExecuteCommand(new DeleteModelCommand(connectorGuid));
+            Assert.AreEqual(0, this.ViewModel.CurrentSpaceViewModel.Connectors.Count);
+
+            Model.ExecuteCommand(new UndoRedoCommand(UndoRedoCommand.Operation.Undo));
+
+            var restoredConnector = this.ViewModel.CurrentSpaceViewModel.Connectors
+                .FirstOrDefault(connector => connector.ConnectorModel.GUID == connectorGuid);
+            Assert.IsNotNull(restoredConnector);
+            Assert.IsTrue(restoredConnector.ConnectorModel.ConnectorPinModels.Any(pin => pin.GUID == pinGuid));
+
+            restoredConnector.Redraw();
+            Assert.IsNotNull(restoredConnector.ComputedBezierPathGeometry);
+            Assert.Greater(restoredConnector.ComputedBezierPathGeometry.Figures.Count, 1);
         }
         #endregion
     }
