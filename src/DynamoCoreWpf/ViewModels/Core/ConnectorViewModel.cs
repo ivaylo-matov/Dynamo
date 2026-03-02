@@ -1611,14 +1611,22 @@ namespace Dynamo.ViewModels
         /// </summary>
         private void SetCollapsedByNodeViewModel()
         {
-            if (ConnectorModel?.Start == null || ConnectorModel?.End == null)
+            if ((ConnectorPinViewCollection?.Count > 0) || transientCachedPinLocations.Count > 0)
+            {
+                return;
+            }
+
+            var connectorModel = ConnectorModel;
+            if (connectorModel?.Start == null || connectorModel.End == null)
             {
                 return;
             }
 
             // Check if the connector is between two proxy ports. 
             // Connectors between proxy ports should not be collapsed.
-            bool bothEndsAreProxyPorts = ConnectorModel.Start.IsProxyPort && ConnectorModel.End.IsProxyPort;
+            var startPort = connectorModel.Start;
+            var endPort = connectorModel.End;
+            bool bothEndsAreProxyPorts = startPort.IsProxyPort && endPort.IsProxyPort;
 
             if (Nodevm?.IsCollapsed == true && NodeEnd?.IsCollapsed == true && !bothEndsAreProxyPorts)
             {
