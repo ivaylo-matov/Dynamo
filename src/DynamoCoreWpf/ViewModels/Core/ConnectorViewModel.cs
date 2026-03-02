@@ -1578,7 +1578,10 @@ namespace Dynamo.ViewModels
         /// bezier routing while the cached pin visuals remain visible.
         /// </summary>
         /// <param name="pinViewModels">Existing pin view models detached from the original connector.</param>
-        internal void SetTransientConnectorPins(IEnumerable<ConnectorPinViewModel> pinViewModels)
+        /// <param name="pinLocations">Optional cached pin model locations used for transient bezier routing.</param>
+        internal void SetTransientConnectorPins(
+            IEnumerable<ConnectorPinViewModel> pinViewModels,
+            IEnumerable<(double X, double Y)> pinLocations = null)
         {
             if (ConnectorModel != null || pinViewModels == null)
             {
@@ -1588,6 +1591,15 @@ namespace Dynamo.ViewModels
             ClearTransientPinCache();
             DiscardAllConnectorPinModels();
 
+            if (pinLocations != null)
+            {
+                foreach (var pinLocation in pinLocations)
+                {
+                    transientCachedPinLocations.Add(new Point(pinLocation.X, pinLocation.Y));
+                }
+            }
+
+            var useViewModelLocations = transientCachedPinLocations.Count == 0;
             foreach (var pinViewModel in pinViewModels)
             {
                 if (pinViewModel == null)
@@ -1600,7 +1612,11 @@ namespace Dynamo.ViewModels
                 pinViewModel.IsCollapsed = this.IsCollapsed;
                 pinViewModel.IsInteractive = false;
 
-                transientCachedPinLocations.Add(new Point(pinViewModel.Left, pinViewModel.Top));
+                if (useViewModelLocations)
+                {
+                    transientCachedPinLocations.Add(new Point(pinViewModel.Left, pinViewModel.Top));
+                }
+
                 if (!workspaceViewModel.Pins.Contains(pinViewModel))
                 {
                     workspaceViewModel.Pins.Add(pinViewModel);

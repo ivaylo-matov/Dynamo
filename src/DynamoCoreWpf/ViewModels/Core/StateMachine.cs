@@ -206,10 +206,11 @@ namespace Dynamo.ViewModels
                     .FirstOrDefault(x => x.ConnectorModel == existingConnector);
                 var extractedPins = existingConnectorViewModel?.ExtractPinsForTransientConnector()
                     ?? new List<ConnectorPinViewModel>();
+                var extractedPinLocations = existingConnector.GetPinLocations().ToList();
 
                 // Define the new active connector
                 var activeConnector = new ConnectorViewModel(this, existingConnector.Start);
-                activeConnector.SetTransientConnectorPins(extractedPins);
+                activeConnector.SetTransientConnectorPins(extractedPins, extractedPinLocations);
                 activeConnector.Redraw(existingConnector.End.Center);
                 var c = new ConnectorViewModel[] { activeConnector };
                 this.SetActiveConnectors(c);
@@ -256,9 +257,10 @@ namespace Dynamo.ViewModels
                     .FirstOrDefault(x => x.ConnectorModel == selectedConnector);
                 var extractedPins = selectedConnectorViewModel?.ExtractPinsForTransientConnector()
                     ?? new List<ConnectorPinViewModel>();
+                var extractedPinLocations = selectedConnector.GetPinLocations().ToList();
 
                 var c = new ConnectorViewModel(this, selectedConnector.End);
-                c.SetTransientConnectorPins(extractedPins);
+                c.SetTransientConnectorPins(extractedPins, extractedPinLocations);
                 c.Redraw(selectedConnector.Start.Center);
                 connectorsAr[i] = c;
             }
