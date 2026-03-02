@@ -1255,7 +1255,16 @@ namespace Dynamo.ViewModels
         /// </summary>
         public override void Dispose()
         {
-            var preservePinsForReconnection = model?.PreservePinsDuringReconnection == true;
+            var connectorDetachedFromPorts =
+                model != null &&
+                !(model.Start?.Connectors.Contains(model) ?? false) &&
+                !(model.End?.Connectors.Contains(model) ?? false);
+
+            var preservePinsForReconnection =
+                model?.PreservePinsDuringReconnection == true ||
+                (model != null &&
+                 connectorDetachedFromPorts &&
+                 model.ConnectorPinModels.Count > 0);
 
             if (model != null)
             {
