@@ -62,6 +62,12 @@ namespace Dynamo.Graph.Connectors
                 RaisePropertyChanged(nameof(IsTransient));
             }
         }
+
+        /// <summary>
+        /// Indicates that connector pins should not be deleted when this connector
+        /// is being removed as part of a reconnection operation.
+        /// </summary>
+        internal bool PreservePinsOnDeleteForReconnection { get; set; } = false;
         
         /// <summary>
         /// Returns start port model.
@@ -136,6 +142,19 @@ namespace Dynamo.Graph.Connectors
             return ConnectorPinModels
                 .Select(pin => (pin.X, pin.Y))
                 .ToList();
+        }
+
+        /// <summary>
+        /// Returns a snapshot of connector pins currently attached to this connector.
+        /// </summary>
+        internal IReadOnlyList<ConnectorPinModel> GetPinsSnapshot()
+        {
+            if (ConnectorPinModels == null || ConnectorPinModels.Count == 0)
+            {
+                return new List<ConnectorPinModel>();
+            }
+
+            return ConnectorPinModels.ToList();
         }
 
         #endregion 

@@ -55,6 +55,7 @@ namespace Dynamo.ViewModels
         private Point curvePoint1;
         private Point curvePoint2;
         private Point curvePoint3;
+        private List<(double X, double Y)> transientPinLocations;
 
         /// <summary>
         /// Required timer for desired delay prior to ' connector anchor' display.
@@ -1147,23 +1148,41 @@ namespace Dynamo.ViewModels
         /// <param name="pinModel"></param>
         private void AddConnectorPinViewModel(ConnectorPinModel pinModel, bool isTransientPin = false)
         {
-            var pinViewModel = new ConnectorPinViewModel(this.workspaceViewModel, pinModel)
+            var pinViewModel = workspaceViewModel.Pins.FirstOrDefault(pin => pin.Model.GUID == pinModel.GUID);
+            if (pinViewModel != null && !ReferenceEquals(pinViewModel.Model, pinModel))
             {
-                IsHidden = this.IsHidden,
-                IsTemporarilyVisible = isTemporarilyVisible,
-                IsInteractive = !isTransientPin
-            };
+                workspaceViewModel.Pins.Remove(pinViewModel);
+                pinViewModel.Dispose();
+                pinViewModel = null;
+            }
+
+            if (pinViewModel == null)
+            {
+                pinViewModel = new ConnectorPinViewModel(this.workspaceViewModel, pinModel);
+                workspaceViewModel.Pins.Add(pinViewModel);
+            }
+
+            pinViewModel.IsHidden = this.IsHidden;
+            pinViewModel.IsTemporarilyVisible = isTemporarilyVisible;
+            pinViewModel.IsInteractive = !isTransientPin;
+
+            pinViewModel.PropertyChanged -= PinViewModelPropertyChanged;
             pinViewModel.PropertyChanged += PinViewModelPropertyChanged;
 
+            pinViewModel.RequestSelect -= HandleRequestSelected;
             pinViewModel.RequestSelect += HandleRequestSelected;
+            pinViewModel.RequestRedraw -= HandlerRedrawRequest;
             pinViewModel.RequestRedraw += HandlerRedrawRequest;
+            pinViewModel.RequestRemove -= HandleConnectorPinViewModelRemove;
             if (!isTransientPin)
             {
                 pinViewModel.RequestRemove += HandleConnectorPinViewModelRemove;
             }
 
-            workspaceViewModel.Pins.Add(pinViewModel);
-            ConnectorPinViewCollection.Add(pinViewModel);
+            if (!ConnectorPinViewCollection.Contains(pinViewModel))
+            {
+                ConnectorPinViewCollection.Add(pinViewModel);
+            }
         }
 
         /// <summary>
@@ -1472,6 +1491,26 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
+        /// Keeps existing pin visuals alive while detaching them from this connector
+        /// so they can be reused by a replacement connector during reconnection.
+        /// </summary>
+        internal void DetachPinsForReconnection()
+        {
+            foreach (var pin in ConnectorPinViewCollection.ToList())
+            {
+                pin.PropertyChanged -= PinViewModelPropertyChanged;
+                pin.RequestRedraw -= HandlerRedrawRequest;
+                pin.RequestSelect -= HandleRequestSelected;
+                pin.RequestRemove -= HandleConnectorPinViewModelRemove;
+                pin.IsInteractive = false;
+            }
+
+            ConnectorPinViewCollection.Clear();
+            AnyPinSelected = false;
+            BezierControlPoints = null;
+        }
+
+        /// <summary>
         /// Collects pin locations of a connector. These are needed to reconstruct
         /// pins when new connectors are constructed. Specifically when a Watch node is 
         /// placed on a connector, thereby creating new connectors.
@@ -1489,9 +1528,10 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        /// Creates transient pin visuals for a temporary connector (ConnectorModel == null).
+        /// Stores transient pin location hints for a temporary connector (ConnectorModel == null)
+        /// so the transient bezier path matches the original connector shape.
         /// </summary>
-        /// <param name="pinLocations">Pin top-left canvas coordinates.</param>
+        /// <param name="pinLocations">Pin model coordinates.</param>
         internal void SetTransientConnectorPinPositions(IEnumerable<(double X, double Y)> pinLocations)
         {
             if (ConnectorModel != null || pinLocations == null)
@@ -1499,17 +1539,7 @@ namespace Dynamo.ViewModels
                 return;
             }
 
-            DiscardAllConnectorPinModels();
-            foreach (var pinLocation in pinLocations)
-            {
-                var transientPinModel = new ConnectorPinModel(
-                    pinLocation.X,
-                    pinLocation.Y,
-                    Guid.NewGuid(),
-                    Guid.Empty);
-
-                AddConnectorPinViewModel(transientPinModel, true);
-            }
+            transientPinLocations = pinLocations.ToList();
         }
 
         #region ConnectorRedraw
@@ -1521,7 +1551,7 @@ namespace Dynamo.ViewModels
         {
             try
             {
-                if (ConnectorPinViewCollection?.Count > 0)
+                if (ConnectorPinViewCollection?.Count > 0 || HasTransientPinHints())
                 {
                     if (this.ConnectorModel?.End != null)
                     {
@@ -1575,7 +1605,7 @@ namespace Dynamo.ViewModels
         /// <param name="parameter">The position of the end point</param>
         public void Redraw(object parameter)
         {
-            if (ConnectorPinViewCollection?.Count > 0)
+            if (ConnectorPinViewCollection?.Count > 0 || HasTransientPinHints())
             {
                 RedrawBezierManyPoints(parameter);
                 return;
@@ -1683,6 +1713,18 @@ namespace Dynamo.ViewModels
             return false;
         }
 
+        private bool HasTransientPinHints()
+        {
+            return transientPinLocations != null && transientPinLocations.Count > 0;
+        }
+
+        private static Point ConvertPinModelLocationToBezierPoint(double x, double y)
+        {
+            return new Point(
+                x + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5),
+                y + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 1.5));
+        }
+
         private void RedrawBezierManyPoints(object parameter)
         {
             if (!TryGetEndPoint(parameter, out var p2))
@@ -1715,12 +1757,28 @@ namespace Dynamo.ViewModels
                 dotLeft = CurvePoint3.X - EndDotSize / 2;
 
                 // Add chain of points including start/end
-                Point[] points = new Point[ConnectorPinViewCollection.Count];
-                int count = 0;
-                foreach (var wirePin in ConnectorPinViewCollection)
+                Point[] points;
+                if (ConnectorPinViewCollection?.Count > 0)
                 {
-                    points[count] = new Point(wirePin.Left+ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5), wirePin.Top+ ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5));
-                    count++;
+                    points = new Point[ConnectorPinViewCollection.Count];
+                    int count = 0;
+                    foreach (var wirePin in ConnectorPinViewCollection)
+                    {
+                        points[count] = new Point(
+                            wirePin.Left + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5),
+                            wirePin.Top + ConnectorPinModel.StaticWidth - (ConnectorPinViewModel.OneThirdWidth * 0.5));
+                        count++;
+                    }
+                }
+                else if (HasTransientPinHints())
+                {
+                    points = transientPinLocations
+                        .Select(pinLocation => ConvertPinModelLocationToBezierPoint(pinLocation.X, pinLocation.Y))
+                        .ToArray();
+                }
+                else
+                {
+                    return;
                 }
 
                 var isInputStartReconnection = ActiveStartPort?.PortType == PortType.Input;

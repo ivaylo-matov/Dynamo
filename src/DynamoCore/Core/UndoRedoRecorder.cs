@@ -290,7 +290,7 @@ namespace Dynamo.Core
         /// <param name="model">The model to check against.</param>
         /// <returns>Returns true if the model has already been recorded in the
         /// current action group, or false otherwise.</returns>
-        private bool IsRecordedInActionGroup(XmlElement group, ModelBase model)
+        private bool IsRecordedInActionGroup(XmlElement group, ModelBase model, UserAction action)
         {
             if (null == group)
                 throw new ArgumentNullException("group");
@@ -306,7 +306,18 @@ namespace Dynamo.Core
                 // 
                 XmlAttribute guidAttribute = childNode.Attributes["guid"];
                 if (null != guidAttribute && (guid == Guid.Parse(guidAttribute.Value)))
-                    return true; // This model was found to be recorded.
+                {
+                    // Allow the same model to be recorded with a different action
+                    // in the same group (e.g., pin transfer during reconnection).
+                    var actionAttribute = childNode.Attributes[UserActionAttrib];
+                    if (actionAttribute == null)
+                        return true;
+
+                    var existingAction =
+                        (UserAction)Enum.Parse(typeof(UserAction), actionAttribute.Value);
+                    if (existingAction == action)
+                        return true; // This model was found to be recorded with same action.
+                }
             }
 
             return false;
@@ -343,7 +354,7 @@ namespace Dynamo.Core
 
         private void RecordActionInternal(XmlElement group, ModelBase model, UserAction action)
         {
-            if (IsRecordedInActionGroup(group, model))
+            if (IsRecordedInActionGroup(group, model, action))
                 return;
 
             // Serialize the affected model into xml representation

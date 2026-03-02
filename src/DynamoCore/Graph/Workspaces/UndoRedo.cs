@@ -197,7 +197,7 @@ namespace Dynamo.Graph.Workspaces
             }
         }
 
-        internal void RecordAndDeleteModels(List<ModelBase> models)
+        internal void RecordAndDeleteModels(List<ModelBase> models, bool preserveConnectorPins = false)
 
         {
             if (!ShouldProceedWithRecording(models))
@@ -285,7 +285,9 @@ namespace Dynamo.Graph.Workspaces
                     }
                     else if (model is ConnectorModel conn)
                     {
-                        if (conn.ConnectorPinModels.Count > 0)
+                        if (!preserveConnectorPins &&
+                            !conn.PreservePinsOnDeleteForReconnection &&
+                            conn.ConnectorPinModels.Count > 0)
                         {
                             foreach (var connectorPin in conn.ConnectorPinModels.ToList())
                             {
@@ -317,15 +319,35 @@ namespace Dynamo.Graph.Workspaces
 
         internal void SaveAndDeleteModels(List<ModelBase> models)
         {
+            SaveAndDeleteModels(models, preserveConnectorPins: false);
+        }
+
+        internal void SaveAndDeleteModels(List<ModelBase> models, bool preserveConnectorPins)
+        {
             if (null != models)
             {
-                // Add connector pins if any
-                var allPins = models
-                    .OfType<ConnectorModel>()
-                    .SelectMany(connector => connector.ConnectorPinModels)
-                    .Cast<ModelBase>()
-                    .ToList();
-                var fullSet = allPins.Concat(models).ToList();
+                List<ModelBase> fullSet;
+                if (preserveConnectorPins)
+                {
+                    // Capture pre-transfer pin snapshots so undo can recreate
+                    // the original pin-to-connector mapping if needed.
+                    var pinSnapshots = models
+                        .OfType<ConnectorModel>()
+                        .SelectMany(connector => connector.ConnectorPinModels)
+                        .Select(pin => (ModelBase)new ConnectorPinModel(pin.X, pin.Y, pin.GUID, pin.ConnectorId))
+                        .ToList();
+                    fullSet = pinSnapshots.Concat(models).ToList();
+                }
+                else
+                {
+                    // Add connector pins if any
+                    var allPins = models
+                        .OfType<ConnectorModel>()
+                        .SelectMany(connector => connector.ConnectorPinModels)
+                        .Cast<ModelBase>()
+                        .ToList();
+                    fullSet = allPins.Concat(models).ToList();
+                }
 
                 // If an existing connector/pin set is grabbed (to be reconnected), save the 
                 // models for deletion later in one action group.
@@ -333,7 +355,7 @@ namespace Dynamo.Graph.Workspaces
 
                 // After saving the models, delete them from the workspace
                 // in one action group.
-                RecordAndDeleteModels(models);
+                RecordAndDeleteModels(models, preserveConnectorPins);
             }
         }
 

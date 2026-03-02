@@ -43,7 +43,8 @@ namespace Dynamo.Models
 
         private PortModel[] activeStartPorts;
         private PortModel firstStartPort;
-        private Dictionary<Guid, List<(double X, double Y)>> reconnectionPinLocationsByStartPortId;
+        private Dictionary<Guid, (List<ConnectorPinModel> Pins, List<(double X, double Y)> Locations)>
+            reconnectionPinsByStartPortId;
 
         protected virtual void OpenFileImpl(OpenFileCommand command)
         {
@@ -374,7 +375,7 @@ namespace Dynamo.Models
         {
             bool isInPort = portType == PortType.Input;
             activeStartPorts = null;
-            reconnectionPinLocationsByStartPortId = null;
+            reconnectionPinsByStartPortId = null;
 
             if (CurrentWorkspace.GetModelInternal(nodeId) is not NodeModel node)
                 return;
@@ -396,7 +397,7 @@ namespace Dynamo.Models
                     if (CurrentWorkspace.Connectors.Contains(connector))
                     {
                         var models = new List<ModelBase> { connector };
-                        CurrentWorkspace.SaveAndDeleteModels(models);
+                        CurrentWorkspace.SaveAndDeleteModels(models, preserveConnectorPins: true);
                         connector.Delete();
                     }
                 }
@@ -414,7 +415,7 @@ namespace Dynamo.Models
 
         private void BeginDuplicateConnection(Guid nodeId, int portIndex, PortType portType)
         {
-            reconnectionPinLocationsByStartPortId = null;
+            reconnectionPinsByStartPortId = null;
 
             // If the port clicked is an output port, begin connection as per normal
             if (portType == PortType.Output)
@@ -446,7 +447,7 @@ namespace Dynamo.Models
         {
             if (portType == PortType.Input) return; //only handle multiple connections when the port selected is an output port
             if (!(CurrentWorkspace.GetModelInternal(nodeId) is NodeModel node)) return;
-            reconnectionPinLocationsByStartPortId = null;
+            reconnectionPinsByStartPortId = null;
 
             PortModel selectedPort = node.OutPorts[portIndex];
 
@@ -470,7 +471,7 @@ namespace Dynamo.Models
                 activeStartPorts[i] = connector.End;
                 RecordReconnectionPinLocations(connector.End, connector);
             }
-            CurrentWorkspace.SaveAndDeleteModels(selectedConnectors.ToList<ModelBase>());
+            CurrentWorkspace.SaveAndDeleteModels(selectedConnectors.ToList<ModelBase>(), preserveConnectorPins: true);
             return;
         }
 
@@ -488,15 +489,16 @@ namespace Dynamo.Models
             
             PortModel portModel = isInPort ? node.InPorts[portIndex] : node.OutPorts[portIndex];
 
+            var pinsToTransfer = ConsumeReconnectionPins(activeStartPorts[0]);
             var models = GetConnectorsToAddAndDelete(
                 portModel,
                 activeStartPorts[0],
-                ConsumeReconnectionPinLocations(activeStartPorts[0]));
+                pinsToTransfer);
 
             WorkspaceModel.RecordModelsForUndo(models, CurrentWorkspace.UndoRecorder);
             activeStartPorts = null;
             firstStartPort = null;
-            reconnectionPinLocationsByStartPortId = null;
+            reconnectionPinsByStartPortId = null;
         }
 
         private void EndShiftReconnections(Guid nodeId, int portIndex, PortType portType)
@@ -507,16 +509,18 @@ namespace Dynamo.Models
             if (!(CurrentWorkspace.GetModelInternal(nodeId) is NodeModel node)) return;
             PortModel selectedPort = node.OutPorts[portIndex];
             
+            var firstPinsToTransfer = ConsumeReconnectionPins(activeStartPorts[0]);
             var firstModel = GetConnectorsToAddAndDelete(
                 selectedPort,
                 activeStartPorts[0],
-                ConsumeReconnectionPinLocations(activeStartPorts[0]));
+                firstPinsToTransfer);
             for (int i = 1; i < activeStartPorts.Count(); i++)
             {
+                var pinsToTransfer = ConsumeReconnectionPins(activeStartPorts[i]);
                 var models = GetConnectorsToAddAndDelete(
                     selectedPort,
                     activeStartPorts[i],
-                    ConsumeReconnectionPinLocations(activeStartPorts[i]));
+                    pinsToTransfer);
                 foreach (var m in models)
                 {
                     firstModel.Add(m.Key, m.Value);
@@ -524,7 +528,7 @@ namespace Dynamo.Models
             }
             WorkspaceModel.RecordModelsForUndo(firstModel, CurrentWorkspace.UndoRecorder);
             activeStartPorts = null;
-            reconnectionPinLocationsByStartPortId = null;
+            reconnectionPinsByStartPortId = null;
             return;
         }
 
@@ -546,14 +550,14 @@ namespace Dynamo.Models
             CurrentWorkspace.DeleteSavedModels();
             activeStartPorts = null;
             firstStartPort = null;
-            reconnectionPinLocationsByStartPortId = null;
+            reconnectionPinsByStartPortId = null;
             return;
         }
 
         private static Dictionary<ModelBase, UndoRedoRecorder.UserAction> GetConnectorsToAddAndDelete(
             PortModel endPort,
             PortModel startPort,
-            IEnumerable<(double X, double Y)> pinLocations = null)
+            IEnumerable<ConnectorPinModel> pinsToTransfer = null)
         {
             ConnectorModel connectorToRemove = null;
 
@@ -595,16 +599,11 @@ namespace Dynamo.Models
             {
                 models.Add(newConnectorModel, UndoRedoRecorder.UserAction.Creation);
 
-                if (pinLocations != null)
+                if (pinsToTransfer != null)
                 {
-                    foreach (var pinLocation in pinLocations)
+                    foreach (var connectorPinModel in pinsToTransfer)
                     {
-                        var connectorPinModel = new ConnectorPinModel(
-                            pinLocation.X,
-                            pinLocation.Y,
-                            Guid.NewGuid(),
-                            newConnectorModel.GUID);
-
+                        connectorPinModel.ConnectorId = newConnectorModel.GUID;
                         newConnectorModel.AddPin(connectorPinModel);
                         models.Add(connectorPinModel, UndoRedoRecorder.UserAction.Creation);
                     }
@@ -620,24 +619,49 @@ namespace Dynamo.Models
                 return;
             }
 
-            reconnectionPinLocationsByStartPortId ??= new Dictionary<Guid, List<(double X, double Y)>>();
-            reconnectionPinLocationsByStartPortId[activeStartPort.GUID] = connector.GetPinLocations().ToList();
+            var pins = connector.GetPinsSnapshot().ToList();
+            var pinLocations = pins.Select(pin => (pin.X, pin.Y)).ToList();
+
+            reconnectionPinsByStartPortId ??=
+                new Dictionary<Guid, (List<ConnectorPinModel> Pins, List<(double X, double Y)> Locations)>();
+            reconnectionPinsByStartPortId[activeStartPort.GUID] = (pins, pinLocations);
+
+            if (pins.Count > 0)
+            {
+                connector.PreservePinsOnDeleteForReconnection = true;
+            }
         }
 
         private IEnumerable<(double X, double Y)> ConsumeReconnectionPinLocations(PortModel activeStartPort)
         {
-            if (activeStartPort == null || reconnectionPinLocationsByStartPortId == null)
+            if (activeStartPort == null || reconnectionPinsByStartPortId == null)
             {
-                return Array.Empty<(double X, double Y)>();
+                return Enumerable.Empty<(double X, double Y)>();
             }
 
-            if (!reconnectionPinLocationsByStartPortId.TryGetValue(activeStartPort.GUID, out var pinLocations))
+            if (!reconnectionPinsByStartPortId.TryGetValue(activeStartPort.GUID, out var pinState))
             {
-                return Array.Empty<(double X, double Y)>();
+                return Enumerable.Empty<(double X, double Y)>();
             }
 
-            reconnectionPinLocationsByStartPortId.Remove(activeStartPort.GUID);
-            return pinLocations;
+            reconnectionPinsByStartPortId.Remove(activeStartPort.GUID);
+            return pinState.Locations?.AsEnumerable() ?? Enumerable.Empty<(double X, double Y)>();
+        }
+
+        private IEnumerable<ConnectorPinModel> ConsumeReconnectionPins(PortModel activeStartPort)
+        {
+            if (activeStartPort == null || reconnectionPinsByStartPortId == null)
+            {
+                return Enumerable.Empty<ConnectorPinModel>();
+            }
+
+            if (!reconnectionPinsByStartPortId.TryGetValue(activeStartPort.GUID, out var pinState))
+            {
+                return Enumerable.Empty<ConnectorPinModel>();
+            }
+
+            reconnectionPinsByStartPortId.Remove(activeStartPort.GUID);
+            return pinState.Pins?.AsEnumerable() ?? Enumerable.Empty<ConnectorPinModel>();
         }
 
         private void DeleteModelImpl(DeleteModelCommand command)

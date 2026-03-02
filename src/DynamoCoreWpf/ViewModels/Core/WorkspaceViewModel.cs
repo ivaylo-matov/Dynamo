@@ -918,6 +918,11 @@ namespace Dynamo.ViewModels
             var connector = Connectors.FirstOrDefault(x => x.ConnectorModel == c);
             if (connector != null)
             {
+                if (c.PreservePinsOnDeleteForReconnection)
+                {
+                    connector.DetachPinsForReconnection();
+                }
+
                 Connectors.Remove(connector);
                 connector.Dispose();
             }

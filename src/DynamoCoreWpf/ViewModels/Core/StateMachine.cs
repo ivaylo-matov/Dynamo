@@ -320,6 +320,21 @@ namespace Dynamo.ViewModels
             multipleConnections = false;
             this.SetActiveConnectors(null);
             firstStartPort = null;
+            CleanupDetachedReconnectionPins();
+        }
+
+        private void CleanupDetachedReconnectionPins()
+        {
+            var orphanedPins = Pins
+                .Where(pin => !pin.IsInteractive && !Model.Connectors.Any(connector => connector.GUID == pin.ConnectorGuid))
+                .ToList();
+
+            foreach (var orphanedPin in orphanedPins)
+            {
+                Pins.Remove(orphanedPin);
+                orphanedPin.Model.Dispose();
+                orphanedPin.Dispose();
+            }
         }
 
         internal void UpdateActiveConnector(System.Windows.Point mouseCursor)
