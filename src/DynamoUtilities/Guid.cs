@@ -135,13 +135,8 @@ namespace Dynamo.Utilities
             var compactGuidPattern = new Regex(@"\b[a-f0-9]{32}\b", RegexOptions.IgnoreCase);
             var guidRemap = compactGuidPattern.Matches(jsonData)
                 .Cast<Match>()
-                .Select(m =>
-                {
-                    Guid parsedGuid;
-                    return Guid.TryParse(m.Value, out parsedGuid) ? (Guid?)parsedGuid : null;
-                })
-                .Where(g => g.HasValue)
-                .Select(g => g.Value)
+                .Select(m => m.Value)
+                .Select(Guid.Parse)
                 .Distinct()
                 .ToDictionary(g => g, _ => Guid.NewGuid());
 
