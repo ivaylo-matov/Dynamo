@@ -125,26 +125,56 @@ namespace Dynamo.Utilities
         /// Performs an update to all Guids inside the json string before deserialization.
         /// Targets specifically Guids without the '-' hyphen, which are all the workspace elements.
         /// Replacing all occurrences of each individual Guid guarantees that the relationships between the elements are retained.
+        /// Any hyphenated occurrences of those same guids are also updated to preserve references (for example in View data).
         /// </summary>
         /// <param name="jsonData">Json representation of workspace.</param>
         /// <returns>String representation of workspace after all elements' Guids replaced.</returns>
         internal static string UpdateWorkspaceGUIDs(string jsonData)
         {
-            string pattern = @"([a-z0-9]{32})";
-            string updatedJsonData = jsonData;
-
-            // The unique collection of Guids
-            var mc = Regex.Matches(jsonData, pattern)
+            // Collect all workspace-element ids serialized in "N" format.
+            var compactGuidPattern = new Regex(@"\b[a-f0-9]{32}\b", RegexOptions.IgnoreCase);
+            var guidRemap = compactGuidPattern.Matches(jsonData)
                 .Cast<Match>()
-                .Select(m => m.Value)
-                .Distinct();
+                .Select(m =>
+                {
+                    Guid parsedGuid;
+                    return Guid.TryParse(m.Value, out parsedGuid) ? (Guid?)parsedGuid : null;
+                })
+                .Where(g => g.HasValue)
+                .Select(g => g.Value)
+                .Distinct()
+                .ToDictionary(g => g, _ => Guid.NewGuid());
 
-            foreach (var match in mc)
+            if (guidRemap.Count == 0)
             {
-                updatedJsonData = updatedJsonData.Replace(match, Guid.NewGuid().ToString("N"));
+                return jsonData;
             }
 
-            return updatedJsonData;
+            // Replace both compact and hyphenated guid occurrences, but only for ids that were
+            // remapped from compact workspace-element ids. This keeps unrelated hyphenated guids
+            // (for example style ids) untouched.
+            var anyGuidPattern = new Regex(
+                @"\b[a-f0-9]{32}\b|\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b",
+                RegexOptions.IgnoreCase);
+
+            return anyGuidPattern.Replace(jsonData, match =>
+            {
+                Guid parsedGuid;
+                if (!Guid.TryParse(match.Value, out parsedGuid))
+                {
+                    return match.Value;
+                }
+
+                Guid updatedGuid;
+                if (!guidRemap.TryGetValue(parsedGuid, out updatedGuid))
+                {
+                    return match.Value;
+                }
+
+                return match.Value.Contains("-")
+                    ? updatedGuid.ToString("D")
+                    : updatedGuid.ToString("N");
+            });
         }
     }
 }

@@ -712,6 +712,43 @@ namespace Dynamo.Tests
         }
 
         [Test]
+        [Category("UnitTests")]
+        public void SaveAsPreservesConnectorPins()
+        {
+            string examplePath = Path.Combine(TestDirectory, @"core\ConnectorPinSelectionTest.dyn");
+            ViewModel.OpenCommand.Execute(examplePath);
+
+            var initialPinCount = ViewModel.Model.CurrentWorkspace.Connectors
+                .SelectMany(connector => connector.ConnectorPinModels)
+                .Count();
+            Assert.Greater(initialPinCount, 0, "The baseline graph should contain connector pins.");
+
+            var saveAsPath = GetNewFileNameOnTempPath("dyn");
+            ViewModel.CurrentSpaceViewModel.Save(
+                saveAsPath,
+                false,
+                ViewModel.Model.EngineController,
+                SaveContext.SaveAs);
+
+            var savedJson = JObject.Parse(File.ReadAllText(saveAsPath));
+            var savedConnectorPins = savedJson["View"]?["ConnectorPins"] as JArray;
+            Assert.IsNotNull(savedConnectorPins);
+            Assert.AreEqual(initialPinCount, savedConnectorPins.Count);
+
+            var reloadedWorkspace = ViewModel.Model.CurrentWorkspace;
+            var reloadedPins = reloadedWorkspace.Connectors
+                .SelectMany(connector => connector.ConnectorPinModels)
+                .ToList();
+
+            Assert.AreEqual(initialPinCount, reloadedPins.Count);
+
+            var reloadedConnectorIds = new HashSet<Guid>(
+                reloadedWorkspace.Connectors.Select(connector => connector.GUID));
+
+            Assert.IsTrue(reloadedPins.All(pin => reloadedConnectorIds.Contains(pin.ConnectorId)));
+        }
+
+        [Test]
         public void RemovePIIDataFromWorkspace()
         {
             string graphWithPIIDataPath = Path.Combine(TestDirectory, (@"UI\GraphWithPIIData.dyn"));
