@@ -1049,12 +1049,9 @@ namespace Dynamo.ViewModels
 
             if (connectorModel.ConnectorPinModels != null)
             {
-                using (DeferPinCollectionRedraw())
+                foreach (var p in connectorModel.ConnectorPinModels)
                 {
-                    foreach (var p in connectorModel.ConnectorPinModels)
-                    {
-                        AddConnectorPinViewModel(p);
-                    }
+                    AddConnectorPinViewModel(p);
                 }
             }
             ConnectorPinViewCollection.CollectionChanged += HandleCollectionChanged;
