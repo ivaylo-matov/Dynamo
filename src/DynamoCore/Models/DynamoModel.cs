@@ -3144,6 +3144,15 @@ namespace Dynamo.Models
 
                 ClipBoard.AddRange(connectors);
             }
+
+            var connectorPins = ClipBoard
+                .OfType<ConnectorModel>()
+                .SelectMany(connector => connector.ConnectorPinModels)
+                .Where(pin => !ClipBoard.Contains(pin))
+                .Cast<ModelBase>()
+                .ToList();
+
+            ClipBoard.AddRange(connectorPins);
         }
 
         /// <summary>
@@ -3193,6 +3202,7 @@ namespace Dynamo.Models
 
             var nodes = ClipBoard.OfType<NodeModel>();
             var connectors = ClipBoard.OfType<ConnectorModel>();
+            var connectorPins = ClipBoard.OfType<ConnectorPinModel>();
             var notes = ClipBoard.OfType<NoteModel>();
             // we only want to get groups that either has nested groups
             // or does not belong to a group here.
@@ -3287,26 +3297,58 @@ namespace Dynamo.Models
 
                 ModelBase start;
                 ModelBase end;
-                var newConnectors =
-                    from c in connectors
-
-                        // If the guid is in nodeLookup, then we connect to the new pasted node. Otherwise we
-                        // re-connect to the original.
-                    let startNode =
-                            modelLookup.TryGetValue(c.Start.Owner.GUID, out start)
-                                ? start as NodeModel
-                                : CurrentWorkspace.Nodes.FirstOrDefault(x => x.GUID == c.Start.Owner.GUID)
-                    let endNode =
+                var newConnectors = new List<ConnectorModel>();
+                var connectorLookup = new Dictionary<Guid, ConnectorModel>();
+                foreach (var c in connectors)
+                {
+                    // If the guid is in nodeLookup, then we connect to the new pasted node. Otherwise we
+                    // re-connect to the original.
+                    var startNode =
+                        modelLookup.TryGetValue(c.Start.Owner.GUID, out start)
+                            ? start as NodeModel
+                            : CurrentWorkspace.Nodes.FirstOrDefault(x => x.GUID == c.Start.Owner.GUID);
+                    var endNode =
                         modelLookup.TryGetValue(c.End.Owner.GUID, out end)
                             ? end as NodeModel
-                            : CurrentWorkspace.Nodes.FirstOrDefault(x => x.GUID == c.End.Owner.GUID)
+                            : CurrentWorkspace.Nodes.FirstOrDefault(x => x.GUID == c.End.Owner.GUID);
 
                     // Don't make a connector if either end is null.
-                    where startNode != null && endNode != null
-                    select
-                        ConnectorModel.Make(startNode, endNode, c.Start.Index, c.End.Index);
+                    if (startNode == null || endNode == null)
+                    {
+                        continue;
+                    }
+
+                    var newConnector = ConnectorModel.Make(startNode, endNode, c.Start.Index, c.End.Index);
+                    if (newConnector == null)
+                    {
+                        continue;
+                    }
+
+                    newConnectors.Add(newConnector);
+                    connectorLookup[c.GUID] = newConnector;
+                }
 
                 createdModels.AddRange(newConnectors);
+
+                var newConnectorPins = new List<ConnectorPinModel>();
+                foreach (var connectorPin in connectorPins)
+                {
+                    if (!connectorLookup.TryGetValue(connectorPin.ConnectorId, out var matchingConnector))
+                    {
+                        continue;
+                    }
+
+                    var copiedPin = new ConnectorPinModel(
+                        connectorPin.X + shiftX + offset,
+                        connectorPin.Y + shiftY + offset,
+                        Guid.NewGuid(),
+                        matchingConnector.GUID);
+
+                    matchingConnector.AddPin(copiedPin);
+                    newConnectorPins.Add(copiedPin);
+                }
+
+                createdModels.AddRange(newConnectorPins);
 
                 //Grouping depends on the selected node models.
                 //so adding the group after nodes / notes are added to workspace.

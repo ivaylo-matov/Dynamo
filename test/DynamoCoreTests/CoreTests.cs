@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -573,6 +573,51 @@ namespace Dynamo.Tests
 
             Assert.AreEqual(25, CurrentDynamoModel.CurrentWorkspace.Nodes.ElementAt(3).X);
             Assert.AreEqual(27, CurrentDynamoModel.CurrentWorkspace.Nodes.ElementAt(3).Y);
+        }
+
+        [Test]
+        [Category("UnitTests")]
+        public void CanCopyAndPasteConnectorPinsWithConnectors()
+        {
+            var numberNode = new CodeBlockNodeModel(
+                "1;",
+                100.0,
+                100.0,
+                CurrentDynamoModel.LibraryServices,
+                CurrentDynamoModel.CurrentWorkspace.ElementResolver);
+            var watchNode = new Watch { X = 350, Y = 100 };
+
+            CurrentDynamoModel.CurrentWorkspace.AddAndRegisterNode(numberNode, false);
+            CurrentDynamoModel.CurrentWorkspace.AddAndRegisterNode(watchNode, false);
+
+            var connector = ConnectorModel.Make(numberNode, watchNode, 0, 0);
+            Assert.IsNotNull(connector);
+
+            var originalPin = new ConnectorPinModel(225, 100, Guid.NewGuid(), connector.GUID);
+            connector.ConnectorPinModels.Add(originalPin);
+
+            CurrentDynamoModel.AddToSelection(numberNode);
+            CurrentDynamoModel.AddToSelection(watchNode);
+
+            CurrentDynamoModel.Copy();
+
+            Assert.AreEqual(1, CurrentDynamoModel.ClipBoard.OfType<ConnectorModel>().Count());
+            Assert.AreEqual(1, CurrentDynamoModel.ClipBoard.OfType<ConnectorPinModel>().Count());
+
+            var originalConnectorCount = CurrentDynamoModel.CurrentWorkspace.Connectors.Count();
+
+            CurrentDynamoModel.Paste();
+
+            Assert.AreEqual(4, CurrentDynamoModel.CurrentWorkspace.Nodes.Count());
+            Assert.AreEqual(originalConnectorCount + 1, CurrentDynamoModel.CurrentWorkspace.Connectors.Count());
+
+            var copiedConnector = CurrentDynamoModel.CurrentWorkspace.Connectors
+                .First(c => c.GUID != connector.GUID);
+            Assert.AreEqual(1, copiedConnector.ConnectorPinModels.Count);
+
+            var copiedPin = copiedConnector.ConnectorPinModels.Single();
+            Assert.AreEqual(copiedConnector.GUID, copiedPin.ConnectorId);
+            Assert.AreNotEqual(originalPin.GUID, copiedPin.GUID);
         }
 
         [Test]
