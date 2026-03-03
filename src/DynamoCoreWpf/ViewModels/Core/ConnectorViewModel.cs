@@ -1601,7 +1601,11 @@ namespace Dynamo.ViewModels
             {
                 foreach (var pinLocation in pinLocations)
                 {
-                    transientCachedPinLocations.Add(new Point(pinLocation.X, pinLocation.Y));
+                    // ConnectorPinModel stores Y in model-space, while the pin view model Top
+                    // is offset by OneThirdWidth. Normalize to the same top-left basis used by
+                    // ConnectorPinViewModel so transient and permanent bezier routing align.
+                    transientCachedPinLocations.Add(
+                        new Point(pinLocation.X, pinLocation.Y - ConnectorPinViewModel.OneThirdWidth));
                 }
             }
 
