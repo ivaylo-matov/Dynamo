@@ -203,6 +203,7 @@ namespace Dynamo.ViewModels
             {
                 var existingConnector = portModel.Connectors[0];
                 var existingConnectorViewModel = Connectors.FirstOrDefault(x => x.ConnectorModel == existingConnector);                
+                existingConnectorViewModel?.SkipPinViewModelDisposalOnce();
                 var extractedPins = existingConnectorViewModel?.AddTransientConnectorPins() ?? new List<ConnectorPinViewModel>();
 
                 // Define the new active connector
@@ -251,6 +252,7 @@ namespace Dynamo.ViewModels
             {
                 var selectedConnector = selectedConnectors[i];
                 var selectedConnectorViewModel = Connectors.FirstOrDefault(x => x.ConnectorModel == selectedConnector);
+                selectedConnectorViewModel?.SkipPinViewModelDisposalOnce();
                 var extractedPins = selectedConnectorViewModel?.AddTransientConnectorPins() ?? new List<ConnectorPinViewModel>();
 
                 var c = new ConnectorViewModel(this, selectedConnector.End);

@@ -58,6 +58,7 @@ namespace Dynamo.ViewModels
         private readonly List<ConnectorPinViewModel> transientCachedPins = new List<ConnectorPinViewModel>();
         private readonly List<Point> transientCachedPinLocations = new List<Point>();
         private bool suppressPinVMRemoval;
+        private bool skipPinViewModelDisposalOnNextDispose;
         private int pinCollectionRedrawDeferralDepth;
         private bool pinCollectionRedrawPending;
 
@@ -1290,6 +1291,9 @@ namespace Dynamo.ViewModels
         /// </summary>
         public override void Dispose()
         {
+            var skipPinViewModelDisposal = skipPinViewModelDisposalOnNextDispose;
+            skipPinViewModelDisposalOnNextDispose = false;
+
             if (model != null)
             {
                 model.PropertyChanged -= HandleConnectorPropertyChanged;
@@ -1329,8 +1333,11 @@ namespace Dynamo.ViewModels
             }
 
             this.PropertyChanged -= ConnectorViewModelPropertyChanged;
-            ClearTransientPinCache();
-            DiscardAllConnectorPinModels();
+            if (!skipPinViewModelDisposal)
+            {
+                ClearTransientPinCache();
+                DiscardAllConnectorPinModels();
+            }
 
             if (ConnectorContextMenuViewModel != null)
             {
@@ -1542,6 +1549,16 @@ namespace Dynamo.ViewModels
             }
 
             return points;
+        }
+
+        /// <summary>
+        /// Skips connector pin view-model disposal once during this connector's next dispose call.
+        /// This is used during reconnect grab operations where pin view-models are temporarily moved
+        /// to a transient connector and should not be destroyed with the source connector view-model.
+        /// </summary>
+        internal void SkipPinViewModelDisposalOnce()
+        {
+            skipPinViewModelDisposalOnNextDispose = true;
         }
 
         /// <summary>
