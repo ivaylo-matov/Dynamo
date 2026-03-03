@@ -58,6 +58,8 @@ namespace Dynamo.ViewModels
         private readonly List<ConnectorPinViewModel> transientCachedPins = new List<ConnectorPinViewModel>();
         private readonly List<Point> transientCachedPinLocations = new List<Point>();
         private bool suppressPinVMRemoval;
+        private int pinCollectionRedrawDeferralDepth;
+        private bool pinCollectionRedrawPending;
 
         /// <summary>
         /// Required timer for desired delay prior to ' connector anchor' display.
@@ -1042,17 +1044,20 @@ namespace Dynamo.ViewModels
             model.ConnectorPinModels.CollectionChanged += ConnectorPinModelCollectionChanged;
 
             ConnectorPinViewCollection = new ObservableCollection<ConnectorPinViewModel>();
-            ConnectorPinViewCollection.CollectionChanged += HandleCollectionChanged;
             workspaceViewModel.PropertyChanged += WorkspaceViewModel_PropertyChanged;
 
 
             if (connectorModel.ConnectorPinModels != null)
             {
-                foreach (var p in connectorModel.ConnectorPinModels)
+                using (DeferPinCollectionRedraw())
                 {
-                    AddConnectorPinViewModel(p);
+                    foreach (var p in connectorModel.ConnectorPinModels)
+                    {
+                        AddConnectorPinViewModel(p);
+                    }
                 }
             }
+            ConnectorPinViewCollection.CollectionChanged += HandleCollectionChanged;
 
             connectorModel.Start.PropertyChanged += StartPortModel_PropertyChanged;
             connectorModel.End.PropertyChanged += EndPortModel_PropertyChanged;
@@ -1100,15 +1105,21 @@ namespace Dynamo.ViewModels
             switch (e.Action)
             {
                 case NotifyCollectionChangedAction.Add:
-                    foreach (ConnectorPinModel newItem in e.NewItems)
+                    using (DeferPinCollectionRedraw())
                     {
-                        AddConnectorPinViewModel(newItem);
+                        foreach (ConnectorPinModel newItem in e.NewItems)
+                        {
+                            AddConnectorPinViewModel(newItem);
+                        }
                     }
                     break;
                 case NotifyCollectionChangedAction.Remove:
-                    foreach (ConnectorPinModel oldItem in e.OldItems)
+                    using (DeferPinCollectionRedraw())
                     {
-                        RemoveConnectorPinModelViewModel(oldItem);
+                        foreach (ConnectorPinModel oldItem in e.OldItems)
+                        {
+                            RemoveConnectorPinModelViewModel(oldItem);
+                        }
                     }
                     break;
                 default: break;
@@ -1217,7 +1228,43 @@ namespace Dynamo.ViewModels
 
         private void HandleCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
+            if (pinCollectionRedrawDeferralDepth > 0)
+            {
+                pinCollectionRedrawPending = true;
+                return;
+            }
+
             Redraw();
+        }
+
+        private IDisposable DeferPinCollectionRedraw()
+        {
+            pinCollectionRedrawDeferralDepth++;
+            return new PinCollectionRedrawDeferral(this);
+        }
+
+        private sealed class PinCollectionRedrawDeferral : IDisposable
+        {
+            private ConnectorViewModel owner;
+
+            internal PinCollectionRedrawDeferral(ConnectorViewModel owner)
+            {
+                this.owner = owner;
+            }
+
+            public void Dispose()
+            {
+                if (owner is null) return;
+
+                owner.pinCollectionRedrawDeferralDepth = Math.Max(0, owner.pinCollectionRedrawDeferralDepth - 1);
+                if (owner.pinCollectionRedrawDeferralDepth == 0 && owner.pinCollectionRedrawPending)
+                {
+                    owner.pinCollectionRedrawPending = false;
+                    owner.Redraw();
+                }
+
+                owner = null;
+            }
         }
 
         private void WorkspaceViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -1436,18 +1483,21 @@ namespace Dynamo.ViewModels
 
         private void HandlePinModelChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            foreach (ConnectorPinModel oldPin in e.OldItems)
+            using (DeferPinCollectionRedraw())
             {
-                var matchingPinViewModel = ConnectorPinViewCollection.FirstOrDefault(pin => pin.ConnectorGuid == oldPin.ConnectorId);
-                oldPin.Dispose();
+                foreach (ConnectorPinModel oldPin in e.OldItems)
+                {
+                    var matchingPinViewModel = ConnectorPinViewCollection.FirstOrDefault(pin => pin.ConnectorGuid == oldPin.ConnectorId);
+                    oldPin.Dispose();
 
-                workspaceViewModel.Pins.Remove(matchingPinViewModel);
-                ConnectorPinViewCollection.Remove(matchingPinViewModel);
+                    workspaceViewModel.Pins.Remove(matchingPinViewModel);
+                    ConnectorPinViewCollection.Remove(matchingPinViewModel);
 
-                if (ConnectorPinViewCollection.Count == 0)
-                    BezierControlPoints = null;
+                    if (ConnectorPinViewCollection.Count == 0)
+                        BezierControlPoints = null;
 
-                matchingPinViewModel.Dispose();
+                    matchingPinViewModel.Dispose();
+                }
             }
         }
 
@@ -1511,16 +1561,19 @@ namespace Dynamo.ViewModels
                 return extractedPins;
             }
 
-            foreach (var pinViewModel in ConnectorPinViewCollection.ToList())
+            using (DeferPinCollectionRedraw())
             {
-                pinViewModel.PropertyChanged -= PinViewModelPropertyChanged;
-                pinViewModel.RequestSelect -= HandleRequestSelected;
-                pinViewModel.RequestRedraw -= HandlerRedrawRequest;
-                pinViewModel.RequestRemove -= HandleConnectorPinViewModelRemove;
-                pinViewModel.IsInteractive = false;
+                foreach (var pinViewModel in ConnectorPinViewCollection.ToList())
+                {
+                    pinViewModel.PropertyChanged -= PinViewModelPropertyChanged;
+                    pinViewModel.RequestSelect -= HandleRequestSelected;
+                    pinViewModel.RequestRedraw -= HandlerRedrawRequest;
+                    pinViewModel.RequestRemove -= HandleConnectorPinViewModelRemove;
+                    pinViewModel.IsInteractive = false;
 
-                ConnectorPinViewCollection.Remove(pinViewModel);
-                extractedPins.Add(pinViewModel);
+                    ConnectorPinViewCollection.Remove(pinViewModel);
+                    extractedPins.Add(pinViewModel);
+                }
             }
 
             return extractedPins;
