@@ -579,13 +579,17 @@ namespace Dynamo.Tests
         [Category("UnitTests")]
         public void CanCopyAndPasteConnectorPinsWithConnectors()
         {
-            var numberNode = new CodeBlockNodeModel(
-                "1;",
-                100.0,
-                100.0,
-                CurrentDynamoModel.LibraryServices,
-                CurrentDynamoModel.CurrentWorkspace.ElementResolver);
-            var watchNode = new Watch { X = 350, Y = 100 };
+            var numberNode = new DoubleInput();
+            numberNode.Height = 2;
+            numberNode.Width = 2;
+            numberNode.CenterX = 100;
+            numberNode.CenterY = 100;
+
+            var watchNode = new Watch();
+            watchNode.Height = 2;
+            watchNode.Width = 2;
+            watchNode.CenterX = 350;
+            watchNode.CenterY = 100;
 
             CurrentDynamoModel.CurrentWorkspace.AddAndRegisterNode(numberNode, false);
             CurrentDynamoModel.CurrentWorkspace.AddAndRegisterNode(watchNode, false);
