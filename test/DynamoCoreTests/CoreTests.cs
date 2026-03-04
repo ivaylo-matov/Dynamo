@@ -614,6 +614,10 @@ namespace Dynamo.Tests
 
             Assert.AreEqual(4, CurrentDynamoModel.CurrentWorkspace.Nodes.Count());
             Assert.AreEqual(originalConnectorCount + 1, CurrentDynamoModel.CurrentWorkspace.Connectors.Count());
+            Assert.AreEqual(
+                1,
+                DynamoSelection.Instance.Selection.OfType<ConnectorPinModel>().Count(),
+                "Pasted connector pins should be part of the current selection.");
 
             var copiedConnector = CurrentDynamoModel.CurrentWorkspace.Connectors
                 .First(c => c.GUID != connector.GUID);

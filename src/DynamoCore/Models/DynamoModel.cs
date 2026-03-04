@@ -3399,6 +3399,12 @@ namespace Dynamo.Models
                     AddToSelection(item);
                 }
 
+                // Keep connector pins selected together with the pasted graph chunk.
+                foreach (var connectorPin in newConnectorPins)
+                {
+                    AddToSelection(connectorPin);
+                }
+
                 DynamoSelection.Instance.ClearSelectionDisabled = false;
 
                 // Record models that are created as part of the command.
