@@ -293,7 +293,14 @@ namespace Dynamo.ViewModels
 
                 try
                 {
-                    await UIDispatcher?.BeginInvoke(DispatcherPriority.ApplicationIdle, () => OnlineAccess = result.Item1);
+                    var dispatcher = UIDispatcher;
+                    if (dispatcher == null || dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+                    {
+                        Trace.WriteLine("Skipping online access update: UI dispatcher is unavailable.");
+                        return;
+                    }
+
+                    await dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => OnlineAccess = result.Item1);
                 }
                 catch(Exception ex)
                 {
