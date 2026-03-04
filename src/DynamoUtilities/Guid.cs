@@ -121,17 +121,24 @@ namespace Dynamo.Utilities
             guid[right] = temp;
         }
 
+        private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(5);
+
         /// <summary>
-        /// Performs an update to all Guids inside the json string before deserialization.
-        /// Targets specifically Guids without the '-' hyphen, which are all the workspace elements.
-        /// Replacing all occurrences of each individual Guid guarantees that the relationships between the elements are retained.
+        /// Performs an update to workspace-element Guids inside the json string before deserialization.
+        /// It remaps compact ("N") workspace ids and updates ConnectorPins[].ConnectorGuid values
+        /// so connector-pin links are preserved during import/save-as id remapping.
         /// </summary>
         /// <param name="jsonData">Json representation of workspace.</param>
-        /// <returns>String representation of workspace after all elements' Guids replaced.</returns>
+        /// <returns>String representation of workspace after required Guid replacements.</returns>
         internal static string UpdateWorkspaceGUIDs(string jsonData)
         {
+            if (string.IsNullOrEmpty(jsonData))
+            {
+                return jsonData;
+            }
+
             // Collect all workspace-element ids serialized in "N" format.
-            var compactGuidPattern = new Regex(@"\b[a-f0-9]{32}\b", RegexOptions.IgnoreCase);
+            var compactGuidPattern = new Regex(@"\b[a-f0-9]{32}\b", RegexOptions.IgnoreCase, RegexTimeout);
             var guidRemap = compactGuidPattern.Matches(jsonData)
                 .Cast<Match>()
                 .Select(m => m.Value)
@@ -144,14 +151,8 @@ namespace Dynamo.Utilities
                 return jsonData;
             }
 
-            // Replace both compact and hyphenated guid occurrences, but only for ids that were
-            // remapped from compact workspace-element ids. This keeps unrelated hyphenated guids
-            // (for example style ids) untouched.
-            var anyGuidPattern = new Regex(
-                @"\b[a-f0-9]{32}\b|\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b",
-                RegexOptions.IgnoreCase);
-
-            return anyGuidPattern.Replace(jsonData, match =>
+            // Preserve existing behavior by remapping compact ids globally.
+            var updatedJsonData = compactGuidPattern.Replace(jsonData, match =>
             {
                 Guid parsedGuid;
                 if (!Guid.TryParse(match.Value, out parsedGuid))
@@ -165,9 +166,35 @@ namespace Dynamo.Utilities
                     return match.Value;
                 }
 
-                return match.Value.Contains("-")
+                return updatedGuid.ToString("N");
+            });
+
+            // Remap ConnectorGuid entries so connector pins still point to remapped connectors.
+            var connectorGuidPattern = new Regex(
+                @"(?<prefix>""ConnectorGuid""\s*:\s*"")(?<guid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|[a-f0-9]{32})(?<suffix>"")",
+                RegexOptions.IgnoreCase,
+                RegexTimeout);
+
+            return connectorGuidPattern.Replace(updatedJsonData, match =>
+            {
+                var connectorGuidValue = match.Groups["guid"].Value;
+                Guid connectorGuid;
+                if (!Guid.TryParse(connectorGuidValue, out connectorGuid))
+                {
+                    return match.Value;
+                }
+
+                Guid updatedGuid;
+                if (!guidRemap.TryGetValue(connectorGuid, out updatedGuid))
+                {
+                    return match.Value;
+                }
+
+                var updatedConnectorGuid = connectorGuidValue.Contains("-")
                     ? updatedGuid.ToString("D")
                     : updatedGuid.ToString("N");
+
+                return match.Groups["prefix"].Value + updatedConnectorGuid + match.Groups["suffix"].Value;
             });
         }
     }

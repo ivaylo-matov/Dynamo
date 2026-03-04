@@ -124,6 +124,32 @@ namespace Dynamo.Tests.ModelsTest
 
         [Test]
         [Category("UnitTests")]
+        public void TestInsertConnectorPinsAreLoadedAndMappedToImportedConnectors()
+        {
+            // Home workspace starts with no pins.
+            var initialPinCount = this.CurrentDynamoModel.CurrentWorkspace.Connectors
+                .SelectMany(connector => connector.ConnectorPinModels)
+                .Count();
+            Assert.AreEqual(0, initialPinCount);
+
+            var wspath = Path.Combine(TestDirectory, @"core\ConnectorPinSelectionTest.dyn");
+            this.CurrentDynamoModel.InsertFileFromPath(wspath);
+
+            var importedPins = this.CurrentDynamoModel.CurrentWorkspace.Connectors
+                .SelectMany(connector => connector.ConnectorPinModels)
+                .ToList();
+
+            Assert.AreEqual(3, importedPins.Count, "The imported graph should contribute 3 connector pins.");
+
+            var connectorIds = this.CurrentDynamoModel.CurrentWorkspace.Connectors
+                .Select(connector => connector.GUID)
+                .ToHashSet();
+
+            Assert.IsTrue(importedPins.All(pin => connectorIds.Contains(pin.ConnectorId)));
+        }
+
+        [Test]
+        [Category("UnitTests")]
         public void TestInsertNotes()
         {
             // Home space contains 0 nodes
