@@ -734,6 +734,15 @@ namespace Dynamo.Tests
             var savedConnectorPins = savedJson["View"]?["ConnectorPins"] as JArray;
             Assert.IsNotNull(savedConnectorPins);
             Assert.AreEqual(initialPinCount, savedConnectorPins.Count);
+            Assert.IsTrue(savedConnectorPins
+                .Children<JObject>()
+                .All(pin =>
+                {
+                    var connectorGuid = pin[nameof(ConnectorPinViewModel.ConnectorGuid)]?.Value<string>();
+                    return !string.IsNullOrEmpty(connectorGuid)
+                           && connectorGuid.Length == 32
+                           && !connectorGuid.Contains("-");
+                }));
 
             var reloadedWorkspace = ViewModel.Model.CurrentWorkspace;
             var reloadedPins = reloadedWorkspace.Connectors

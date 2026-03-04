@@ -44,7 +44,16 @@ namespace Dynamo.Wpf.ViewModels.Core.Converters
 
             foreach (var wirePin in workspaceView.Pins)
             {
-                serializer.Serialize(writer, wirePin);
+                writer.WriteStartObject();
+                writer.WritePropertyName(nameof(ConnectorPinViewModel.Left));
+                writer.WriteValue(wirePin.Left);
+                writer.WritePropertyName(nameof(ConnectorPinViewModel.Top));
+                writer.WriteValue(wirePin.Top);
+                writer.WritePropertyName(nameof(ConnectorPinViewModel.IsHidden));
+                writer.WriteValue(wirePin.IsHidden);
+                writer.WritePropertyName(nameof(ConnectorPinViewModel.ConnectorGuid));
+                writer.WriteValue(wirePin.ConnectorGuid.ToString("N"));
+                writer.WriteEndObject();
             }
             writer.WriteEndArray();
 
