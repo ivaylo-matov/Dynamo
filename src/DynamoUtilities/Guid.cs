@@ -169,6 +169,22 @@ namespace Dynamo.Utilities
                 return updatedGuid.ToString("N");
             });
 
+            // Keep the top-level workspace Name stable even if it looks like a guid.
+            // This avoids changing user-visible workspace names when they happen to be guid-shaped.
+            var workspaceNamePattern = new Regex(
+                @"(?<prefix>""Name""\s*:\s*"")(?<name>(?:\\.|[^""\\])*)(?<suffix>"")",
+                RegexOptions.None,
+                RegexTimeout);
+            var originalWorkspaceNameMatch = workspaceNamePattern.Match(jsonData);
+            if (originalWorkspaceNameMatch.Success)
+            {
+                var originalWorkspaceName = originalWorkspaceNameMatch.Groups["name"].Value;
+                updatedJsonData = workspaceNamePattern.Replace(
+                    updatedJsonData,
+                    m => m.Groups["prefix"].Value + originalWorkspaceName + m.Groups["suffix"].Value,
+                    1);
+            }
+
             // Remap ConnectorGuid entries so connector pins still point to remapped connectors.
             var connectorGuidPattern = new Regex(
                 @"(?<prefix>""ConnectorGuid""\s*:\s*"")(?<guid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|[a-f0-9]{32})(?<suffix>"")",
