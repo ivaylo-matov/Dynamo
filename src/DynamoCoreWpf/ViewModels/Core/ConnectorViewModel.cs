@@ -59,7 +59,6 @@ namespace Dynamo.ViewModels
         private readonly List<Point> transientCachedPinLocations = new List<Point>();
         private int pinCollectionRedrawDeferralDepth;
         private bool pinCollectionRedrawPending;
-        private readonly HashSet<Guid> transferredPinGuids = new();
 
         /// <summary>
         /// Required timer for desired delay prior to ' connector anchor' display.
@@ -1131,9 +1130,12 @@ namespace Dynamo.ViewModels
         /// <param name="connectorPin"></param>
         private void RemoveConnectorPinModelViewModel(ConnectorPinModel connectorPin)
         {
-            if (transferredPinGuids.Remove(connectorPin.GUID)) return;
+            if (connectorPin == null) return;
 
-            var matchingConnectorPinViewModel = this.workspaceViewModel.Pins.FirstOrDefault(x => x.Model.GUID == connectorPin.GUID);
+            // Only remove pins still owned by this connector VM
+            var matchingConnectorPinViewModel = ConnectorPinViewCollection?
+                .FirstOrDefault(x => x.Model.GUID == connectorPin.GUID);
+
             if (matchingConnectorPinViewModel is null) return;
             RemoveConnectorPinModelViewModel(matchingConnectorPinViewModel);
         }
@@ -1480,27 +1482,6 @@ namespace Dynamo.ViewModels
             }
         }
 
-        private void HandlePinModelChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            using (DeferPinCollectionRedraw())
-            {
-                foreach (ConnectorPinModel oldPin in e.OldItems)
-                {
-                    var matchingPinViewModel = ConnectorPinViewCollection.FirstOrDefault(pin => pin.ConnectorGuid == oldPin.ConnectorId);
-                    oldPin.Dispose();
-
-                    workspaceViewModel.Pins.Remove(matchingPinViewModel);
-                    ConnectorPinViewCollection.Remove(matchingPinViewModel);
-
-                    if (ConnectorPinViewCollection.Count == 0)
-                        BezierControlPoints = null;
-
-                    matchingPinViewModel.Dispose();
-                }
-            }
-        }
-
-
         /// <summary>
         ///  Removes all connectorPinViewModels/ connectorPinModels. This occurs during 'dispose'
         /// operation as well as during the 'PlaceWatchNode', where all previous pins corresponding 
@@ -1567,8 +1548,6 @@ namespace Dynamo.ViewModels
                     pinViewModel.RequestSelect -= HandleRequestSelected;
                     pinViewModel.RequestRedraw -= HandlerRedrawRequest;
                     pinViewModel.RequestRemove -= HandleConnectorPinViewModelRemove;
-
-                    transferredPinGuids.Add(pinViewModel.Model.GUID); // mark ownership transfer
 
                     ConnectorPinViewCollection.Remove(pinViewModel);
                     extractedPins.Add(pinViewModel);
