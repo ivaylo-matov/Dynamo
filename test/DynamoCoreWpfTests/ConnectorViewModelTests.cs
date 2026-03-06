@@ -306,7 +306,7 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
-        public void ShiftReconnectionTransfersPinsToTransientConnectorAndPersistsAfterReconnect()
+        public void ShiftReconnectionUsesTransientPinCacheAndPersistsPinsAfterReconnect()
         {
             // Open a test graph with at least two connected nodes
             Open(@"UI/ConnectorPinTests.dyn");
@@ -344,18 +344,15 @@ namespace DynamoCoreWpfTests
                 .OfType<ConnectorViewModel>()
                 .FirstOrDefault(c => c.IsConnecting);
 
-            // Assert that during shift reconnection, a transient connector is created that has the same number of pins
+            // During shift reconnection, pins are transferred off the original connector and
+            // cached on the transient connector for redraw (not kept in its view collection).
             Assert.IsNotNull(activeConnector);
             Assert.IsNull(activeConnector.ConnectorModel, "Expected active connector to be transient during drag.");
-            Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
             Assert.AreEqual(0, connectorViewModel.ConnectorPinViewCollection.Count);
 
-            var transientPinLocations = activeConnector.ConnectorPinViewCollection
-                .Select(pin => (pin.Left, pin.Top))
-                .OrderBy(pin => pin.Left)
-                .ThenBy(pin => pin.Top)
-                .ToList();
-            CollectionAssert.AreEqual(pinLocationsBeforeReconnect, transientPinLocations);
+            activeConnector.Redraw(new Point2D(650, 350));
+            Assert.IsNotNull(activeConnector.ComputedBezierPathGeometry);
+            Assert.Greater(activeConnector.ComputedBezierPathGeometry.Figures.Count, 1);
 
             // Execute the second part of the workflow - simulate placing the connectors over the new port.
             this.ViewModel.ExecuteCommand(
