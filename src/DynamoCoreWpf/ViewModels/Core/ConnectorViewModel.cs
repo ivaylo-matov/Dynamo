@@ -1829,10 +1829,8 @@ namespace Dynamo.ViewModels
             foreach (var pinViewModel in transientCachedPins.ToList())
             {
                 workspaceViewModel.Pins.Remove(pinViewModel);
-                pinViewModel.Model.Dispose();
                 pinViewModel.Dispose();
             }
-
             transientCachedPins.Clear();
             transientCachedPinLocations.Clear();
         }

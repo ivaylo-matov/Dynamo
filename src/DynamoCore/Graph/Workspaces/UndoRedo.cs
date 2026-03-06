@@ -132,24 +132,33 @@ namespace Dynamo.Graph.Workspaces
                 UndoRecorder.RecordModificationForUndo(model);
         }
 
-        internal static void RecordModelsForUndo(Dictionary<ModelBase, UndoRedoRecorder.UserAction> models, UndoRedoRecorder recorder)
+        internal static void RecordModelsForUndo(
+            Dictionary<ModelBase, UndoRedoRecorder.UserAction> models,
+            UndoRedoRecorder recorder,
+            IEnumerable<ModelBase> modelsToModify = null,
+            Action applyModelChanges = null,
+            bool recordSavedModelsFirst = true)
         {
-            if (null == recorder)
-                return;
-            if (!ShouldProceedWithRecording(models))
-                return;
+            if (null == recorder) return;
 
-            if (null != savedModels)
-            {
-                // Before an existing connector is reconnected, we have one action group
-                // which records the deletion of the connector. Pop that out so that we can
-                // record the deletion and reconnection in one action group.
-                recorder.PopFromUndoGroup();
-            }
+            var modelActionsExist = ShouldProceedWithRecording(models);
+            var modelsToModifyList = modelsToModify?
+                .Where(model => model != null)
+                .Distinct()
+                .ToList() ?? new List<ModelBase>();
+            if (!modelActionsExist && modelsToModifyList.Count == 0 && savedModels == null)
+
+                if (null != savedModels)
+                {
+                    // Before an existing connector is reconnected, we have one action group
+                    // which records the deletion of the connector. Pop that out so that we can
+                    // record the deletion and reconnection in one action group.
+                    recorder.PopFromUndoGroup();
+                }
 
             using (recorder.BeginActionGroup())
             {
-                if (null != savedModels)
+                if (null != savedModels && recordSavedModelsFirst)
                 {
                     foreach (var modelPair in savedModels)
                     {
@@ -157,21 +166,42 @@ namespace Dynamo.Graph.Workspaces
                     }
                     savedModels = null;
                 }
-                foreach (var modelPair in models)
+
+                if (modelActionsExist)
                 {
-                    switch (modelPair.Value)
+                    foreach (var modelPair in models)
                     {
-                        case UndoRedoRecorder.UserAction.Creation:
-                            recorder.RecordCreationForUndo(modelPair.Key);
-                            break;
-                        case UndoRedoRecorder.UserAction.Deletion:
-                            recorder.RecordDeletionForUndo(modelPair.Key);
-                            break;
-                        case UndoRedoRecorder.UserAction.Modification:
-                            recorder.RecordModificationForUndo(modelPair.Key);
-                            break;
+                        switch (modelPair.Value)
+                        {
+                            case UndoRedoRecorder.UserAction.Creation:
+                                recorder.RecordCreationForUndo(modelPair.Key);
+                                break;
+                            case UndoRedoRecorder.UserAction.Deletion:
+                                recorder.RecordDeletionForUndo(modelPair.Key);
+                                break;
+                            case UndoRedoRecorder.UserAction.Modification:
+                                recorder.RecordModificationForUndo(modelPair.Key);
+                                break;
+                        }
                     }
                 }
+
+                foreach (var model in modelsToModifyList)
+                {
+                    recorder.RecordModificationForUndo(model);
+                }
+
+                applyModelChanges?.Invoke();
+
+                if (null != savedModels && !recordSavedModelsFirst)
+                {
+                    foreach (var modelPair in savedModels)
+                    {
+                        recorder.RecordDeletionForUndo(modelPair);
+                    }
+                }
+
+                savedModels = null;
             }
         }
 
@@ -457,7 +487,32 @@ namespace Dynamo.Graph.Workspaces
             ModelBase model = GetModelForElement(modelData);
             if (model != null)
             {
+                if (model is ConnectorPinModel connectorPinModel)
+                {
+                    var previousConnectorId = connectorPinModel.ConnectorId;
+                    connectorPinModel.Deserialize(modelData, SaveContext.Undo);
+                    RelocateConnectorPin(connectorPinModel, previousConnectorId);
+                    return;
+                }
+
                 model.Deserialize(modelData, SaveContext.Undo);
+            }
+        }
+
+        private void RelocateConnectorPin(ConnectorPinModel connectorPinModel, Guid previousConnectorId)
+        {
+            if (connectorPinModel == null || previousConnectorId == connectorPinModel.ConnectorId)
+            {
+                return;
+            }
+
+            var previousConnector = Connectors.FirstOrDefault(connector => connector.GUID == previousConnectorId);
+            previousConnector?.RemovePin(connectorPinModel);
+
+            var currentConnector = Connectors.FirstOrDefault(connector => connector.GUID == connectorPinModel.ConnectorId);
+            if (currentConnector != null && !currentConnector.ConnectorPinModels.Contains(connectorPinModel))
+            {
+                currentConnector.AddPin(connectorPinModel);
             }
         }
 
