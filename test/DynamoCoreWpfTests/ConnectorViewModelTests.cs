@@ -343,6 +343,7 @@ namespace DynamoCoreWpfTests
             Assert.IsNotNull(activeConnector);
             Assert.IsNull(activeConnector.ConnectorModel, "Expected active connector to be transient during drag.");
             Assert.AreEqual(initialConnectorPinCount + 1, activeConnector.ConnectorPinViewCollection.Count);
+            Assert.IsTrue(activeConnector.ConnectorPinViewCollection.All(pin => !pin.IsInteractive));
 
             // Execute the second part of the workflow - simulate placing the connectors over the new port
             this.ViewModel.ExecuteCommand(
@@ -353,6 +354,7 @@ namespace DynamoCoreWpfTests
             var connectorAfterReconnect = this.ViewModel.CurrentSpaceViewModel.Connectors;
             Assert.AreEqual(1, connectorAfterReconnect.Count());
             Assert.AreEqual(initialConnectorPinCount + 1, connectorAfterReconnect.First().ConnectorPinViewCollection.Count);
+            Assert.IsTrue(connectorAfterReconnect.First().ConnectorPinViewCollection.All(pin => pin.IsInteractive));
         }
         #endregion
 

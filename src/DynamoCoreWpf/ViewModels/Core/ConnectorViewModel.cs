@@ -1171,7 +1171,8 @@ namespace Dynamo.ViewModels
             var pinViewModel = new ConnectorPinViewModel(this.workspaceViewModel, pinModel)
             {
                 IsHidden = this.IsHidden,
-                IsTemporarilyVisible = isTemporarilyVisible
+                IsTemporarilyVisible = isTemporarilyVisible,
+                IsInteractive = true
             };
             pinViewModel.PropertyChanged += PinViewModelPropertyChanged;
 
@@ -1548,6 +1549,7 @@ namespace Dynamo.ViewModels
                     pinViewModel.RequestSelect -= HandleRequestSelected;
                     pinViewModel.RequestRedraw -= HandlerRedrawRequest;
                     pinViewModel.RequestRemove -= HandleConnectorPinViewModelRemove;
+                    pinViewModel.IsInteractive = false;
 
                     ConnectorPinViewCollection.Remove(pinViewModel);
                     extractedPins.Add(pinViewModel);
@@ -1575,6 +1577,7 @@ namespace Dynamo.ViewModels
             {
                 if (pinViewModel == null) continue;
 
+                pinViewModel.IsInteractive = false;
                 transientCachedPinLocations.Add(new Point(pinViewModel.Left, pinViewModel.Top));
                 transientCachedPins.Add(pinViewModel);                
             }
@@ -1783,15 +1786,9 @@ namespace Dynamo.ViewModels
                 dotLeft = CurvePoint3.X - EndDotSize / 2;
 
                 var isInputStartReconnection = ActiveStartPort?.PortType == PortType.Input;
-                var orderedPoints = GetBezierPinPoints()
-                    .OrderBy(p => p.X)
-                    .ToList();
-                if (isInputStartReconnection)
-                {
-                    orderedPoints = orderedPoints
-                        .OrderByDescending(p => p.X)
-                        .ToList();
-                }                
+                var orderedPoints = isInputStartReconnection
+                    ? GetBezierPinPoints().OrderByDescending(p => p.X).ToList()
+                    : GetBezierPinPoints().OrderBy(p => p.X).ToList();
 
                 orderedPoints.Insert(0, CurvePoint0);
                 orderedPoints.Insert(orderedPoints.Count, CurvePoint3);
@@ -1833,7 +1830,7 @@ namespace Dynamo.ViewModels
             }
             catch (Exception ex)
             {
-                string mess = ex.Message;
+                workspaceViewModel.DynamoViewModel.Model.Logger.Log("Error when redrawing multi-segment connector: " + ex);
             }
         }
 
@@ -1857,6 +1854,7 @@ namespace Dynamo.ViewModels
         {
             foreach (var pinViewModel in transientCachedPins.ToList())
             {
+                ConnectorPinViewCollection.Remove(pinViewModel);
                 workspaceViewModel.Pins.Remove(pinViewModel);
                 pinViewModel.Model.Dispose();
                 pinViewModel.Dispose();
