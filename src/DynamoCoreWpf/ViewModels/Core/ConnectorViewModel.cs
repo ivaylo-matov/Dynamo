@@ -1783,15 +1783,9 @@ namespace Dynamo.ViewModels
                 dotLeft = CurvePoint3.X - EndDotSize / 2;
 
                 var isInputStartReconnection = ActiveStartPort?.PortType == PortType.Input;
-                var orderedPoints = GetBezierPinPoints()
-                    .OrderBy(p => p.X)
-                    .ToList();
-                if (isInputStartReconnection)
-                {
-                    orderedPoints = orderedPoints
-                        .OrderByDescending(p => p.X)
-                        .ToList();
-                }                
+                var orderedPoints = isInputStartReconnection
+                    ? GetBezierPinPoints().OrderByDescending(p => p.X).ToList()
+                    : GetBezierPinPoints().OrderBy(p => p.X).ToList();
 
                 orderedPoints.Insert(0, CurvePoint0);
                 orderedPoints.Insert(orderedPoints.Count, CurvePoint3);
@@ -1857,6 +1851,7 @@ namespace Dynamo.ViewModels
         {
             foreach (var pinViewModel in transientCachedPins.ToList())
             {
+                ConnectorPinViewCollection.Remove(pinViewModel);
                 workspaceViewModel.Pins.Remove(pinViewModel);
                 pinViewModel.Model.Dispose();
                 pinViewModel.Dispose();
