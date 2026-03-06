@@ -598,8 +598,7 @@ namespace Dynamo.Models
 
         private static Dictionary<ModelBase, UndoRedoRecorder.UserAction> GetConnectorsToAddAndDelete(
             PortModel endPort,
-            PortModel startPort,
-            IEnumerable<(double X, double Y)> pinLocations = null)
+            PortModel startPort)
         {
             ConnectorModel connectorToRemove = null;
 
@@ -640,21 +639,6 @@ namespace Dynamo.Models
             if (newConnectorModel != null)
             {
                 models.Add(newConnectorModel, UndoRedoRecorder.UserAction.Creation);
-
-                if (pinLocations != null)
-                {
-                    foreach (var pinLocation in pinLocations)
-                    {
-                        var connectorPinModel = new ConnectorPinModel(
-                            pinLocation.X,
-                            pinLocation.Y,
-                            Guid.NewGuid(),
-                            newConnectorModel.GUID);
-
-                        newConnectorModel.AddPin(connectorPinModel);
-                        models.Add(connectorPinModel, UndoRedoRecorder.UserAction.Creation);
-                    }
-                }
             }
             return models;
         }

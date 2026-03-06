@@ -57,6 +57,9 @@ namespace Dynamo.ViewModels
         private Point curvePoint3;
         private readonly List<ConnectorPinViewModel> transientCachedPins = new List<ConnectorPinViewModel>();
         private readonly List<Point> transientCachedPinLocations = new List<Point>();
+        // Set while pin VMs are temporarily extracted for reconnection preview.
+        // It prevents duplicate pin VM removals when corresponding pin models are
+        // detached from the source connector model in the same interaction.
         private bool suppressPinVMRemoval;
 
         /// <summary>
@@ -1110,6 +1113,10 @@ namespace Dynamo.ViewModels
                     {
                         RemoveConnectorPinModelViewModel(oldItem);
                     }
+                    if (suppressPinVMRemoval && ConnectorModel?.ConnectorPinModels.Count == 0)
+                    {
+                        suppressPinVMRemoval = false;
+                    }
                     break;
                 default: break;
             }
@@ -1120,6 +1127,7 @@ namespace Dynamo.ViewModels
         /// <param name="connectorPin"></param>
         private void RemoveConnectorPinModelViewModel(ConnectorPinModel connectorPin)
         {
+            // Reconnection preview already extracted these pin VMs.
             if (suppressPinVMRemoval) return;
 
             var matchingConnectorPinViewModel = this.workspaceViewModel.Pins.FirstOrDefault(x => x.Model.GUID == connectorPin.GUID);
@@ -1293,6 +1301,7 @@ namespace Dynamo.ViewModels
             {
                 ConnectorAnchorViewModel.Dispose();
             }
+            suppressPinVMRemoval = false;
             base.Dispose();
         }
 
@@ -1503,7 +1512,6 @@ namespace Dynamo.ViewModels
         /// pins to extract.</returns>
         internal List<ConnectorPinViewModel> AddTransientConnectorPins()
         {
-            suppressPinVMRemoval = true;                                                                            // DO WE NEED THIS - YES!  WHERE DO WE SET IT TO FALSE?
             var extractedPins = new List<ConnectorPinViewModel>();
 
             if (ConnectorPinViewCollection == null || ConnectorPinViewCollection.Count == 0)
@@ -1511,6 +1519,7 @@ namespace Dynamo.ViewModels
                 return extractedPins;
             }
 
+            suppressPinVMRemoval = true;
             foreach (var pinViewModel in ConnectorPinViewCollection.ToList())
             {
                 pinViewModel.PropertyChanged -= PinViewModelPropertyChanged;
