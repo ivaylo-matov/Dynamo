@@ -545,7 +545,8 @@ namespace DynamoCoreWpfTests
 
             // Sanity check: we added 1 pin
             Assert.AreEqual(initialConnectorPinCount + 1, connectorViewModel.ConnectorPinViewCollection.Count);
-            var pinModelGuid = connectorViewModel.ConnectorModel.ConnectorPinModels.First().GUID;
+            var originalPinModel = connectorViewModel.ConnectorModel.ConnectorPinModels.First();
+            var pinModelGuid = originalPinModel.GUID;
 
             // Begin reconnection – simulate grabbing the connector and starting a shift drag
             var connectorGuid = connectorViewModel.ConnectorModel.GUID;
@@ -577,6 +578,10 @@ namespace DynamoCoreWpfTests
             var connectorAfterReconnect = this.ViewModel.CurrentSpaceViewModel.Connectors;
             Assert.AreEqual(1, connectorAfterReconnect.Count());
             Assert.AreEqual(initialConnectorPinCount + 1, connectorAfterReconnect.First().ConnectorPinViewCollection.Count());
+            var pinAfterReconnect = connectorAfterReconnect.First().ConnectorModel.ConnectorPinModels
+                .FirstOrDefault(p => p.GUID == pinModelGuid);
+            Assert.IsNotNull(pinAfterReconnect, "Expected pin model GUID to be preserved after reconnection.");
+            Assert.AreSame(originalPinModel, pinAfterReconnect, "Expected the same pin model instance to be reused after reconnection.");
 
             // --- Undo ---
             Model.ExecuteCommand(new UndoRedoCommand(UndoRedoCommand.Operation.Undo));

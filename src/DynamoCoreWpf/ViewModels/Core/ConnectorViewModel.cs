@@ -1829,7 +1829,8 @@ namespace Dynamo.ViewModels
             foreach (var pinViewModel in transientCachedPins.ToList())
             {
                 workspaceViewModel.Pins.Remove(pinViewModel);
-                pinViewModel.Model.Dispose();
+                // Transient pins may be transferred back to a permanent connector
+                // during reconnection, so do not dispose the underlying model here.
                 pinViewModel.Dispose();
             }
 
