@@ -57,9 +57,9 @@ namespace Dynamo.ViewModels
         private Point curvePoint3;
         private readonly List<ConnectorPinViewModel> transientCachedPins = new List<ConnectorPinViewModel>();
         private readonly List<Point> transientCachedPinLocations = new List<Point>();
-        private bool suppressPinVMRemoval;
         private int pinCollectionRedrawDeferralDepth;
         private bool pinCollectionRedrawPending;
+        private readonly HashSet<Guid> transferredPinGuids = new();
 
         /// <summary>
         /// Required timer for desired delay prior to ' connector anchor' display.
@@ -1131,7 +1131,7 @@ namespace Dynamo.ViewModels
         /// <param name="connectorPin"></param>
         private void RemoveConnectorPinModelViewModel(ConnectorPinModel connectorPin)
         {
-            if (suppressPinVMRemoval) return;
+            if (transferredPinGuids.Remove(connectorPin.GUID)) return;
 
             var matchingConnectorPinViewModel = this.workspaceViewModel.Pins.FirstOrDefault(x => x.Model.GUID == connectorPin.GUID);
             if (matchingConnectorPinViewModel is null) return;
@@ -1161,22 +1161,21 @@ namespace Dynamo.ViewModels
         /// View model adding method only- given a model
         /// </summary>
         /// <param name="pinModel"></param>
-        private void AddConnectorPinViewModel(ConnectorPinModel pinModel, bool isTransientPin = false)
+        private void AddConnectorPinViewModel(ConnectorPinModel pinModel)
         {
+            if (pinModel == null) return;
+            if (ConnectorPinViewCollection.Any(p => p.Model.GUID == pinModel.GUID)) return;
+
             var pinViewModel = new ConnectorPinViewModel(this.workspaceViewModel, pinModel)
             {
                 IsHidden = this.IsHidden,
-                IsTemporarilyVisible = isTemporarilyVisible,
-                IsInteractive = !isTransientPin
+                IsTemporarilyVisible = isTemporarilyVisible
             };
             pinViewModel.PropertyChanged += PinViewModelPropertyChanged;
 
             pinViewModel.RequestSelect += HandleRequestSelected;
             pinViewModel.RequestRedraw += HandlerRedrawRequest;
-            if (!isTransientPin)
-            {
-                pinViewModel.RequestRemove += HandleConnectorPinViewModelRemove;
-            }
+            pinViewModel.RequestRemove += HandleConnectorPinViewModelRemove;
 
             workspaceViewModel.Pins.Add(pinViewModel);
             ConnectorPinViewCollection.Add(pinViewModel);
@@ -1553,7 +1552,6 @@ namespace Dynamo.ViewModels
         /// pins to extract.</returns>
         internal List<ConnectorPinViewModel> AddTransientConnectorPins()
         {
-            suppressPinVMRemoval = true;                                                                            // DO WE NEED THIS - YES!  WHERE DO WE SET IT TO FALSE?
             var extractedPins = new List<ConnectorPinViewModel>();
 
             if (ConnectorPinViewCollection == null || ConnectorPinViewCollection.Count == 0)
@@ -1569,7 +1567,8 @@ namespace Dynamo.ViewModels
                     pinViewModel.RequestSelect -= HandleRequestSelected;
                     pinViewModel.RequestRedraw -= HandlerRedrawRequest;
                     pinViewModel.RequestRemove -= HandleConnectorPinViewModelRemove;
-                    pinViewModel.IsInteractive = false;
+
+                    transferredPinGuids.Add(pinViewModel.Model.GUID); // mark ownership transfer
 
                     ConnectorPinViewCollection.Remove(pinViewModel);
                     extractedPins.Add(pinViewModel);
@@ -1591,15 +1590,13 @@ namespace Dynamo.ViewModels
         {
             if (ConnectorModel != null || pinViewModels == null) return;
 
-            bool shouldCacheLocations = transientCachedPinLocations.Count == 0;
+            if (transientCachedPins.Count > 0 || transientCachedPinLocations.Count > 0) return;
+
             foreach (var pinViewModel in pinViewModels)
             {
                 if (pinViewModel == null) continue;
 
-                if (shouldCacheLocations)
-                {
-                    transientCachedPinLocations.Add(new Point(pinViewModel.Left, pinViewModel.Top));
-                }
+                transientCachedPinLocations.Add(new Point(pinViewModel.Left, pinViewModel.Top));
                 transientCachedPins.Add(pinViewModel);                
             }
         }
