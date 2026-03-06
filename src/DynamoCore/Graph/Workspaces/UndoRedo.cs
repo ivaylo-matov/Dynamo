@@ -512,7 +512,11 @@ namespace Dynamo.Graph.Workspaces
                 if (connectorPin is null) return;
 
                 var matchingConnector = Connectors.FirstOrDefault(c => c.GUID == connectorPin.ConnectorId);
-                if (matchingConnector is null) return;
+                if (matchingConnector is null)
+                {
+                    connectorPin.Dispose();
+                    return;
+                }
 
                 // Avoid orphan pin models
                 if (matchingConnector.ConnectorPinModels.Any(p => p.GUID == connectorPin.GUID))

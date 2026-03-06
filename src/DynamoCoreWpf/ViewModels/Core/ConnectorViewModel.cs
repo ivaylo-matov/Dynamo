@@ -1171,7 +1171,8 @@ namespace Dynamo.ViewModels
             var pinViewModel = new ConnectorPinViewModel(this.workspaceViewModel, pinModel)
             {
                 IsHidden = this.IsHidden,
-                IsTemporarilyVisible = isTemporarilyVisible
+                IsTemporarilyVisible = isTemporarilyVisible,
+                IsInteractive = true
             };
             pinViewModel.PropertyChanged += PinViewModelPropertyChanged;
 
@@ -1548,6 +1549,7 @@ namespace Dynamo.ViewModels
                     pinViewModel.RequestSelect -= HandleRequestSelected;
                     pinViewModel.RequestRedraw -= HandlerRedrawRequest;
                     pinViewModel.RequestRemove -= HandleConnectorPinViewModelRemove;
+                    pinViewModel.IsInteractive = false;
 
                     ConnectorPinViewCollection.Remove(pinViewModel);
                     extractedPins.Add(pinViewModel);
@@ -1575,6 +1577,7 @@ namespace Dynamo.ViewModels
             {
                 if (pinViewModel == null) continue;
 
+                pinViewModel.IsInteractive = false;
                 transientCachedPinLocations.Add(new Point(pinViewModel.Left, pinViewModel.Top));
                 transientCachedPins.Add(pinViewModel);                
             }
@@ -1827,7 +1830,7 @@ namespace Dynamo.ViewModels
             }
             catch (Exception ex)
             {
-                string mess = ex.Message;
+                workspaceViewModel.DynamoViewModel.Model.Logger.Log("Error when redrawing multi-segment connector: " + ex);
             }
         }
 
