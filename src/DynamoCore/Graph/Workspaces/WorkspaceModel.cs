@@ -121,6 +121,7 @@ namespace Dynamo.Graph.Workspaces
         public string ConnectorGuid;
         public double Left;
         public double Top;
+        public bool TopIsModelY;
     }
 
     /// <summary>
@@ -2654,13 +2655,18 @@ namespace Dynamo.Graph.Workspaces
                 var matchingConnector = Connectors.FirstOrDefault(x => x.GUID == connectorGuid);
                 if (matchingConnector is null) { return; }
 
+                // Legacy files stored Top with a view-space offset (Y - one-third width).
+                var modelTop = pinViewInfo.TopIsModelY
+                    ? pinViewInfo.Top
+                    : pinViewInfo.Top + (ConnectorPinModel.StaticWidth * 0.33333);
+
                 if (offsetX == 0.0 && offsetY == 0.0)
                 {
-                    matchingConnector.AddPin(pinViewInfo.Left, pinViewInfo.Top);
+                    matchingConnector.AddPin(pinViewInfo.Left, modelTop);
                 }
                 else
                 {
-                    matchingConnector.AddPin(pinViewInfo.Left + offsetX, pinViewInfo.Top + offsetY);
+                    matchingConnector.AddPin(pinViewInfo.Left + offsetX, modelTop + offsetY);
                 }
 
             }
