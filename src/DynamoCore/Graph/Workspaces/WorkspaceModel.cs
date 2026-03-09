@@ -120,6 +120,7 @@ namespace Dynamo.Graph.Workspaces
     {
         public string ConnectorGuid;
         public double Left;
+        // Top is persisted in model-space coordinates (ConnectorPinModel.Y), not a view offset.
         public double Top;
     }
 
