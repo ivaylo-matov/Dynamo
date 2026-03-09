@@ -966,6 +966,12 @@ namespace Dynamo.Tests
             var initialPinCount = initialWorkspace.Connectors
                 .SelectMany(connector => connector.ConnectorPinModels)
                 .Count();
+            var initialPinPositions = initialWorkspace.Connectors
+                .SelectMany(connector => connector.ConnectorPinModels)
+                .Select(pin => new { pin.X, pin.Y })
+                .OrderBy(pin => pin.X)
+                .ThenBy(pin => pin.Y)
+                .ToList();
             Assert.AreEqual(3, initialPinCount, "The baseline graph should contain 3 connector pins.");
 
             var initialWorkspaceGuid = initialWorkspace.Guid;
@@ -983,12 +989,37 @@ namespace Dynamo.Tests
             Assert.IsTrue(saveAsSucceeded);
             Assert.IsTrue(File.Exists(newPath));
 
+            var serializedWorkspace = JObject.Parse(File.ReadAllText(newPath));
+            var serializedPins = serializedWorkspace["View"]?["ConnectorPins"] as JArray;
+            Assert.IsNotNull(serializedPins);
+            var serializedPinPositions = serializedPins
+                .Select(pin => new
+                {
+                    X = pin["Left"]?.Value<double>() ?? double.NaN,
+                    Y = pin["Top"]?.Value<double>() ?? double.NaN
+                })
+                .OrderBy(pin => pin.X)
+                .ThenBy(pin => pin.Y)
+                .ToList();
+            Assert.AreEqual(initialPinPositions.Count, serializedPinPositions.Count);
+            const double serializationTolerance = 1e-6;
+            for (int i = 0; i < initialPinPositions.Count; i++)
+            {
+                Assert.That(Math.Abs(initialPinPositions[i].X - serializedPinPositions[i].X), Is.LessThan(serializationTolerance));
+                Assert.That(Math.Abs(initialPinPositions[i].Y - serializedPinPositions[i].Y), Is.LessThan(serializationTolerance));
+            }
+
             // Explicitly reload from disk before validating persisted relationships.
             ViewModel.OpenCommand.Execute(newPath);
 
             var reloadedWorkspace = ViewModel.Model.CurrentWorkspace;
             var reloadedPins = reloadedWorkspace.Connectors
                 .SelectMany(connector => connector.ConnectorPinModels)
+                .ToList();
+            var reloadedPinPositions = reloadedPins
+                .Select(pin => new { pin.X, pin.Y })
+                .OrderBy(pin => pin.X)
+                .ThenBy(pin => pin.Y)
                 .ToList();
             var reloadedConnectorIds = new HashSet<Guid>(
                 reloadedWorkspace.Connectors.Select(connector => connector.GUID));
@@ -997,6 +1028,13 @@ namespace Dynamo.Tests
             Assert.AreNotEqual(initialWorkspaceGuid, reloadedWorkspace.Guid);
             Assert.AreEqual(initialPinCount, reloadedPins.Count);
             Assert.IsTrue(reloadedPins.All(pin => reloadedConnectorIds.Contains(pin.ConnectorId)));
+            Assert.AreEqual(initialPinPositions.Count, reloadedPinPositions.Count);
+            const double tolerance = 1e-6;
+            for (int i = 0; i < initialPinPositions.Count; i++)
+            {
+                Assert.That(Math.Abs(initialPinPositions[i].X - reloadedPinPositions[i].X), Is.LessThan(tolerance));
+                Assert.That(Math.Abs(initialPinPositions[i].Y - reloadedPinPositions[i].Y), Is.LessThan(tolerance));
+            }
 
             // SaveAs should remap element ids, including connector ids.
             Assert.IsFalse(initialConnectorIds.Overlaps(reloadedConnectorIds));
