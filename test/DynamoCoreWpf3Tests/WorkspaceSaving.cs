@@ -992,7 +992,22 @@ namespace Dynamo.Tests
             var serializedWorkspace = JObject.Parse(File.ReadAllText(newPath));
             var serializedPins = serializedWorkspace["View"]?["ConnectorPins"] as JArray;
             Assert.IsNotNull(serializedPins);
-            Assert.IsTrue(serializedPins.All(pin => pin["TopIsModelY"]?.Value<bool>() == true));
+            var serializedPinPositions = serializedPins
+                .Select(pin => new
+                {
+                    X = pin["Left"]?.Value<double>() ?? double.NaN,
+                    Y = pin["Top"]?.Value<double>() ?? double.NaN
+                })
+                .OrderBy(pin => pin.X)
+                .ThenBy(pin => pin.Y)
+                .ToList();
+            Assert.AreEqual(initialPinPositions.Count, serializedPinPositions.Count);
+            const double serializationTolerance = 1e-6;
+            for (int i = 0; i < initialPinPositions.Count; i++)
+            {
+                Assert.That(Math.Abs(initialPinPositions[i].X - serializedPinPositions[i].X), Is.LessThan(serializationTolerance));
+                Assert.That(Math.Abs(initialPinPositions[i].Y - serializedPinPositions[i].Y), Is.LessThan(serializationTolerance));
+            }
 
             // Explicitly reload from disk before validating persisted relationships.
             ViewModel.OpenCommand.Execute(newPath);

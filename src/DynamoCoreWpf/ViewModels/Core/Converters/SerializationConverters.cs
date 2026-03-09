@@ -54,8 +54,6 @@ namespace Dynamo.Wpf.ViewModels.Core.Converters
                 writer.WriteValue(wirePin.IsHidden);
                 writer.WritePropertyName(nameof(ConnectorPinViewModel.ConnectorGuid));
                 writer.WriteValue(wirePin.ConnectorGuid.ToString("D"));
-                writer.WritePropertyName("TopIsModelY");
-                writer.WriteValue(true);
                 writer.WriteEndObject();
             }
             writer.WriteEndArray();
