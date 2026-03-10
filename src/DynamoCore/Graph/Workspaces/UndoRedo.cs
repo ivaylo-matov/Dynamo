@@ -18,6 +18,8 @@ namespace Dynamo.Graph.Workspaces
     public partial class WorkspaceModel
     {
         private const string WatchNodeTypeName = "CoreNodeModels.Watch";
+        private const string WatchNodeAssemblyQualifiedName = WatchNodeTypeName + ", CoreNodeModels";
+        private static readonly Type CachedWatchNodeType = Type.GetType(WatchNodeAssemblyQualifiedName, throwOnError: false);
 
         /// <summary>
         /// Returns the current UndoRedoRecorder that is associated with the current
@@ -452,7 +454,23 @@ namespace Dynamo.Graph.Workspaces
             return node != null &&
                    node.InPorts.Count == 1 &&
                    node.OutPorts.Count == 1 &&
-                   string.Equals(node.GetType().FullName, WatchNodeTypeName, StringComparison.Ordinal);
+                   IsWatchNodeType(node);
+        }
+
+        private static bool IsWatchNodeType(NodeModel node)
+        {
+            if (node == null)
+            {
+                return false;
+            }
+
+            // Prefer a single reflected type lookup cached at class initialization.
+            if (CachedWatchNodeType != null)
+            {
+                return CachedWatchNodeType.IsInstanceOfType(node);
+            }
+
+            return string.Equals(node.GetType().FullName, WatchNodeTypeName, StringComparison.Ordinal);
         }
 
         internal void DeleteSavedModels()
@@ -745,7 +763,7 @@ namespace Dynamo.Graph.Workspaces
         {
             if (nodeModel == null || nodeModel.OutPorts.Count == 0) return;
 
-            if (!string.Equals(nodeModel.GetType().FullName, WatchNodeTypeName, StringComparison.Ordinal)) return;
+            if (!IsWatchNodeType(nodeModel)) return;
 
             var engineController = (this as HomeWorkspaceModel)?.EngineController;
             if (engineController == null) return;
