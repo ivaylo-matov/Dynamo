@@ -205,7 +205,7 @@ namespace Dynamo.Graph.Workspaces
             if (!ShouldProceedWithRecording(models))
                 return; // There's nothing for deletion.
 
-            var nodesScheduledForDeletion = new HashSet<Guid>(models.OfType<NodeModel>().Select(node => node.GUID));
+            HashSet<Guid> nodesScheduledForDeletion = new HashSet<Guid>(models.OfType<NodeModel>().Select(node => node.GUID));
             // Deleting inline watch nodes can preserve data flow (rewire pass-through connectors),
             // so we can defer execution until the next explicit graph run.
             var requestRunOnDispose = !ShouldSuppressRunAfterDelete(models);
