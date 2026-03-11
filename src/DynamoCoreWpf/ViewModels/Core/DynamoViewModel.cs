@@ -2546,17 +2546,6 @@ namespace Dynamo.ViewModels
 
             if (_fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                if (isTemplate && !string.Equals(Path.GetExtension(_fileDialog.FileName), ".dyn", StringComparison.OrdinalIgnoreCase))
-                {
-                    DynamoMessageBox.Show(
-                        Owner,
-                        Resources.MessageErrorOpeningTemplateInvalidExtension,
-                        Resources.MessageErrorOpeningFileGeneral,
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
-                    return;
-                }
-
                 if (CanOpen(_fileDialog.FileName))
                 {
                     if (isTemplate)

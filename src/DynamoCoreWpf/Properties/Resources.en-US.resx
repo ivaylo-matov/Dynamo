@@ -4165,9 +4165,6 @@ To make this file into a new template, save it to a different folder, then move 
   <data name="MessageErrorOpeningInvalidPath" xml:space="preserve">
     <value>Invalid file path provided. In case the file is archived, please make sure to extract it before opening.\n{0}</value>
   </data>
-  <data name="MessageErrorOpeningTemplateInvalidExtension" xml:space="preserve">
-    <value>Templates must be Dynamo workspace files (*.dyn).</value>
-  </data>
   <data name="GroupContextMenuFreezeGroup" xml:space="preserve">
     <value>Freeze Group</value>
   </data>

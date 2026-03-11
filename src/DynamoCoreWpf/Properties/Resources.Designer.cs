@@ -4663,15 +4663,6 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Templates must be Dynamo workspace files (*.dyn)..
-        /// </summary>
-        public static string MessageErrorOpeningTemplateInvalidExtension {
-            get {
-                return ResourceManager.GetString("MessageErrorOpeningTemplateInvalidExtension", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Loading the packages is taking longer than expected. What would you like to do?.
         /// </summary>
         public static string MessageExcessiveLoadTime {
