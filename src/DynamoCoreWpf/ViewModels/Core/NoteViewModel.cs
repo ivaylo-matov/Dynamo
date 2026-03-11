@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
@@ -186,12 +186,7 @@ namespace Dynamo.ViewModels
 
                 if (node == null) return;
 
-                // In case the user has selected a different Node before Undo
-                // We run the risk of pinning to the wrong Node
-                // Therefore clear selection before running
-                DynamoSelection.Instance.ClearSelection();
-                DynamoSelection.Instance.Selection.Add(node);
-                PinToNode(obj);
+                PinToNode(node, recordForUndo: false);
                 return;
             }
         }
@@ -314,17 +309,21 @@ namespace Dynamo.ViewModels
 
         private void PinToNode(object parameters)
         {
-
             var nodeToPin = DynamoSelection.Instance.Selection
                 .OfType<NodeModel>()
                 .FirstOrDefault();
 
-            if (nodeToPin == null)
-            {
-                return;
-            }
+            PinToNode(nodeToPin, recordForUndo: true);
+        }
 
-            WorkspaceModel.RecordModelForModification(Model, WorkspaceViewModel.Model.UndoRecorder);
+        private void PinToNode(NodeModel nodeToPin, bool recordForUndo)
+        {
+            if (nodeToPin == null) return;
+
+            if (recordForUndo)
+            {
+                WorkspaceModel.RecordModelForModification(Model, WorkspaceViewModel.Model.UndoRecorder);
+            }
 
             var nodeGroup = WorkspaceViewModel.Annotations
                 .FirstOrDefault(x => x.AnnotationModel.ContainsModel(nodeToPin));
@@ -332,6 +331,11 @@ namespace Dynamo.ViewModels
             if (nodeGroup != null)
             {
                 nodeGroup.AnnotationModel.AddToTargetAnnotationModel(this.Model);
+            }
+
+            if (Model.PinnedNode != null)
+            {
+                UnsuscribeFromPinnedNode();
             }
 
             Model.PinnedNode = nodeToPin;
