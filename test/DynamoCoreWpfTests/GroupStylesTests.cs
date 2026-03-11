@@ -187,6 +187,7 @@ namespace DynamoCoreWpfTests
             DispatcherUtil.DoEvents();
 
             var prefViewModel = preferencesWindow.DataContext as PreferencesViewModel;
+            Assert.AreEqual(Visibility.Collapsed, preferencesWindow.ResetStylesButton.Visibility);
 
             prefViewModel.AddStyle(new StyleItem
             {
@@ -209,6 +210,7 @@ namespace DynamoCoreWpfTests
             DispatcherUtil.DoEvents();
             Assert.AreEqual(6, prefViewModel.StyleItemsList.Count);
             Assert.IsTrue(prefViewModel.CanResetGroupStyles);
+            Assert.AreEqual(Visibility.Visible, preferencesWindow.ResetStylesButton.Visibility);
 
             preferencesWindow.ResetStylesButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             DispatcherUtil.DoEvents();
@@ -216,6 +218,7 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(4, prefViewModel.StyleItemsList.Count);
             Assert.IsTrue(prefViewModel.StyleItemsList.All(style => style.IsDefault));
             Assert.IsFalse(prefViewModel.CanResetGroupStyles);
+            Assert.AreEqual(Visibility.Collapsed, preferencesWindow.ResetStylesButton.Visibility);
         }
     }
 }
