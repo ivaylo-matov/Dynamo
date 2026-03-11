@@ -253,6 +253,14 @@ namespace Dynamo.Wpf.Views
             Logging.Analytics.TrackEvent(Actions.Cancel, Categories.GroupStyleOperations, nameof(GroupStyleItem));
         }
 
+        private void ResetStylesButton_Click(object sender, RoutedEventArgs e)
+        {
+            viewModel.ResetCustomGroupStyles();
+            viewModel.ResetAddStyleControl();
+            stylesCustomColors?.Clear();
+            Logging.Analytics.TrackEvent(Actions.Delete, Categories.GroupStyleOperations, nameof(GroupStyleItem) + "s");
+        }
+
         private void RemoveStyle_Click(object sender, RoutedEventArgs e)
         {
            var removeButton = sender as Button;
