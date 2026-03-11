@@ -2486,11 +2486,12 @@ namespace Dynamo.ViewModels
             }
 
             bool isTemplate = parameter != null && (parameter as string).Equals("Template");
+            var fileExtensions = isTemplate ? "*.dyn" : "*.dyn;*.dyf";
 
             DynamoOpenFileDialog _fileDialog = new DynamoOpenFileDialog(this)
             {
                 Filter = string.Format(Resources.FileDialogDynamoDefinitions,
-                         BrandingResourceProvider.ProductName, "*.dyn;*.dyf") + "|" +
+                         BrandingResourceProvider.ProductName, fileExtensions) + "|" +
                          string.Format(Resources.FileDialogAllFiles, "*.*"),
                 Title = string.Format(Resources.OpenDynamoDefinitionDialogTitle,BrandingResourceProvider.ProductName)
             };
