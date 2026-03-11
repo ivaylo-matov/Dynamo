@@ -1554,7 +1554,7 @@ Next assemblies were loaded several times:
     <value>Open {0} Definition...</value>
   </data>
   <data name="OpenDynamoTemplateDialogTitle" xml:space="preserve">
-    <value>Open {0} Template...</value>
+    <value>New graph from template</value>
   </data>
   <data name="PackageDownloadConfirmMessageBoxTitle" xml:space="preserve">
     <value>Package Download Confirmation</value>
