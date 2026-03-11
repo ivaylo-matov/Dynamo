@@ -1053,7 +1053,7 @@ To avoid unintended behavior, uninstall the conflicting loaded package(s), resta
     <value>Open {0} Definition...</value>
   </data>
   <data name="OpenDynamoTemplateDialogTitle" xml:space="preserve">
-    <value>New graph from template</value>
+    <value>New Graph from Template...</value>
   </data>
   <data name="PackageDownloadConfirmMessageBoxTitle" xml:space="preserve">
     <value>Package Download Confirmation</value>
@@ -4155,6 +4155,9 @@ To make this file into a new template, save it to a different folder, then move 
   </data>
   <data name="MessageErrorOpeningInvalidPath" xml:space="preserve">
     <value>Invalid file path provided. In case the file is archived, please make sure to extract it before opening.\n{0}</value>
+  </data>
+  <data name="MessageErrorOpeningTemplateInvalidExtension" xml:space="preserve">
+    <value>Templates must be Dynamo workspace files (*.dyn).</value>
   </data>
   <data name="GroupContextMenuFreezeGroup" xml:space="preserve">
     <value>Freeze Group</value>

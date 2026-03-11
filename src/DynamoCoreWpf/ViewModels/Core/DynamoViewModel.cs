@@ -2490,12 +2490,16 @@ namespace Dynamo.ViewModels
             var dialogTitle = isTemplate
                 ? Resources.OpenDynamoTemplateDialogTitle
                 : string.Format(Resources.OpenDynamoDefinitionDialogTitle, BrandingResourceProvider.ProductName);
+            var fileFilter = string.Format(Resources.FileDialogDynamoDefinitions,
+                BrandingResourceProvider.ProductName, fileExtensions);
+            if (!isTemplate)
+            {
+                fileFilter += "|" + string.Format(Resources.FileDialogAllFiles, "*.*");
+            }
 
             DynamoOpenFileDialog _fileDialog = new DynamoOpenFileDialog(this)
             {
-                Filter = string.Format(Resources.FileDialogDynamoDefinitions,
-                         BrandingResourceProvider.ProductName, fileExtensions) + "|" +
-                         string.Format(Resources.FileDialogAllFiles, "*.*"),
+                Filter = fileFilter,
                 Title = dialogTitle
             };
 
@@ -2542,6 +2546,17 @@ namespace Dynamo.ViewModels
 
             if (_fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
+                if (isTemplate && !string.Equals(Path.GetExtension(_fileDialog.FileName), ".dyn", StringComparison.OrdinalIgnoreCase))
+                {
+                    DynamoMessageBox.Show(
+                        Owner,
+                        Resources.MessageErrorOpeningTemplateInvalidExtension,
+                        Resources.MessageErrorOpeningFileGeneral,
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    return;
+                }
+
                 if (CanOpen(_fileDialog.FileName))
                 {
                     if (isTemplate)
