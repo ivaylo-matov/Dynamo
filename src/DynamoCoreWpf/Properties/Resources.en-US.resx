@@ -2578,6 +2578,12 @@ Do you wish to uninstall {1}? Restart {2} to complete the uninstall and try down
   <data name="AddStyleButton" xml:space="preserve">
     <value>Add Style</value>
   </data>
+  <data name="ResetStylesButton" xml:space="preserve">
+    <value>Reset Styles</value>
+  </data>
+  <data name="ResetStylesButtonToolTip" xml:space="preserve">
+    <value>Deletes all user-created (non-default) group styles. This does not affect styles in existing graphs and cannot be undone.</value>
+  </data>
   <data name="ResetCPythonButtonText" xml:space="preserve">
     <value>Reset CPython</value>
   </data>
