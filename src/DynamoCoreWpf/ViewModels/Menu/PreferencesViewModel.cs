@@ -840,6 +840,22 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
+        /// Indicates if default group styles should be shown in graph context menus.
+        /// </summary>
+        public bool ShowDefaultGroupStyles
+        {
+            get
+            {
+                return preferenceSettings.ShowDefaultGroupStyles;
+            }
+            set
+            {
+                preferenceSettings.ShowDefaultGroupStyles = value;
+                RaisePropertyChanged(nameof(ShowDefaultGroupStyles));
+            }
+        }
+
+        /// <summary>
         /// Indicates if the optional input ports are collapsed by default.
         /// </summary>
         public bool OptionalInputsCollapsed
@@ -1530,9 +1546,47 @@ namespace Dynamo.ViewModels
                 }
             }
 
+            NormalizeGroupStyles();
             preferenceSettings.SanitizeValues();
             RaisePropertyChanged(string.Empty);
             return true;
+        }
+
+        private static GroupStyleItem CloneStyle(GroupStyleItem style, bool forceAsDefault)
+        {
+            return new GroupStyleItem
+            {
+                Name = style.Name,
+                HexColorString = style.HexColorString,
+                FontSize = style.FontSize,
+                GroupStyleId = style.GroupStyleId,
+                IsDefault = forceAsDefault
+            };
+        }
+
+        private void NormalizeGroupStyles()
+        {
+            var defaultStyleIds = GroupStyleItem.DefaultGroupStyleItems
+                .Select(style => style.GroupStyleId)
+                .ToHashSet();
+            var defaultStyleNames = GroupStyleItem.DefaultGroupStyleItems
+                .Select(style => style.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var customStyles = preferenceSettings.GroupStyleItemsList
+                .Where(style => style != null)
+                .Where(style => !defaultStyleIds.Contains(style.GroupStyleId))
+                .Where(style => !defaultStyleNames.Contains(style.Name))
+                .GroupBy(style => style.GroupStyleId != Guid.Empty ? style.GroupStyleId.ToString("N") : style.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(group => CloneStyle(group.First(), false))
+                .ToList();
+
+            var normalizedGroupStylesList = GroupStyleItem.DefaultGroupStyleItems
+                .Select(style => CloneStyle(style, true))
+                .ToList();
+            normalizedGroupStylesList.AddRange(customStyles);
+
+            preferenceSettings.GroupStyleItemsList = normalizedGroupStylesList;
         }
 
         internal void InitializeGeometryScaling()
@@ -1606,11 +1660,8 @@ namespace Dynamo.ViewModels
             //By Default the warning state of the Visual Settings tab (Group Styles section) will be disabled
             isWarningEnabled = false;
 
-            // Initialize group styles with default and custom GroupStyleItems.
-            var customStyles = preferenceSettings.GroupStyleItemsList.Where(style => style.IsDefault != true).ToList();
-            var newGroupStylesList = new List<GroupStyleItem>(GroupStyleItem.DefaultGroupStyleItems);
-            newGroupStylesList.AddRange(customStyles);
-            preferenceSettings.GroupStyleItemsList = newGroupStylesList;
+            // Initialize group styles with a normalized default + custom list.
+            NormalizeGroupStyles();
 
             StyleItemsList = preferenceSettings.GroupStyleItemsList.ToObservableCollection();
 
@@ -1938,6 +1989,9 @@ namespace Dynamo.ViewModels
                     goto default;
                 case nameof(ShowDefaultGroupDescription):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewShowDefaultGroupDescription), System.Globalization.CultureInfo.InvariantCulture);
+                    goto default;
+                case nameof(ShowDefaultGroupStyles):
+                    description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewShowDefaultGroupStyles), System.Globalization.CultureInfo.InvariantCulture);
                     goto default;
                 case nameof(OptionalInputsCollapsed):
                     description = Res.ResourceManager.GetString(nameof(Res.PreferencesViewHideInportsDescription), System.Globalization.CultureInfo.InvariantCulture);

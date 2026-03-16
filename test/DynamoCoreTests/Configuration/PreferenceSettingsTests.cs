@@ -74,6 +74,7 @@ namespace Dynamo.Tests.Configuration
             Assert.AreEqual(settings.DynamoPlayerFolderGroups.Count, 0);
             Assert.AreEqual(settings.EnableDynamoPlayerRenamedWatchAsOutput, false);
             Assert.AreEqual(settings.Locale, "Default");
+            Assert.AreEqual(settings.ShowDefaultGroupStyles, true);
 
             // Save
             settings.Save(tempPath);
@@ -95,6 +96,7 @@ namespace Dynamo.Tests.Configuration
             Assert.AreEqual(settings.DynamoPlayerFolderGroups.Count, 0);
             Assert.AreEqual(settings.EnableDynamoPlayerRenamedWatchAsOutput, false);
             Assert.AreEqual(settings.Locale, "Default");
+            Assert.AreEqual(settings.ShowDefaultGroupStyles, true);
 
             // Change setting values
             settings.SetIsBackgroundPreviewActive("MyBackgroundPreview", false);
@@ -144,6 +146,7 @@ namespace Dynamo.Tests.Configuration
             });
             settings.EnableDynamoPlayerRenamedWatchAsOutput = true;
             settings.Locale = "zh-CN";
+            settings.ShowDefaultGroupStyles = false;
 
 
             // Save
@@ -183,6 +186,7 @@ namespace Dynamo.Tests.Configuration
             Assert.AreEqual(settings.DynamoPlayerFolderGroups[0].Folders.Count, 1);
             Assert.AreEqual(settings.EnableDynamoPlayerRenamedWatchAsOutput, true);
             Assert.AreEqual(settings.Locale, "zh-CN");
+            Assert.AreEqual(settings.ShowDefaultGroupStyles, false);
         }
 
         [Test]

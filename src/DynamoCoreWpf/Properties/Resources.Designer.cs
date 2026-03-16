@@ -8594,6 +8594,24 @@ namespace Dynamo.Wpf.Properties {
                 return ResourceManager.GetString("PreferencesViewShowDefaultGroupDescription", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show default group styles.
+        /// </summary>
+        public static string PreferencesViewShowDefaultGroupStyles {
+            get {
+                return ResourceManager.GetString("PreferencesViewShowDefaultGroupStyles", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to When off, default group styles remain editable in Preferences but are hidden from the graph style menu..
+        /// </summary>
+        public static string PreferencesViewShowDefaultGroupStylesTooltip {
+            get {
+                return ResourceManager.GetString("PreferencesViewShowDefaultGroupStylesTooltip", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Show Preview Bubbles.

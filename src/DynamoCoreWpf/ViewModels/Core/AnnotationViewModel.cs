@@ -39,7 +39,6 @@ namespace Dynamo.ViewModels
         private const int portVerticalMidPoint = 17;
         private const int portToggleOffset = 30;
         private ObservableCollection<Dynamo.Configuration.StyleItem> groupStyleList;
-        private IEnumerable<Configuration.StyleItem> preferencesStyleItemsList;
         private PreferenceSettings preferenceSettings;
         private double heightBeforeToggle;
         private double widthBeforeToggle;
@@ -813,6 +812,9 @@ namespace Dynamo.ViewModels
                     {
                         annotationModel.UpdateBoundaryFromSelection();
                     }
+                    break;
+                case nameof(PreferenceSettings.ShowDefaultGroupStyles):
+                    ReloadGroupStyles();
                     break;
             }
         }
@@ -1819,18 +1821,63 @@ namespace Dynamo.ViewModels
         /// <returns></returns>
         private void LoadGroupStylesFromPreferences(IEnumerable<Configuration.StyleItem> styleItemsList)
         {
-            preferencesStyleItemsList = styleItemsList;
+            // Ensure idempotence even if this method is called repeatedly.
+            if (groupStyleList == null)
+            {
+                groupStyleList = new ObservableCollection<Configuration.StyleItem>();
+            }
+            else
+            {
+                groupStyleList.Clear();
+            }
 
-            var defaultGroupStylesList = styleItemsList.Where(style => style.IsDefault == true);
-            var customGroupStylesList = styleItemsList.Where(style => style.IsDefault == false);
+            styleItemsList ??= Enumerable.Empty<Configuration.StyleItem>();
 
-            //Adds to the list the Default Group Styles created by Dynamo
-            groupStyleList.AddRange(defaultGroupStylesList);
+            var defaultStyleIds = GroupStyleItem.DefaultGroupStyleItems
+                .Select(style => style.GroupStyleId)
+                .ToHashSet();
+            var defaultStyleNames = GroupStyleItem.DefaultGroupStyleItems
+                .Select(style => style.Name?.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            //Adds the separator between the Default Group Styles and the Custom Group Styles
-            groupStyleList.Add(new GroupStyleSeparator());
+            // Always use the canonical Dynamo defaults for menu population.
+            // This prevents duplicated default entries if settings contain stale/legacy values.
+            var defaultGroupStylesList = GroupStyleItem.DefaultGroupStyleItems
+                .Select(defaultStyle => new GroupStyleItem
+                {
+                    Name = defaultStyle.Name,
+                    HexColorString = defaultStyle.HexColorString,
+                    FontSize = defaultStyle.FontSize,
+                    GroupStyleId = defaultStyle.GroupStyleId,
+                    IsDefault = true
+                });
 
-            //Adds to the list the Custom Group Styles created by the user
+            // Exclude any default-like entries that may have been persisted with custom metadata.
+            var customGroupStylesList = styleItemsList
+                .Where(style => style != null)
+                .Where(style => !defaultStyleIds.Contains(style.GroupStyleId))
+                .Where(style => !defaultStyleNames.Contains(style.Name?.Trim()))
+                .GroupBy(
+                    style => style.GroupStyleId != Guid.Empty
+                        ? style.GroupStyleId.ToString("N")
+                        : style.Name?.Trim(),
+                    StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToList();
+
+            if (preferenceSettings.ShowDefaultGroupStyles)
+            {
+                // Adds to the list the default group styles created by Dynamo.
+                groupStyleList.AddRange(defaultGroupStylesList);
+
+                if (customGroupStylesList.Any())
+                {
+                    // Adds the separator between default and custom group styles.
+                    groupStyleList.Add(new GroupStyleSeparator());
+                }
+            }
+
+            // Adds to the list the custom group styles created by the user.
             groupStyleList.AddRange(customGroupStylesList);
         }
 
@@ -1840,10 +1887,7 @@ namespace Dynamo.ViewModels
         /// </summary>
         internal void ReloadGroupStyles()
         {
-            if (preferencesStyleItemsList == null) return;
-            groupStyleList.Clear();
-
-            LoadGroupStylesFromPreferences(preferencesStyleItemsList);
+            LoadGroupStylesFromPreferences(preferenceSettings.GroupStyleItemsList);
         }
 
         /// <summary>
