@@ -1370,7 +1370,7 @@
                                                        Height="14"
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center"
-                                                       Style="{StaticResource QuestionIconNotClickable}">
+                                                       Style="{StaticResource QuestionIcon}">
                                                     <Image.ToolTip>
                                                         <ToolTip Content="{x:Static p:Resources.PreferencesViewShowDefaultGroupStylesTooltip}"
                                                                  Style="{StaticResource GenericToolTipLight}"/>

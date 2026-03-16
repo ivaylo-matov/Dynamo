@@ -1821,8 +1821,25 @@ namespace Dynamo.ViewModels
         /// <returns></returns>
         private void LoadGroupStylesFromPreferences(IEnumerable<Configuration.StyleItem> styleItemsList)
         {
-            var defaultGroupStylesList = styleItemsList.Where(style => style.IsDefault);
-            var customGroupStylesList = styleItemsList.Where(style => !style.IsDefault);
+            var defaultStyleIds = GroupStyleItem.DefaultGroupStyleItems
+                .Select(style => style.GroupStyleId)
+                .ToHashSet();
+            var defaultStyleNames = GroupStyleItem.DefaultGroupStyleItems
+                .Select(style => style.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var defaultGroupStylesList = styleItemsList
+                .Where(style => style.IsDefault)
+                .GroupBy(style => style.GroupStyleId)
+                .Select(group => group.First());
+
+            // Exclude legacy default entries that may have been persisted as custom styles.
+            var customGroupStylesList = styleItemsList
+                .Where(style => !style.IsDefault)
+                .Where(style => !defaultStyleIds.Contains(style.GroupStyleId))
+                .Where(style => !defaultStyleNames.Contains(style.Name))
+                .GroupBy(style => style.GroupStyleId != Guid.Empty ? style.GroupStyleId.ToString("N") : style.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First());
 
             if (preferenceSettings.ShowDefaultGroupStyles)
             {
