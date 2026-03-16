@@ -29,6 +29,43 @@ namespace DynamoCoreWpfTests
             return annotationViewOfType.First();
         }
 
+        private int GetGroupStyleContextOptionCount(AnnotationView annotationView)
+        {
+            // Manually create and open the group context menu (normally triggered by right-click).
+            annotationView.CreateAndAttachAnnotationPopup();
+            annotationView.GroupContextMenuPopup.IsOpen = true;
+            DispatcherUtil.DoEvents();
+
+            var stylesSubmenu = annotationView.GroupStyleSelectorGrid as Grid;
+            Assert.IsNotNull(stylesSubmenu, "Styles sub-menu border not found.");
+
+            var border = stylesSubmenu.Children.OfType<Border>().FirstOrDefault();
+            var popup = stylesSubmenu.Children.OfType<Popup>().FirstOrDefault();
+
+            Assert.IsNotNull(border, "Sub-menu border not found.");
+            Assert.IsNotNull(popup, "Sub-menu popup not found.");
+
+            // Trigger MouseEnter to populate the popup content.
+            border.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0)
+            {
+                RoutedEvent = Mouse.MouseEnterEvent
+            });
+            DispatcherUtil.DoEvents();
+
+            Assert.IsTrue(popup.IsOpen, "Popup did not open after MouseEnter.");
+            Assert.IsInstanceOf<Border>(popup.Child, "Popup content is not a Border.");
+
+            var wrapper = popup.Child as Border;
+            var stackPanel = wrapper.Child as StackPanel;
+            Assert.IsNotNull(stackPanel, "Could not find StackPanel inside popup.");
+
+            return stackPanel.Children
+                .OfType<Border>()
+                .Select(b => b.Child)
+                .OfType<StackPanel>()
+                .Count();
+        }
+
         public override void Open(string path)
         {
             base.Open(path);
@@ -110,46 +147,44 @@ namespace DynamoCoreWpfTests
             preferencesWindow.CloseButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             DispatcherUtil.DoEvents();
 
-            // Manually create and open the group context menu (normally triggered by right-click)
-            annotationView.CreateAndAttachAnnotationPopup();
-
-            // Open context menu
-            annotationView.GroupContextMenuPopup.IsOpen = true;
-            DispatcherUtil.DoEvents();
-
-            var stylesSubmenu = annotationView.GroupStyleSelectorGrid as Grid;
-            Assert.IsNotNull(stylesSubmenu, "Styles sub-menu border not found.");
-
-            var border = stylesSubmenu.Children.OfType<Border>().FirstOrDefault();
-            var popup = stylesSubmenu.Children.OfType<Popup>().FirstOrDefault();
-
-            Assert.IsNotNull(border, "Sub-menu border not found.");
-            Assert.IsNotNull(popup, "Sub-menu popup not found.");
-
-            // Trigger MouseEnter to populate the popup content
-            border.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0)
-            {
-                RoutedEvent = Mouse.MouseEnterEvent
-            });
-            DispatcherUtil.DoEvents();
-
-            Assert.IsTrue(popup.IsOpen, "Popup did not open after MouseEnter.");
-            Assert.IsInstanceOf<Border>(popup.Child, "Popup content is not a Border.");
-
-            var wrapper = popup.Child as Border;
-            var stackPanel = wrapper.Child as StackPanel;
-
-            Assert.IsNotNull(stackPanel, "Could not find StackPanel inside popup.");            
-
-            // Count group style options
-            var innerStackCount = stackPanel.Children
-                .OfType<Border>()
-                .Select(b => b.Child)
-                .OfType<StackPanel>()
-                .Count();
+            var innerStackCount = GetGroupStyleContextOptionCount(annotationView);
 
             //Check that the GroupStyles in the AnnotationView match the ones in the PreferencesView
             Assert.AreEqual(innerStackCount, currentGroupStylesCounter);
+        }
+
+        [Test]
+        public void TestHideDefaultGroupStyles_ContextMenu()
+        {
+            Open(@"UI\GroupTest.dyn");
+
+            var preferencesSettings = (View.DataContext as DynamoViewModel).PreferenceSettings;
+            preferencesSettings.GroupStyleItemsList.Add(new GroupStyleItem
+            {
+                Name = "Custom 1",
+                HexColorString = "FFFF00",
+                IsDefault = false,
+                GroupStyleId = Guid.NewGuid(),
+                FontSize = 36
+            });
+            preferencesSettings.ShowDefaultGroupStyles = false;
+
+            var preferencesWindow = new PreferencesView(View);
+            preferencesWindow.Show();
+            DispatcherUtil.DoEvents();
+
+            var prefViewModel = preferencesWindow.DataContext as PreferencesViewModel;
+            Assert.AreEqual(5, prefViewModel.StyleItemsList.Count);
+            Assert.AreEqual(4, prefViewModel.StyleItemsList.Count(style => style.IsDefault));
+
+            var annotationView = NodeViewWithGuid("a432d63f-7a36-45ad-b30a-7924beb20e90");
+            var contextMenuStyleCount = GetGroupStyleContextOptionCount(annotationView);
+
+            // Only custom styles are shown in graph context menu when defaults are hidden.
+            Assert.AreEqual(1, contextMenuStyleCount);
+
+            preferencesWindow.CloseButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            DispatcherUtil.DoEvents();
         }
 
         [Test]

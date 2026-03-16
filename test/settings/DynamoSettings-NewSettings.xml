@@ -8,6 +8,7 @@
   <GraphicScaleUnit>Feet</GraphicScaleUnit>
   <ShowPreviewBubbles>false</ShowPreviewBubbles>
   <ShowDefaultGroupDescription>false</ShowDefaultGroupDescription>
+  <ShowDefaultGroupStyles>false</ShowDefaultGroupStyles>
   <OptionalInPortsCollapsed>false</OptionalInPortsCollapsed>
   <UnconnectedOutPortsCollapsed>false</UnconnectedOutPortsCollapsed>
   <CollapseToMinSize>false</CollapseToMinSize>
