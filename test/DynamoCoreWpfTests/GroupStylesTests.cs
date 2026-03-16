@@ -220,6 +220,30 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
+        public void TestDuplicatedDefaultStyles_DoNotDuplicateContextMenuEntries()
+        {
+            Open(@"UI\GroupTest.dyn");
+
+            var preferencesSettings = (View.DataContext as DynamoViewModel).PreferenceSettings;
+            var duplicatedDefaults = GroupStyleItem.DefaultGroupStyleItems
+                .Concat(GroupStyleItem.DefaultGroupStyleItems.Select(defaultStyle => new GroupStyleItem
+                {
+                    Name = defaultStyle.Name,
+                    HexColorString = defaultStyle.HexColorString,
+                    FontSize = defaultStyle.FontSize,
+                    GroupStyleId = Guid.NewGuid(),
+                    IsDefault = true
+                }))
+                .ToList();
+
+            preferencesSettings.GroupStyleItemsList = duplicatedDefaults;
+
+            var annotationView = NodeViewWithGuid("a432d63f-7a36-45ad-b30a-7924beb20e90");
+            var contextMenuStyleCount = GetGroupStyleContextOptionCount(annotationView);
+            Assert.AreEqual(4, contextMenuStyleCount, "Context menu should only show canonical default styles once.");
+        }
+
+        [Test]
         public void CustomColorPicker_PrePopulateDefaultColors()
         {
             Open(@"UI\GroupTest.dyn");

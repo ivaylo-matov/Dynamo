@@ -1821,25 +1821,39 @@ namespace Dynamo.ViewModels
         /// <returns></returns>
         private void LoadGroupStylesFromPreferences(IEnumerable<Configuration.StyleItem> styleItemsList)
         {
+            styleItemsList ??= Enumerable.Empty<Configuration.StyleItem>();
+
             var defaultStyleIds = GroupStyleItem.DefaultGroupStyleItems
                 .Select(style => style.GroupStyleId)
                 .ToHashSet();
             var defaultStyleNames = GroupStyleItem.DefaultGroupStyleItems
-                .Select(style => style.Name)
+                .Select(style => style.Name?.Trim())
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            var defaultGroupStylesList = styleItemsList
-                .Where(style => style.IsDefault)
-                .GroupBy(style => style.GroupStyleId)
-                .Select(group => group.First());
+            // Always use the canonical Dynamo defaults for menu population.
+            // This prevents duplicated default entries if settings contain stale/legacy values.
+            var defaultGroupStylesList = GroupStyleItem.DefaultGroupStyleItems
+                .Select(defaultStyle => new GroupStyleItem
+                {
+                    Name = defaultStyle.Name,
+                    HexColorString = defaultStyle.HexColorString,
+                    FontSize = defaultStyle.FontSize,
+                    GroupStyleId = defaultStyle.GroupStyleId,
+                    IsDefault = true
+                });
 
-            // Exclude legacy default entries that may have been persisted as custom styles.
+            // Exclude any default-like entries that may have been persisted with custom metadata.
             var customGroupStylesList = styleItemsList
-                .Where(style => !style.IsDefault)
+                .Where(style => style != null)
                 .Where(style => !defaultStyleIds.Contains(style.GroupStyleId))
-                .Where(style => !defaultStyleNames.Contains(style.Name))
-                .GroupBy(style => style.GroupStyleId != Guid.Empty ? style.GroupStyleId.ToString("N") : style.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(group => group.First());
+                .Where(style => !defaultStyleNames.Contains(style.Name?.Trim()))
+                .GroupBy(
+                    style => style.GroupStyleId != Guid.Empty
+                        ? style.GroupStyleId.ToString("N")
+                        : style.Name?.Trim(),
+                    StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToList();
 
             if (preferenceSettings.ShowDefaultGroupStyles)
             {
