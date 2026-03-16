@@ -814,9 +814,6 @@ namespace Dynamo.ViewModels
                         annotationModel.UpdateBoundaryFromSelection();
                     }
                     break;
-                case nameof(PreferenceSettings.ShowDefaultGroupStyles):
-                    ReloadGroupStyles();
-                    break;
             }
         }
 
@@ -1824,19 +1821,17 @@ namespace Dynamo.ViewModels
         {
             preferencesStyleItemsList = styleItemsList;
 
-            var defaultGroupStylesList = styleItemsList.Where(style => style.IsDefault == true);
-            var customGroupStylesList = styleItemsList.Where(style => style.IsDefault == false);
+            var styleItems = styleItemsList?.ToList() ?? new List<Configuration.StyleItem>();
+            var defaultGroupStylesList = styleItems.Where(style => style.IsDefault == true);
+            var customGroupStylesList = styleItems.Where(style => style.IsDefault == false);
 
-            //Adds to the list the Default Group Styles created by Dynamo
-            if (preferenceSettings.ShowDefaultGroupStyles)
+            // Adds to the list the default Group Styles created by Dynamo.
+            groupStyleList.AddRange(defaultGroupStylesList);
+
+            if (defaultGroupStylesList.Any() && customGroupStylesList.Any())
             {
-                groupStyleList.AddRange(defaultGroupStylesList);
-
-                if (customGroupStylesList.Any())
-                {
-                    //Adds the separator between the Default Group Styles and the Custom Group Styles
-                    groupStyleList.Add(new GroupStyleSeparator());
-                }
+                // Adds the separator between the Default Group Styles and the Custom Group Styles.
+                groupStyleList.Add(new GroupStyleSeparator());
             }
 
             //Adds to the list the Custom Group Styles created by the user
@@ -1860,11 +1855,7 @@ namespace Dynamo.ViewModels
         /// </summary>
         internal bool IsGroupStyleMenuEnabled()
         {
-            var showDefaultGroupStyles = preferenceSettings?.ShowDefaultGroupStyles ?? true;    
-            var hasCustomStyles = preferenceSettings?.GroupStyleItemsList?
-                .Any(style => style != null && !style.IsDefault) ?? false;
-
-            return showDefaultGroupStyles || hasCustomStyles;
+            return preferenceSettings?.GroupStyleItemsList?.Any(style => style != null) ?? false;
         }
 
         /// <summary>

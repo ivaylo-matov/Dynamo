@@ -620,11 +620,27 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        /// Returns whether there are custom (non-default) styles that can be removed.
+        /// Returns whether styles can be reset:
+        /// either custom styles exist, or one or more default styles are missing.
         /// </summary>
         public bool CanResetGroupStyles
         {
-            get { return preferenceSettings.GroupStyleItemsList.Any(style => !style.IsDefault); }
+            get
+            {
+                var existingStyles = preferenceSettings.GroupStyleItemsList;
+                if (existingStyles == null) return false;
+
+                var hasCustomStyles = existingStyles.Any(style => style != null && !style.IsDefault);
+                if (hasCustomStyles) return true;
+
+                var existingDefaultStyleIds = existingStyles
+                    .Where(style => style != null && style.IsDefault)
+                    .Select(style => style.GroupStyleId)
+                    .ToHashSet();
+
+                return GroupStyleItem.DefaultGroupStyleItems
+                    .Any(defaultStyle => !existingDefaultStyleIds.Contains(defaultStyle.GroupStyleId));
+            }
         }
 
         /// <summary>
@@ -1621,12 +1637,6 @@ namespace Dynamo.ViewModels
 
             //By Default the warning state of the Visual Settings tab (Group Styles section) will be disabled
             isWarningEnabled = false;
-
-            // Initialize group styles with default and custom GroupStyleItems.
-            var customStyles = preferenceSettings.GroupStyleItemsList.Where(style => style.IsDefault != true).ToList();
-            var newGroupStylesList = new List<GroupStyleItem>(GroupStyleItem.DefaultGroupStyleItems);
-            newGroupStylesList.AddRange(customStyles);
-            preferenceSettings.GroupStyleItemsList = newGroupStylesList;
 
             StyleItemsList = preferenceSettings.GroupStyleItemsList.ToObservableCollection();
 

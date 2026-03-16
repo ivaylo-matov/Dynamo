@@ -1188,7 +1188,13 @@ namespace Dynamo.Configuration
             PreferenceSettings settings = null;
 
             if (String.IsNullOrEmpty(filePath) || (!File.Exists(filePath)))
-                return new PreferenceSettings();
+            {
+                var defaultSettings = new PreferenceSettings();
+                defaultSettings.GroupStyleItemsList = CreateDefaultGroupStyleItems();
+                return defaultSettings;
+            }
+
+            var hasGroupStyleItemsListElement = File.ReadAllText(filePath).Contains("<GroupStyleItemsList", StringComparison.Ordinal);
 
             try
             {
@@ -1224,7 +1230,12 @@ namespace Dynamo.Configuration
                 }
             }
             settings.CustomPackageFolders = settings.CustomPackageFolders.Distinct().ToList();
+            settings.GroupStyleItemsList ??= new List<GroupStyleItem>();
             settings.GroupStyleItemsList = settings.GroupStyleItemsList.GroupBy(entry => entry.Name).Select(result => result.First()).ToList();
+            if (!hasGroupStyleItemsListElement && settings.GroupStyleItemsList.Count == 0)
+            {
+                settings.GroupStyleItemsList = CreateDefaultGroupStyleItems();
+            }
             MigrateStdLibTokenToBuiltInToken(settings);
 
             settings.DeserializeInternalPrefs(filePath);
@@ -1246,6 +1257,8 @@ namespace Dynamo.Configuration
             if(string.IsNullOrEmpty(content))
                 return new PreferenceSettings() { isCreatedFromValidFile = false };
 
+            var hasGroupStyleItemsListElement = content.Contains("<GroupStyleItemsList", StringComparison.Ordinal);
+
             try
             {
                 var serializer = new XmlSerializer(typeof(PreferenceSettings));
@@ -1263,12 +1276,31 @@ namespace Dynamo.Configuration
             }
                 
             settings.CustomPackageFolders = settings.CustomPackageFolders.Distinct().ToList();
+            settings.GroupStyleItemsList ??= new List<GroupStyleItem>();
             settings.GroupStyleItemsList = settings.GroupStyleItemsList.GroupBy(entry => entry.Name).Select(result => result.First()).ToList();
+            if (!hasGroupStyleItemsListElement && settings.GroupStyleItemsList.Count == 0)
+            {
+                settings.GroupStyleItemsList = CreateDefaultGroupStyleItems();
+            }
             MigrateStdLibTokenToBuiltInToken(settings);
 
             settings.DeserializeInternalPrefsContent(content);
 
             return settings;
+        }
+
+        private static List<GroupStyleItem> CreateDefaultGroupStyleItems()
+        {
+            return GroupStyleItem.DefaultGroupStyleItems
+                .Select(defaultStyle => new GroupStyleItem
+                {
+                    Name = defaultStyle.Name,
+                    HexColorString = defaultStyle.HexColorString,
+                    FontSize = defaultStyle.FontSize,
+                    GroupStyleId = defaultStyle.GroupStyleId,
+                    IsDefault = true
+                })
+                .ToList();
         }
 
         /// <summary>

@@ -250,5 +250,45 @@ namespace DynamoCoreWpfTests
             Assert.IsFalse(prefViewModel.CanResetGroupStyles);
             Assert.AreEqual(Visibility.Collapsed, preferencesWindow.ResetStylesButton.Visibility);
         }
+
+        [Test]
+        public void DeletingDefaultStyle_DoesNotRecreateUntilReset()
+        {
+            Open(@"UI\GroupTest.dyn");
+
+            var preferencesWindow = new PreferencesView(View);
+            preferencesWindow.Show();
+            DispatcherUtil.DoEvents();
+
+            var prefViewModel = preferencesWindow.DataContext as PreferencesViewModel;
+            Assert.AreEqual(4, prefViewModel.StyleItemsList.Count(style => style.IsDefault));
+
+            var styleToRemove = prefViewModel.StyleItemsList.First(style => style.IsDefault);
+            prefViewModel.RemoveStyleEntry(styleToRemove.Name);
+            DispatcherUtil.DoEvents();
+
+            Assert.AreEqual(3, prefViewModel.StyleItemsList.Count(style => style.IsDefault));
+            Assert.IsTrue(prefViewModel.CanResetGroupStyles);
+            Assert.AreEqual(Visibility.Visible, preferencesWindow.ResetStylesButton.Visibility);
+
+            preferencesWindow.CloseButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            DispatcherUtil.DoEvents();
+
+            var reopenedPreferencesWindow = new PreferencesView(View);
+            reopenedPreferencesWindow.Show();
+            DispatcherUtil.DoEvents();
+
+            var reopenedViewModel = reopenedPreferencesWindow.DataContext as PreferencesViewModel;
+            Assert.AreEqual(3, reopenedViewModel.StyleItemsList.Count(style => style.IsDefault));
+
+            reopenedPreferencesWindow.ResetStylesButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            DispatcherUtil.DoEvents();
+
+            Assert.AreEqual(4, reopenedViewModel.StyleItemsList.Count(style => style.IsDefault));
+            Assert.IsFalse(reopenedViewModel.StyleItemsList.Any(style => !style.IsDefault));
+
+            reopenedPreferencesWindow.CloseButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            DispatcherUtil.DoEvents();
+        }
     }
 }
