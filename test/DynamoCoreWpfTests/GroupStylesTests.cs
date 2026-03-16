@@ -178,7 +178,7 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
-        public void TestHideDefaultGroupStyles_ContextMenu_IsDisabledWhenCustomStylesExist()
+        public void TestHideDefaultGroupStyles_ContextMenu_IsEnabledWhenCustomStylesExist()
         {
             Open(@"UI\GroupTest.dyn");
 
@@ -202,8 +202,8 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(4, prefViewModel.StyleItemsList.Count(style => style.IsDefault));
 
             var annotationView = NodeViewWithGuid("a432d63f-7a36-45ad-b30a-7924beb20e90");
-            var isSubmenuOpen = IsGroupStyleSubmenuOpen(annotationView);
-            Assert.IsFalse(isSubmenuOpen, "Group Style submenu should be disabled when defaults are hidden and custom styles exist.");
+            var contextMenuStyleCount = GetGroupStyleContextOptionCount(annotationView);
+            Assert.AreEqual(1, contextMenuStyleCount, "Group Style submenu should be enabled and show custom styles when defaults are hidden.");
 
             preferencesWindow.CloseButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             DispatcherUtil.DoEvents();
