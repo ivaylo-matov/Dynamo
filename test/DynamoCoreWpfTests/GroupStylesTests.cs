@@ -66,6 +66,30 @@ namespace DynamoCoreWpfTests
                 .Count();
         }
 
+        private bool IsGroupStyleSubmenuOpen(AnnotationView annotationView)
+        {
+            annotationView.CreateAndAttachAnnotationPopup();
+            annotationView.GroupContextMenuPopup.IsOpen = true;
+            DispatcherUtil.DoEvents();
+
+            var stylesSubmenu = annotationView.GroupStyleSelectorGrid as Grid;
+            Assert.IsNotNull(stylesSubmenu, "Styles sub-menu border not found.");
+
+            var border = stylesSubmenu.Children.OfType<Border>().FirstOrDefault();
+            var popup = stylesSubmenu.Children.OfType<Popup>().FirstOrDefault();
+
+            Assert.IsNotNull(border, "Sub-menu border not found.");
+            Assert.IsNotNull(popup, "Sub-menu popup not found.");
+
+            border.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0)
+            {
+                RoutedEvent = Mouse.MouseEnterEvent
+            });
+            DispatcherUtil.DoEvents();
+
+            return popup.IsOpen;
+        }
+
         public override void Open(string path)
         {
             base.Open(path);
@@ -154,7 +178,7 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
-        public void TestHideDefaultGroupStyles_ContextMenu()
+        public void TestHideDefaultGroupStyles_ContextMenu_IsDisabledWhenCustomStylesExist()
         {
             Open(@"UI\GroupTest.dyn");
 
@@ -178,10 +202,8 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(4, prefViewModel.StyleItemsList.Count(style => style.IsDefault));
 
             var annotationView = NodeViewWithGuid("a432d63f-7a36-45ad-b30a-7924beb20e90");
-            var contextMenuStyleCount = GetGroupStyleContextOptionCount(annotationView);
-
-            // Only custom styles are shown in graph context menu when defaults are hidden.
-            Assert.AreEqual(1, contextMenuStyleCount);
+            var isSubmenuOpen = IsGroupStyleSubmenuOpen(annotationView);
+            Assert.IsFalse(isSubmenuOpen, "Group Style submenu should be disabled when defaults are hidden and custom styles exist.");
 
             preferencesWindow.CloseButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             DispatcherUtil.DoEvents();
