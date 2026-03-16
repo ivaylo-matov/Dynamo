@@ -1895,10 +1895,7 @@ namespace Dynamo.ViewModels
         /// </summary>
         internal bool IsGroupStyleMenuEnabled()
         {
-            var hasCustomStyles = preferenceSettings?.GroupStyleItemsList?
-                .Any(style => style != null && !style.IsDefault) ?? false;
-
-            return !(preferenceSettings?.ShowDefaultGroupStyles == false && hasCustomStyles);
+            return preferenceSettings?.ShowDefaultGroupStyles ?? true;
         }
 
         /// <summary>

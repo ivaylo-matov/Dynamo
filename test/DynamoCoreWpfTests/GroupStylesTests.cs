@@ -210,6 +210,19 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
+        public void TestHideDefaultGroupStyles_ContextMenu_IsDisabledWhenNoCustomStylesExist()
+        {
+            Open(@"UI\GroupTest.dyn");
+
+            var preferencesSettings = (View.DataContext as DynamoViewModel).PreferenceSettings;
+            preferencesSettings.ShowDefaultGroupStyles = false;
+
+            var annotationView = NodeViewWithGuid("a432d63f-7a36-45ad-b30a-7924beb20e90");
+            var isSubmenuOpen = IsGroupStyleSubmenuOpen(annotationView);
+            Assert.IsFalse(isSubmenuOpen, "Group Style submenu should be disabled when defaults are hidden.");
+        }
+
+        [Test]
         public void TestLegacyDefaultStyles_DoNotDuplicateContextMenuEntries()
         {
             Open(@"UI\GroupTest.dyn");
