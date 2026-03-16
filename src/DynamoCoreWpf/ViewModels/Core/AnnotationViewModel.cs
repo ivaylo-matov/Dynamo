@@ -1821,6 +1821,16 @@ namespace Dynamo.ViewModels
         /// <returns></returns>
         private void LoadGroupStylesFromPreferences(IEnumerable<Configuration.StyleItem> styleItemsList)
         {
+            // Ensure idempotence even if this method is called repeatedly.
+            if (groupStyleList == null)
+            {
+                groupStyleList = new ObservableCollection<Configuration.StyleItem>();
+            }
+            else
+            {
+                groupStyleList.Clear();
+            }
+
             styleItemsList ??= Enumerable.Empty<Configuration.StyleItem>();
 
             var defaultStyleIds = GroupStyleItem.DefaultGroupStyleItems
@@ -1877,7 +1887,6 @@ namespace Dynamo.ViewModels
         /// </summary>
         internal void ReloadGroupStyles()
         {
-            groupStyleList.Clear();
             LoadGroupStylesFromPreferences(preferenceSettings.GroupStyleItemsList);
         }
 

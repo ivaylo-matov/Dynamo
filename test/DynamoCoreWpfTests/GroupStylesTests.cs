@@ -244,6 +244,25 @@ namespace DynamoCoreWpfTests
         }
 
         [Test]
+        public void TestRepeatedContextMenuOpen_DoesNotAccumulateDefaultStyles()
+        {
+            Open(@"UI\GroupTest.dyn");
+
+            var annotationView = NodeViewWithGuid("a432d63f-7a36-45ad-b30a-7924beb20e90");
+
+            var firstCount = GetGroupStyleContextOptionCount(annotationView);
+            annotationView.GroupContextMenuPopup.IsOpen = false;
+            DispatcherUtil.DoEvents();
+
+            var secondCount = GetGroupStyleContextOptionCount(annotationView);
+            annotationView.GroupContextMenuPopup.IsOpen = false;
+            DispatcherUtil.DoEvents();
+
+            Assert.AreEqual(4, firstCount);
+            Assert.AreEqual(4, secondCount);
+        }
+
+        [Test]
         public void CustomColorPicker_PrePopulateDefaultColors()
         {
             Open(@"UI\GroupTest.dyn");
