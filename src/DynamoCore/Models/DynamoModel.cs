@@ -1208,8 +1208,11 @@ namespace Dynamo.Models
                 return PreferenceSettings.Load(xmlFilePath);
             }
 
-            // Otherwise make a default preference settings object.
-            return new PreferenceSettings();
+            // Otherwise make a default preference settings object. Seed default group styles
+            // only for brand-new settings (no previous session file).
+            var defaultSettings = new PreferenceSettings();
+            defaultSettings.GroupStyleItemsList = GroupStyleItem.CloneDefaultGroupStyleItems();
+            return defaultSettings;
         }
 
         private void SetDefaultPythonTemplate()

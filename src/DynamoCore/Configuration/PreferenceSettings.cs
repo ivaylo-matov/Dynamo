@@ -1103,7 +1103,10 @@ namespace Dynamo.Configuration
             isTimeStampIncludedInExportFilePath = true;
             DefaultPythonEngine = string.Empty;
             ViewExtensionSettings = new List<ViewExtensionSettings>();
-            GroupStyleItemsList = GroupStyleItem.CloneDefaultGroupStyleItems();
+            // Keep this list empty in the constructor. XmlSerializer invokes this constructor
+            // during deserialization and populates collection properties incrementally.
+            // Seeding defaults here causes deleted defaults to be reintroduced on startup.
+            GroupStyleItemsList = new List<GroupStyleItem>();
             ReadNotificationIds = new List<string>();
             EnableDynamoPlayerRenamedWatchAsOutput = false;
             DynamoPlayerFolderGroups = new List<DynamoPlayerFolderGroup>();
