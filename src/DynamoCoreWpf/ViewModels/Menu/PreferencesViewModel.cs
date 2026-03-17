@@ -2009,6 +2009,8 @@ namespace Dynamo.ViewModels
             UpdateSavedChangesLabel();
         }
 
+        // Returns true only when the current styles exactly match Dynamo's canonical default set.
+        // This drives Reset button visibility: any missing/extra/edited style keeps Reset available.
         private static bool MatchesDefaultGroupStyles(IEnumerable<GroupStyleItem> styles)
         {
             var stylesList = styles?.ToList() ?? new List<GroupStyleItem>();
