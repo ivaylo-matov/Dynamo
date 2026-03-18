@@ -1821,14 +1821,17 @@ namespace Dynamo.ViewModels
         {
             preferencesStyleItemsList = styleItemsList;
 
-            var defaultGroupStylesList = styleItemsList.Where(style => style.IsDefault == true);
-            var customGroupStylesList = styleItemsList.Where(style => style.IsDefault == false);
+            var defaultGroupStylesList = styleItemsList.Where(style => style.IsDefault == true).ToList();
+            var customGroupStylesList = styleItemsList.Where(style => style.IsDefault == false).ToList();
 
             //Adds to the list the Default Group Styles created by Dynamo
             groupStyleList.AddRange(defaultGroupStylesList);
 
-            //Adds the separator between the Default Group Styles and the Custom Group Styles
-            groupStyleList.Add(new GroupStyleSeparator());
+            // Adds the separator only when both default and custom groups are present.
+            if (defaultGroupStylesList.Any() && customGroupStylesList.Any())
+            {
+                groupStyleList.Add(new GroupStyleSeparator());
+            }
 
             //Adds to the list the Custom Group Styles created by the user
             groupStyleList.AddRange(customGroupStylesList);

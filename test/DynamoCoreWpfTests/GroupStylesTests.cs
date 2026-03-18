@@ -265,5 +265,37 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, preferencesViewModel.StyleItemsList.Count);
             Assert.IsTrue(preferencesViewModel.CanResetGroupStyles);
         }
+
+        [Test]
+        public void GroupStyleMenuSeparator_VisibleOnlyWithDefaultAndCustomStyles()
+        {
+            Open(@"UI\GroupTest.dyn");
+
+            var dynamoViewModel = View.DataContext as DynamoViewModel;
+            Assert.IsNotNull(dynamoViewModel);
+
+            var annotationView = NodeViewWithGuid("a432d63f-7a36-45ad-b30a-7924beb20e90");
+            var annotationViewModel = annotationView.DataContext as AnnotationViewModel;
+            Assert.IsNotNull(annotationViewModel);
+
+            dynamoViewModel.PreferenceSettings.GroupStyleItemsList = GroupStyleItem.CloneDefaultGroupStyleItems();
+            annotationViewModel.ReloadGroupStyles();
+            DispatcherUtil.DoEvents();
+
+            Assert.AreEqual(0, annotationViewModel.GroupStyleList.OfType<GroupStyleSeparator>().Count());
+
+            dynamoViewModel.PreferenceSettings.GroupStyleItemsList.Add(new GroupStyleItem
+            {
+                Name = "Custom Style",
+                HexColorString = "FFFFFF",
+                FontSize = 36,
+                GroupStyleId = Guid.NewGuid(),
+                IsDefault = false
+            });
+            annotationViewModel.ReloadGroupStyles();
+            DispatcherUtil.DoEvents();
+
+            Assert.AreEqual(1, annotationViewModel.GroupStyleList.OfType<GroupStyleSeparator>().Count());
+        }
     }
 }
