@@ -265,5 +265,128 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, preferencesViewModel.StyleItemsList.Count);
             Assert.IsTrue(preferencesViewModel.CanResetGroupStyles);
         }
+
+        [Test]
+        public void ResetStylesButton_RestoresDefaults_WhenDefaultStyleIsEdited()
+        {
+            Open(@"UI\GroupTest.dyn");
+
+            var preferencesWindow = new PreferencesView(View);
+            preferencesWindow.Show();
+            DispatcherUtil.DoEvents();
+
+            var prefViewModel = preferencesWindow.DataContext as PreferencesViewModel;
+            Assert.IsNotNull(prefViewModel);
+            Assert.IsFalse(prefViewModel.CanResetGroupStyles);
+
+            var editedStyles = prefViewModel.StyleItemsList.Select(style => new GroupStyleItem
+            {
+                Name = style.Name,
+                HexColorString = style.HexColorString,
+                FontSize = style.FontSize,
+                GroupStyleId = style.GroupStyleId,
+                IsDefault = style.IsDefault
+            }).ToList();
+
+            var editedDefaultStyle = editedStyles.First(style => style.IsDefault);
+            editedDefaultStyle.Name = "Edited Default Style";
+            editedDefaultStyle.HexColorString = "ABCDEF";
+            editedDefaultStyle.FontSize = 14;
+
+            prefViewModel.StyleItemsList = editedStyles.ToObservableCollection();
+            DispatcherUtil.DoEvents();
+
+            Assert.IsTrue(prefViewModel.CanResetGroupStyles);
+            Assert.AreEqual(Visibility.Visible, preferencesWindow.ResetStylesButton.Visibility);
+
+            preferencesWindow.ResetStylesButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            DispatcherUtil.DoEvents();
+
+            Assert.IsFalse(prefViewModel.CanResetGroupStyles);
+            AssertGroupStylesMatchDefaults(prefViewModel.StyleItemsList);
+        }
+
+        [Test]
+        public void ResetStylesButton_RestoresDefaults_WhenDefaultStyleIsDeleted()
+        {
+            Open(@"UI\GroupTest.dyn");
+
+            var preferencesWindow = new PreferencesView(View);
+            preferencesWindow.Show();
+            DispatcherUtil.DoEvents();
+
+            var prefViewModel = preferencesWindow.DataContext as PreferencesViewModel;
+            Assert.IsNotNull(prefViewModel);
+            Assert.IsFalse(prefViewModel.CanResetGroupStyles);
+
+            prefViewModel.StyleItemsList = prefViewModel.StyleItemsList.Skip(1).ToObservableCollection();
+            DispatcherUtil.DoEvents();
+
+            Assert.IsTrue(prefViewModel.CanResetGroupStyles);
+            Assert.AreEqual(Visibility.Visible, preferencesWindow.ResetStylesButton.Visibility);
+
+            preferencesWindow.ResetStylesButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            DispatcherUtil.DoEvents();
+
+            Assert.IsFalse(prefViewModel.CanResetGroupStyles);
+            AssertGroupStylesMatchDefaults(prefViewModel.StyleItemsList);
+        }
+
+        [Test]
+        public void GroupStyleSubmenu_IsDisabledAndDoesNotOpen_WhenNoStylesExist()
+        {
+            Open(@"UI\GroupTest.dyn");
+
+            var dynamoViewModel = View.DataContext as DynamoViewModel;
+            Assert.IsNotNull(dynamoViewModel);
+            dynamoViewModel.PreferenceSettings.GroupStyleItemsList = new List<GroupStyleItem>();
+
+            var annotationView = NodeViewWithGuid("a432d63f-7a36-45ad-b30a-7924beb20e90");
+
+            // Manually create and open the group context menu (normally triggered by right-click)
+            annotationView.CreateAndAttachAnnotationPopup();
+            annotationView.GroupContextMenuPopup.IsOpen = true;
+            DispatcherUtil.DoEvents();
+
+            var stylesSubmenu = annotationView.GroupStyleSelectorGrid as Grid;
+            Assert.IsNotNull(stylesSubmenu, "Styles sub-menu grid not found.");
+
+            var border = stylesSubmenu.Children.OfType<Border>().FirstOrDefault();
+            var popup = stylesSubmenu.Children.OfType<Popup>().FirstOrDefault();
+            Assert.IsNotNull(border, "Sub-menu border not found.");
+            Assert.IsNotNull(popup, "Sub-menu popup not found.");
+
+            var layoutGrid = border.Child as Grid;
+            Assert.IsNotNull(layoutGrid, "Could not find submenu layout grid.");
+            var submenuLabel = layoutGrid.Children.OfType<TextBlock>().FirstOrDefault();
+            Assert.IsNotNull(submenuLabel, "Could not find submenu label.");
+            Assert.AreEqual(0.5, submenuLabel.Opacity, 0.001, "Disabled submenu should be visually dimmed.");
+
+            border.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0)
+            {
+                RoutedEvent = Mouse.MouseEnterEvent
+            });
+            DispatcherUtil.DoEvents();
+
+            Assert.IsFalse(popup.IsOpen, "Disabled Group Style submenu should not open on hover.");
+        }
+
+        private static void AssertGroupStylesMatchDefaults(IEnumerable<GroupStyleItem> actualStyles)
+        {
+            var actualList = actualStyles.ToList();
+            var defaultList = GroupStyleItem.DefaultGroupStyleItems.ToList();
+
+            Assert.AreEqual(defaultList.Count, actualList.Count);
+
+            foreach (var defaultStyle in defaultList)
+            {
+                var currentStyle = actualList.FirstOrDefault(style => style.GroupStyleId == defaultStyle.GroupStyleId);
+                Assert.IsNotNull(currentStyle, $"Missing default style with id {defaultStyle.GroupStyleId}.");
+                Assert.IsTrue(currentStyle.IsDefault);
+                Assert.AreEqual(defaultStyle.Name, currentStyle.Name);
+                Assert.AreEqual(defaultStyle.FontSize, currentStyle.FontSize);
+                Assert.IsTrue(string.Equals(defaultStyle.HexColorString, currentStyle.HexColorString, StringComparison.OrdinalIgnoreCase));
+            }
+        }
     }
 }
