@@ -266,19 +266,25 @@ namespace DynamoCoreWpfTests
             Assert.IsTrue(preferencesViewModel.CanResetGroupStyles);
         }
 
+        /// <summary>
+        /// Edits a default GroupStyle and validates that the Reset button restores all default values
+        /// </summary>
         [Test]
         public void ResetStylesButton_RestoresDefaults_WhenDefaultStyleIsEdited()
         {
             Open(@"UI\GroupTest.dyn");
 
+            //Creates the Preferences dialog
             var preferencesWindow = new PreferencesView(View);
             preferencesWindow.Show();
             DispatcherUtil.DoEvents();
 
             var prefViewModel = preferencesWindow.DataContext as PreferencesViewModel;
             Assert.IsNotNull(prefViewModel);
+            //By default the reset button should be disabled
             Assert.IsFalse(prefViewModel.CanResetGroupStyles);
 
+            //Copies the current styles and edits one default style
             var editedStyles = prefViewModel.StyleItemsList.Select(style => new GroupStyleItem
             {
                 Name = style.Name,
@@ -296,42 +302,57 @@ namespace DynamoCoreWpfTests
             prefViewModel.StyleItemsList = editedStyles.ToObservableCollection();
             DispatcherUtil.DoEvents();
 
+            //Check that reset is enabled after editing a default style
             Assert.IsTrue(prefViewModel.CanResetGroupStyles);
             Assert.AreEqual(Visibility.Visible, preferencesWindow.ResetStylesButton.Visibility);
 
+            //Clicks the reset button
             preferencesWindow.ResetStylesButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             DispatcherUtil.DoEvents();
 
+            //Validates that all defaults are restored
             Assert.IsFalse(prefViewModel.CanResetGroupStyles);
             AssertGroupStylesMatchDefaults(prefViewModel.StyleItemsList);
         }
 
+        /// <summary>
+        /// Removes a default GroupStyle and validates that the Reset button restores the missing style
+        /// </summary>
         [Test]
         public void ResetStylesButton_RestoresDefaults_WhenDefaultStyleIsDeleted()
         {
             Open(@"UI\GroupTest.dyn");
 
+            //Creates the Preferences dialog
             var preferencesWindow = new PreferencesView(View);
             preferencesWindow.Show();
             DispatcherUtil.DoEvents();
 
             var prefViewModel = preferencesWindow.DataContext as PreferencesViewModel;
             Assert.IsNotNull(prefViewModel);
+            //By default the reset button should be disabled
             Assert.IsFalse(prefViewModel.CanResetGroupStyles);
 
+            //Removes one default style from the list
             prefViewModel.StyleItemsList = prefViewModel.StyleItemsList.Skip(1).ToObservableCollection();
             DispatcherUtil.DoEvents();
 
+            //Check that reset is enabled after deleting a default style
             Assert.IsTrue(prefViewModel.CanResetGroupStyles);
             Assert.AreEqual(Visibility.Visible, preferencesWindow.ResetStylesButton.Visibility);
 
+            //Clicks the reset button
             preferencesWindow.ResetStylesButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             DispatcherUtil.DoEvents();
 
+            //Validates that all defaults are restored
             Assert.IsFalse(prefViewModel.CanResetGroupStyles);
             AssertGroupStylesMatchDefaults(prefViewModel.StyleItemsList);
         }
 
+        /// <summary>
+        /// Validates that the Group Style submenu is disabled when there are no styles in preferences
+        /// </summary>
         [Test]
         public void GroupStyleSubmenu_IsDisabledAndDoesNotOpen_WhenNoStylesExist()
         {
@@ -339,6 +360,7 @@ namespace DynamoCoreWpfTests
 
             var dynamoViewModel = View.DataContext as DynamoViewModel;
             Assert.IsNotNull(dynamoViewModel);
+            //Removes all the styles from preferences
             dynamoViewModel.PreferenceSettings.GroupStyleItemsList = new List<GroupStyleItem>();
 
             var annotationView = NodeViewWithGuid("a432d63f-7a36-45ad-b30a-7924beb20e90");
@@ -362,6 +384,7 @@ namespace DynamoCoreWpfTests
             Assert.IsNotNull(submenuLabel, "Could not find submenu label.");
             Assert.AreEqual(0.5, submenuLabel.Opacity, 0.001, "Disabled submenu should be visually dimmed.");
 
+            //Trigger MouseEnter to verify the submenu does not open when disabled
             border.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0)
             {
                 RoutedEvent = Mouse.MouseEnterEvent
