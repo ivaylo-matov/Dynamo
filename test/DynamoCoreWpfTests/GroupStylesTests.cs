@@ -251,6 +251,9 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(Visibility.Collapsed, preferencesWindow.ResetStylesButton.Visibility);
         }
 
+        /// <summary>
+        /// Validates that PreferencesViewModel does not recreate default styles when the list is empty
+        /// </summary>
         [Test]
         public void PreferencesViewModel_DoesNotRecreateDefaultStyles_WhenListIsEmpty()
         {
@@ -258,10 +261,13 @@ namespace DynamoCoreWpfTests
 
             var dynamoViewModel = View.DataContext as DynamoViewModel;
             Assert.IsNotNull(dynamoViewModel);
+            //Removes all the styles from preferences
             dynamoViewModel.PreferenceSettings.GroupStyleItemsList = new List<GroupStyleItem>();
 
+            //Creates the PreferencesViewModel
             var preferencesViewModel = new PreferencesViewModel(dynamoViewModel);
 
+            //Validates that no default style was recreated and reset is available
             Assert.AreEqual(0, preferencesViewModel.StyleItemsList.Count);
             Assert.IsTrue(preferencesViewModel.CanResetGroupStyles);
         }
