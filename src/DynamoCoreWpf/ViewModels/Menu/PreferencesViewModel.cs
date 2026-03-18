@@ -2010,10 +2010,13 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        /// 
+        /// Determines whether the provided styles exactly match Dynamo's default group styles.
         /// </summary>
-        /// <param name="styles"></param>
-        /// <returns></returns>
+        /// <param name="styles">The styles to compare against the default styles.</param>
+        /// <returns>
+        /// <c>true</c> when the style collection has the same number of entries as the defaults and each default
+        /// style is present with matching id, name, color, font size, and default flag; otherwise, <c>false</c>.
+        /// </returns>
         private static bool MatchesDefaultGroupStyles(IEnumerable<GroupStyleItem> styles)
         {
             var stylesList = styles?.ToList() ?? new List<GroupStyleItem>();
