@@ -1103,6 +1103,9 @@ namespace Dynamo.Configuration
             isTimeStampIncludedInExportFilePath = true;
             DefaultPythonEngine = string.Empty;
             ViewExtensionSettings = new List<ViewExtensionSettings>();
+            // Keep this list empty in the constructor. XmlSerializer invokes this constructor
+            // during deserialization and populates collection properties incrementally.
+            // Seeding defaults here causes deleted defaults to be reintroduced on startup.
             GroupStyleItemsList = new List<GroupStyleItem>();
             ReadNotificationIds = new List<string>();
             EnableDynamoPlayerRenamedWatchAsOutput = false;
@@ -1208,7 +1211,10 @@ namespace Dynamo.Configuration
                 }
             }
             settings.CustomPackageFolders = settings.CustomPackageFolders.Distinct().ToList();
-            settings.GroupStyleItemsList = settings.GroupStyleItemsList.GroupBy(entry => entry.Name).Select(result => result.First()).ToList();
+            settings.GroupStyleItemsList = (settings.GroupStyleItemsList ?? GroupStyleItem.CloneDefaultGroupStyleItems())
+                .GroupBy(entry => entry.Name)
+                .Select(result => result.First())
+                .ToList();
             MigrateStdLibTokenToBuiltInToken(settings);
 
             settings.DeserializeInternalPrefs(filePath);
@@ -1247,7 +1253,10 @@ namespace Dynamo.Configuration
             }
                 
             settings.CustomPackageFolders = settings.CustomPackageFolders.Distinct().ToList();
-            settings.GroupStyleItemsList = settings.GroupStyleItemsList.GroupBy(entry => entry.Name).Select(result => result.First()).ToList();
+            settings.GroupStyleItemsList = (settings.GroupStyleItemsList ?? GroupStyleItem.CloneDefaultGroupStyleItems())
+                .GroupBy(entry => entry.Name)
+                .Select(result => result.First())
+                .ToList();
             MigrateStdLibTokenToBuiltInToken(settings);
 
             settings.DeserializeInternalPrefsContent(content);
