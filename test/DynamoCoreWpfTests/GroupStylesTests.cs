@@ -378,6 +378,21 @@ namespace DynamoCoreWpfTests
         {
             Open(@"UI\GroupTest.dyn");
 
+            void OpenGroupContextMenu(AnnotationView groupAnnotationView)
+            {
+                groupAnnotationView.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Right)
+                {
+                    RoutedEvent = UIElement.MouseRightButtonDownEvent
+                });
+                groupAnnotationView.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Right)
+                {
+                    RoutedEvent = UIElement.MouseRightButtonUpEvent
+                });
+                DispatcherUtil.DoEvents();
+                Assert.IsNotNull(groupAnnotationView.GroupContextMenuPopup, "Group context menu popup was not created.");
+                Assert.IsTrue(groupAnnotationView.GroupContextMenuPopup.IsOpen, "Group context menu popup did not open.");
+            }
+
             var dynamoViewModel = View.DataContext as DynamoViewModel;
             Assert.IsNotNull(dynamoViewModel);
             //Remove all the styles from preferences
@@ -386,9 +401,7 @@ namespace DynamoCoreWpfTests
             var annotationView = NodeViewWithGuid("a432d63f-7a36-45ad-b30a-7924beb20e90");
 
             //Create the context menu and validates that Group Style submenu is disabled when there are no styles
-            annotationView.CreateAndAttachAnnotationPopup();
-            annotationView.GroupContextMenuPopup.IsOpen = true;
-            DispatcherUtil.DoEvents();
+            OpenGroupContextMenu(annotationView);
 
             var emptyStylesSubmenu = annotationView.GroupStyleSelectorGrid as Grid;
             Assert.IsNotNull(emptyStylesSubmenu, "Styles sub-menu grid not found.");
@@ -420,9 +433,7 @@ namespace DynamoCoreWpfTests
             DispatcherUtil.DoEvents();
 
             //Recreate and open the context menu to validate that Group Style submenu contains restored defaults
-            annotationView.CreateAndAttachAnnotationPopup();
-            annotationView.GroupContextMenuPopup.IsOpen = true;
-            DispatcherUtil.DoEvents();
+            OpenGroupContextMenu(annotationView);
 
             var stylesSubmenu = annotationView.GroupStyleSelectorGrid as Grid;
             Assert.IsNotNull(stylesSubmenu, "Styles sub-menu grid not found.");
