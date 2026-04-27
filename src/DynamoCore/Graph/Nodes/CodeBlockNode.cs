@@ -749,11 +749,7 @@ namespace Dynamo.Graph.Nodes
                 // To check function redefinition, we need to check other
                 // CBN to find out if it has been defined yet. Now just
                 // skip this warning.
-                var warnings =
-                    ParseParam.Warnings.Where(
-                        w =>
-                            w.ID != WarningID.IdUnboundIdentifier
-                                && w.ID != WarningID.FunctionAlreadyDefined);
+                var warnings = GetReportableWarnings(ParseParam.Warnings);
 
                 if (warnings.Any())
                 {
@@ -842,11 +838,7 @@ namespace Dynamo.Graph.Nodes
                     // To check function redefinition, we need to check other
                     // CBN to find out if it has been defined yet. Now just
                     // skip this warning.
-                    var warnings =
-                        ParseParam.Warnings.Where(
-                            w =>
-                                w.ID != WarningID.IdUnboundIdentifier
-                                    && w.ID != WarningID.FunctionAlreadyDefined);
+                    var warnings = GetReportableWarnings(ParseParam.Warnings);
 
                     if (warnings.Any())
                     {
@@ -897,6 +889,34 @@ namespace Dynamo.Graph.Nodes
         private static bool IsTempIdentifier(string name)
         {
             return name.StartsWith(Constants.kTempVarForNonAssignment);
+        }
+
+        private IEnumerable<WarningEntry> GetReportableWarnings(IEnumerable<WarningEntry> warnings)
+        {
+            return warnings.Where(w =>
+                w.ID != WarningID.IdUnboundIdentifier
+                    && w.ID != WarningID.FunctionAlreadyDefined
+                    && !IsFunctionDefinitionBodyWarning(w));
+        }
+
+        private bool IsFunctionDefinitionBodyWarning(WarningEntry warning)
+        {
+            if (warning.ID != WarningID.FunctionNotFound || ParseParam?.ParsedNodes == null)
+                return false;
+
+            // Function bodies are compiled again when the function is invoked; CBN precompile
+            // only needs these nodes to register the function signature.
+            return ParseParam.ParsedNodes
+                .OfType<FunctionDefinitionNode>()
+                .Any(functionDefinition => IsWarningWithinNodeRange(warning, functionDefinition));
+        }
+
+        private static bool IsWarningWithinNodeRange(WarningEntry warning, Node node)
+        {
+            if (warning.Line < 0 || node == null)
+                return false;
+
+            return warning.Line >= node.line && warning.Line <= node.endLine;
         }
 
         private void SetPreviewVariable(IEnumerable<Node> parsedNodes)

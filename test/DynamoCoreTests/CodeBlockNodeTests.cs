@@ -502,6 +502,24 @@ b = c[w][x][y][z];";
 
         [Test]
         [Category("UnitTests")]
+        public void FunctionDefinitionCBN_DoesNotReportFunctionBodyWarnings()
+        {
+            var cbn = CreateCodeBlockNode();
+
+            (CurrentDynamoModel.CurrentWorkspace as HomeWorkspaceModel).RunSettings =
+                new RunSettings(RunType.Manual, RunSettings.DefaultRunPeriod);
+            UpdateCodeBlockNodeContent(cbn,
+                "def tostr(pt:Point)" +
+                "{" +
+                    "return = ToString(pt.X) \",\" ToString(pt.Y) \",\" ToString(pt.Z);" +
+                "};");
+
+            Assert.AreEqual(ElementState.Active, cbn.State);
+            Assert.AreEqual(0, cbn.Infos.Count);
+        }
+
+        [Test]
+        [Category("UnitTests")]
         public void TestOutputPortUpdateWithFunctionDef()
         {
             var cbn = CreateCodeBlockNode();
