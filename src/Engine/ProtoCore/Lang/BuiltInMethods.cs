@@ -787,6 +787,17 @@ namespace ProtoCore.Lang
                 new BuiltInMethod
                 {
                     ReturnType = TypeSystem.BuildPrimitiveTypeObject(PrimitiveType.String, 0),
+                    Parameters = new List<KeyValuePair<string, ProtoCore.Type>>
+                    {
+                        new KeyValuePair<string, ProtoCore.Type>("object", TypeSystem.BuildPrimitiveTypeObject(PrimitiveType.Var, 0)),
+                    },
+                    ID = BuiltInMethods.MethodID.ToString,
+                    MethodAttributes = new MethodAttributes(true, false, "This node is obsolete, please use \"String from Object\""),
+                },
+
+                new BuiltInMethod
+                {
+                    ReturnType = TypeSystem.BuildPrimitiveTypeObject(PrimitiveType.String, 0),
 
                     Parameters = new [] 
                     {
