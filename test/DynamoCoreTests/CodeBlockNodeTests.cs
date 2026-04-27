@@ -516,6 +516,16 @@ b = c[w][x][y][z];";
 
             Assert.AreEqual(ElementState.Active, cbn.State);
             Assert.AreEqual(0, cbn.Infos.Count);
+
+            UpdateCodeBlockNodeContent(cbn,
+                "def tostr()" +
+                "{" +
+                    "return = ToString(1.2) \",\" ToString(3.4) \",\" ToString(5.6);" +
+                "};" +
+                "result = tostr();");
+
+            Assert.AreEqual(ElementState.Active, cbn.State);
+            Assert.AreEqual(0, cbn.Infos.Count);
         }
 
         [Test]

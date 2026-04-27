@@ -908,15 +908,37 @@ namespace Dynamo.Graph.Nodes
             // only needs these nodes to register the function signature.
             return ParseParam.ParsedNodes
                 .OfType<FunctionDefinitionNode>()
-                .Any(functionDefinition => IsWarningWithinNodeRange(warning, functionDefinition));
+                .Any(functionDefinition => FunctionBodyContainsWarningCall(functionDefinition.FunctionBody, warning));
         }
 
-        private static bool IsWarningWithinNodeRange(WarningEntry warning, Node node)
+        private static bool FunctionBodyContainsWarningCall(Node node, WarningEntry warning)
         {
-            if (warning.Line < 0 || node == null)
+            if (node == null)
                 return false;
 
-            return warning.Line >= node.line && warning.Line <= node.endLine;
+            var functionCall = node as FunctionCallNode;
+            if (functionCall != null && IsWarningForFunctionCall(functionCall, warning))
+                return true;
+
+            return node.Children().Any(child => FunctionBodyContainsWarningCall(child, warning));
+        }
+
+        private static bool IsWarningForFunctionCall(FunctionCallNode functionCall, WarningEntry warning)
+        {
+            var functionName = GetFunctionCallName(functionCall);
+            var sameLocation =
+                (warning.Line < 0 || functionCall.line < 0 || warning.Line == functionCall.line)
+                    && (warning.Column < 0 || functionCall.col < 0 || warning.Column == functionCall.col);
+            var sameFunction = string.IsNullOrEmpty(functionName)
+                || warning.Message.IndexOf(functionName, StringComparison.Ordinal) >= 0;
+
+            return sameLocation && sameFunction;
+        }
+
+        private static string GetFunctionCallName(FunctionCallNode functionCall)
+        {
+            var identifier = functionCall.Function as IdentifierNode;
+            return identifier?.Name ?? functionCall.Function?.Name ?? functionCall.Function?.ToString();
         }
 
         private void SetPreviewVariable(IEnumerable<Node> parsedNodes)
