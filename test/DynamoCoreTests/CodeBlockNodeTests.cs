@@ -502,7 +502,7 @@ b = c[w][x][y][z];";
 
         [Test]
         [Category("UnitTests")]
-        public void FunctionDefinitionCBN_DoesNotReportFunctionBodyWarnings()
+        public void FunctionDefinitionCBN_ResolvesScalarToStringInFunctionBody()
         {
             var cbn = CreateCodeBlockNode();
 
