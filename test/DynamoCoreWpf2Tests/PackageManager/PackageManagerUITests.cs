@@ -14,6 +14,7 @@ using Dynamo.PackageManager;
 using Dynamo.PackageManager.Interfaces;
 using Dynamo.PackageManager.Tests;
 using Dynamo.PackageManager.UI;
+using Dynamo.PackageManager.ViewModels;
 using Dynamo.Tests;
 using Dynamo.UI.Prompts;
 using Dynamo.Utilities;
@@ -73,6 +74,40 @@ namespace DynamoCoreWpfTests.PackageManager
         public static bool ComparePaths(string path1, string path2)
         {
             return PackageDirectoryBuilder.NormalizePath(path1) == PackageDirectoryBuilder.NormalizePath(path2);
+        }
+
+        private static void CopyDirectory(string sourceDirectory, string destinationDirectory)
+        {
+            Directory.CreateDirectory(destinationDirectory);
+
+            foreach (var filePath in Directory.GetFiles(sourceDirectory))
+            {
+                File.Copy(filePath, Path.Combine(destinationDirectory, Path.GetFileName(filePath)));
+            }
+
+            foreach (var directoryPath in Directory.GetDirectories(sourceDirectory))
+            {
+                CopyDirectory(directoryPath, Path.Combine(destinationDirectory, Path.GetFileName(directoryPath)));
+            }
+        }
+
+        private static string CreateDynamoFormaPackageFixture(
+            string sourceDirectory,
+            string packageRootDirectory,
+            string packageName,
+            string packageVersion)
+        {
+            var destinationDirectory = Path.Combine(packageRootDirectory, packageName);
+            CopyDirectory(sourceDirectory, destinationDirectory);
+
+            var packageJsonPath = Path.Combine(destinationDirectory, "pkg.json");
+            var packageJson = File.ReadAllText(packageJsonPath)
+                .Replace("\"name\":\"EvenOdd\"", $"\"name\":\"{packageName}\"")
+                .Replace("\"name\":\"EvenOdd2\"", $"\"name\":\"{packageName}\"")
+                .Replace("\"version\":\"1.0.0\"", $"\"version\":\"{packageVersion}\"");
+            File.WriteAllText(packageJsonPath, packageJson);
+
+            return destinationDirectory;
         }
 
         public void AssertWindowOwnedByDynamoView<T>()
@@ -876,6 +911,76 @@ namespace DynamoCoreWpfTests.PackageManager
 
             messageBox.OkButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             Assert.AreEqual(MessageBoxResult.OK, messageBox.CustomDialogResult);
+        }
+
+        [Test]
+        [Description("DYN-7587: User chooses No when installing a DynamoForma package with conflicting custom nodes")]
+        public void InstallingDynamoFormaConflictingPackage_WhenUserChoosesNo_DoesNotUninstallExistingPackage()
+        {
+            var loader = GetPackageLoader();
+            var packageRootDirectory = Path.Combine(Path.GetTempPath(), $"DYN7587_{Guid.NewGuid():N}");
+
+            var installedPackageDirectory = CreateDynamoFormaPackageFixture(
+                Path.Combine(PackagesDirectory, "EvenOdd"),
+                packageRootDirectory,
+                "DynamoFormaBeta",
+                "1.0.0");
+            var conflictingPackageDirectory = CreateDynamoFormaPackageFixture(
+                Path.Combine(PackagesDirectory, "EvenOdd2"),
+                packageRootDirectory,
+                "DynamoFormaBeta for 2.x",
+                "3.0.0");
+
+            var installedPackage = Package.FromDirectory(installedPackageDirectory, ViewModel.Model.Logger);
+            var conflictingPackage = Package.FromDirectory(conflictingPackageDirectory, ViewModel.Model.Logger);
+
+            var dlgMock = new Mock<MessageBoxService.IMessageBox>();
+            dlgMock.Setup(m => m.Show(
+                It.Is<string>(message => message.Contains("DynamoFormaBeta 1.0.0") &&
+                                         message.Contains("DynamoFormaBeta for 2.x 3.0.0")),
+                Dynamo.Wpf.Properties.Resources.CannotDownloadPackageMessageBoxTitle,
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Error))
+                .Returns(MessageBoxResult.No);
+            MessageBoxService.OverrideMessageBoxDuringTests(dlgMock.Object);
+
+            var mockGreg = new Mock<IGregClient>();
+            var client = new Dynamo.PackageManager.PackageManagerClient(
+                mockGreg.Object,
+                MockMaker.Empty<IPackageUploadBuilder>(),
+                string.Empty);
+            var packageManagerClientViewModel = new PackageManagerClientViewModel(ViewModel, client);
+            var packageSearchViewModel = new PackageManagerSearchViewModel(packageManagerClientViewModel);
+            packageSearchViewModel.RegisterTransientHandlers();
+
+            try
+            {
+                loader.LoadPackages(new[] { installedPackage });
+                Assert.AreEqual(PackageLoadState.StateTypes.Loaded, installedPackage.LoadState.State);
+
+                loader.LoadPackages(new[] { conflictingPackage });
+
+                dlgMock.Verify(m => m.Show(
+                    It.Is<string>(message => message.Contains("DynamoFormaBeta 1.0.0") &&
+                                             message.Contains("DynamoFormaBeta for 2.x 3.0.0")),
+                    Dynamo.Wpf.Properties.Resources.CannotDownloadPackageMessageBoxTitle,
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error),
+                    Times.Once);
+
+                Assert.AreEqual(PackageLoadState.ScheduledTypes.None, installedPackage.LoadState.ScheduledState);
+                Assert.IsFalse(ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Contains(installedPackage.RootDirectory));
+                Assert.AreEqual(PackageLoadState.StateTypes.Error, conflictingPackage.LoadState.State);
+            }
+            finally
+            {
+                packageSearchViewModel.UnregisterTransientHandlers();
+                MessageBoxService.OverrideMessageBoxDuringTests(null);
+                if (Directory.Exists(packageRootDirectory))
+                {
+                    Directory.Delete(packageRootDirectory, true);
+                }
+            }
         }
 
 
