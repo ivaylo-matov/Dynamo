@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.IO.Compression;
 using Dynamo.Core;
 using Dynamo.Extensions;
 using Dynamo.Models;
@@ -108,6 +109,13 @@ namespace DynamoCoreWpfTests.PackageManager
             File.WriteAllText(packageJsonPath, packageJson);
 
             return destinationDirectory;
+        }
+
+        private static string CreatePackageZip(string packageDirectory)
+        {
+            var zipPath = packageDirectory + ".zip";
+            ZipFile.CreateFromDirectory(packageDirectory, zipPath);
+            return zipPath;
         }
 
         public void AssertWindowOwnedByDynamoView<T>()
@@ -932,7 +940,9 @@ namespace DynamoCoreWpfTests.PackageManager
                 "3.0.0");
 
             var installedPackage = Package.FromDirectory(installedPackageDirectory, ViewModel.Model.Logger);
-            var conflictingPackage = Package.FromDirectory(conflictingPackageDirectory, ViewModel.Model.Logger);
+            var conflictingPackageZip = CreatePackageZip(conflictingPackageDirectory);
+            var installDirectory = Path.Combine(packageRootDirectory, "install");
+            var expectedConflictingPackageInstallDirectory = Path.Combine(installDirectory, "DynamoFormaBeta for 2.x");
 
             var dlgMock = new Mock<MessageBoxService.IMessageBox>();
             dlgMock.Setup(m => m.Show(
@@ -950,15 +960,20 @@ namespace DynamoCoreWpfTests.PackageManager
                 MockMaker.Empty<IPackageUploadBuilder>(),
                 string.Empty);
             var packageManagerClientViewModel = new PackageManagerClientViewModel(ViewModel, client);
-            var packageSearchViewModel = new PackageManagerSearchViewModel(packageManagerClientViewModel);
-            packageSearchViewModel.RegisterTransientHandlers();
 
             try
             {
                 loader.LoadPackages(new[] { installedPackage });
                 Assert.AreEqual(PackageLoadState.StateTypes.Loaded, installedPackage.LoadState.State);
 
-                loader.LoadPackages(new[] { conflictingPackage });
+                var downloadHandle = new PackageDownloadHandle
+                {
+                    DownloadPath = conflictingPackageZip,
+                    Name = "DynamoFormaBeta for 2.x",
+                    VersionName = "3.0.0"
+                };
+
+                packageManagerClientViewModel.SetPackageState(downloadHandle, installDirectory);
 
                 dlgMock.Verify(m => m.Show(
                     It.Is<string>(message => message.Contains("DynamoFormaBeta 1.0.0") &&
@@ -970,11 +985,12 @@ namespace DynamoCoreWpfTests.PackageManager
 
                 Assert.AreEqual(PackageLoadState.ScheduledTypes.None, installedPackage.LoadState.ScheduledState);
                 Assert.IsFalse(ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Contains(installedPackage.RootDirectory));
-                Assert.AreEqual(PackageLoadState.StateTypes.Error, conflictingPackage.LoadState.State);
+                Assert.AreEqual(PackageDownloadHandle.State.Error, downloadHandle.DownloadState);
+                Assert.IsFalse(Directory.Exists(expectedConflictingPackageInstallDirectory));
+                Assert.IsFalse(loader.LocalPackages.Any(package => package.Name == "DynamoFormaBeta for 2.x"));
             }
             finally
             {
-                packageSearchViewModel.UnregisterTransientHandlers();
                 MessageBoxService.OverrideMessageBoxDuringTests(null);
                 if (Directory.Exists(packageRootDirectory))
                 {

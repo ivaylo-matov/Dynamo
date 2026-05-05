@@ -1144,15 +1144,120 @@ namespace Dynamo.ViewModels
         internal void SetPackageState(PackageDownloadHandle packageDownloadHandle, string downloadPath)
         {
             Package dynPkg;
-            if (packageDownloadHandle.Extract(DynamoViewModel.Model, downloadPath, out dynPkg))
+            var packageLoader = PackageManagerExtension.PackageLoader;
+
+            var extractionState = packageDownloadHandle.Extract(DynamoViewModel.Model, downloadPath, ShouldFinalizePackageInstall, out dynPkg);
+            if (extractionState == PackageDownloadHandle.ExtractionState.InvalidPackage)
             {
-                PackageManagerExtension.PackageLoader.LoadPackages(new List<Package> { dynPkg });
-                packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
-            }
-            else
-            {
-                packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Error;
                 packageDownloadHandle.Error(Resources.MessageInvalidPackage);
+                return;
+            }
+
+            if (extractionState == PackageDownloadHandle.ExtractionState.Cancelled)
+            {
+                packageDownloadHandle.Error(Resources.CannotDownloadPackageMessageBoxTitle);
+                return;
+            }
+
+            packageLoader.LoadPackages(new List<Package> { dynPkg });
+            if (dynPkg.LoadState.State == PackageLoadState.StateTypes.Error)
+            {
+                CleanupFailedPackageInstall(dynPkg, packageLoader);
+                packageDownloadHandle.Error(dynPkg.LoadState.ErrorMessage);
+                return;
+            }
+
+            packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
+        }
+
+        private bool ShouldFinalizePackageInstall(Package package)
+        {
+            var conflictingPackage = FindConflictingCustomNodePackage(package);
+            if (conflictingPackage == null)
+            {
+                return true;
+            }
+
+            ConfirmConflictingCustomNodePackageUninstall(conflictingPackage, package);
+            return false;
+        }
+
+        private Package FindConflictingCustomNodePackage(Package package)
+        {
+            if (package == null || !Directory.Exists(package.CustomNodeDirectory))
+            {
+                return null;
+            }
+
+            var customNodeManager = DynamoViewModel.Model.CustomNodeManager;
+            var packageLoader = PackageManagerExtension.PackageLoader;
+            foreach (var customNodePath in Directory.EnumerateFiles(package.CustomNodeDirectory, "*.dyf"))
+            {
+                if (!customNodeManager.TryGetInfoFromPath(customNodePath, DynamoModel.IsTestMode, out var newInfo))
+                {
+                    continue;
+                }
+
+                if (!customNodeManager.NodeInfos.TryGetValue(newInfo.FunctionId, out var existingInfo))
+                {
+                    continue;
+                }
+
+                var existingPackage = packageLoader.GetOwnerPackage(existingInfo.Path);
+                if (existingPackage != null && existingPackage.Name != package.Name)
+                {
+                    return existingPackage;
+                }
+            }
+
+            return null;
+        }
+
+        private bool ConfirmConflictingCustomNodePackageUninstall(Package installed, Package conflicting)
+        {
+            var message = string.Format(Resources.MessageUninstallCustomNodeToContinue,
+                installed.Name + " " + installed.VersionName, conflicting.Name + " " + conflicting.VersionName);
+
+            var dialogResult = MessageBoxService.Show(message,
+                Resources.CannotDownloadPackageMessageBoxTitle,
+                MessageBoxButton.YesNo, MessageBoxImage.Error);
+
+            if (dialogResult != MessageBoxResult.Yes)
+            {
+                return false;
+            }
+
+            installed.MarkForUninstall(DynamoViewModel.Model.PreferenceSettings);
+            return true;
+        }
+
+        private static void CleanupFailedPackageInstall(Package package, PackageLoader packageLoader)
+        {
+            if (package == null)
+            {
+                return;
+            }
+
+            packageLoader.Remove(package);
+            TryDeletePackageDirectory(package.RootDirectory);
+        }
+
+        private static void TryDeletePackageDirectory(string directory)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory))
+                {
+                    Directory.Delete(directory, true);
+                }
+            }
+            catch (IOException ex)
+            {
+                DynamoConsoleLogger.OnLogMessageToDynamoConsole($"Failed to delete package directory {directory}: {ex}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                DynamoConsoleLogger.OnLogMessageToDynamoConsole($"Failed to delete package directory {directory}: {ex}");
             }
         }
 
