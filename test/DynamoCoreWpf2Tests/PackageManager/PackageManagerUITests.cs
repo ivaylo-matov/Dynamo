@@ -999,6 +999,84 @@ namespace DynamoCoreWpfTests.PackageManager
             }
         }
 
+        [Test]
+        [Description("DYN-7587: User chooses Yes when installing a DynamoForma package with conflicting custom nodes")]
+        public void InstallingDynamoFormaConflictingPackage_WhenUserChoosesYes_FinalizesNewPackageAndSchedulesExistingPackageForUninstall()
+        {
+            var loader = GetPackageLoader();
+            var packageRootDirectory = Path.Combine(Path.GetTempPath(), $"DYN7587_{Guid.NewGuid():N}");
+
+            var installedPackageDirectory = CreateDynamoFormaPackageFixture(
+                Path.Combine(PackagesDirectory, "EvenOdd"),
+                packageRootDirectory,
+                "DynamoFormaBeta",
+                "1.0.0");
+            var conflictingPackageDirectory = CreateDynamoFormaPackageFixture(
+                Path.Combine(PackagesDirectory, "EvenOdd2"),
+                packageRootDirectory,
+                "DynamoFormaBeta for 2.x",
+                "3.0.0");
+
+            var installedPackage = Package.FromDirectory(installedPackageDirectory, ViewModel.Model.Logger);
+            var conflictingPackageZip = CreatePackageZip(conflictingPackageDirectory);
+            var installDirectory = Path.Combine(packageRootDirectory, "install");
+            var expectedConflictingPackageInstallDirectory = Path.Combine(installDirectory, "DynamoFormaBeta for 2.x");
+
+            var dlgMock = new Mock<MessageBoxService.IMessageBox>();
+            dlgMock.Setup(m => m.Show(
+                It.Is<string>(message => message.Contains("DynamoFormaBeta 1.0.0") &&
+                                         message.Contains("DynamoFormaBeta for 2.x 3.0.0")),
+                Dynamo.Wpf.Properties.Resources.CannotDownloadPackageMessageBoxTitle,
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Error))
+                .Returns(MessageBoxResult.Yes);
+            MessageBoxService.OverrideMessageBoxDuringTests(dlgMock.Object);
+
+            var mockGreg = new Mock<IGregClient>();
+            var client = new Dynamo.PackageManager.PackageManagerClient(
+                mockGreg.Object,
+                MockMaker.Empty<IPackageUploadBuilder>(),
+                string.Empty);
+            var packageManagerClientViewModel = new PackageManagerClientViewModel(ViewModel, client);
+
+            try
+            {
+                loader.LoadPackages(new[] { installedPackage });
+                Assert.AreEqual(PackageLoadState.StateTypes.Loaded, installedPackage.LoadState.State);
+
+                var downloadHandle = new PackageDownloadHandle
+                {
+                    DownloadPath = conflictingPackageZip,
+                    Name = "DynamoFormaBeta for 2.x",
+                    VersionName = "3.0.0"
+                };
+
+                packageManagerClientViewModel.SetPackageState(downloadHandle, installDirectory);
+
+                dlgMock.Verify(m => m.Show(
+                    It.Is<string>(message => message.Contains("DynamoFormaBeta 1.0.0") &&
+                                             message.Contains("DynamoFormaBeta for 2.x 3.0.0")),
+                    Dynamo.Wpf.Properties.Resources.CannotDownloadPackageMessageBoxTitle,
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error),
+                    Times.Once);
+
+                Assert.AreEqual(PackageLoadState.ScheduledTypes.ScheduledForDeletion, installedPackage.LoadState.ScheduledState);
+                Assert.IsTrue(ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Contains(installedPackage.RootDirectory));
+                Assert.AreEqual(PackageDownloadHandle.State.Installed, downloadHandle.DownloadState);
+                Assert.IsTrue(Directory.Exists(expectedConflictingPackageInstallDirectory));
+                Assert.IsFalse(loader.LocalPackages.Any(package => package.Name == "DynamoFormaBeta for 2.x"));
+            }
+            finally
+            {
+                MessageBoxService.OverrideMessageBoxDuringTests(null);
+                if (Directory.Exists(packageRootDirectory))
+                {
+                    Directory.Delete(packageRootDirectory, true);
+                }
+            }
+        }
+
 
 
         [Test]

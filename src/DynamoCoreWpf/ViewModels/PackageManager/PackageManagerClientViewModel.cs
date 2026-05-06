@@ -1145,8 +1145,13 @@ namespace Dynamo.ViewModels
         {
             Package dynPkg;
             var packageLoader = PackageManagerExtension.PackageLoader;
+            var shouldLoadPackage = true;
 
-            var extractionState = packageDownloadHandle.Extract(DynamoViewModel.Model, downloadPath, ShouldFinalizePackageInstall, out dynPkg);
+            var extractionState = packageDownloadHandle.Extract(
+                DynamoViewModel.Model,
+                downloadPath,
+                package => ShouldFinalizePackageInstall(package, out shouldLoadPackage),
+                out dynPkg);
             if (extractionState == PackageDownloadHandle.ExtractionState.InvalidPackage)
             {
                 packageDownloadHandle.Error(Resources.MessageInvalidPackage);
@@ -1156,6 +1161,13 @@ namespace Dynamo.ViewModels
             if (extractionState == PackageDownloadHandle.ExtractionState.Cancelled)
             {
                 packageDownloadHandle.Error(Resources.CannotDownloadPackageMessageBoxTitle);
+                return;
+            }
+
+            if (!shouldLoadPackage)
+            {
+                // The package will load after restart when the conflicting package is removed.
+                packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
                 return;
             }
 
@@ -1170,16 +1182,23 @@ namespace Dynamo.ViewModels
             packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
         }
 
-        private bool ShouldFinalizePackageInstall(Package package)
+        private bool ShouldFinalizePackageInstall(Package package, out bool shouldLoadPackage)
         {
+            shouldLoadPackage = true;
+
             var conflictingPackage = FindConflictingCustomNodePackage(package);
             if (conflictingPackage == null)
             {
                 return true;
             }
 
-            ConfirmConflictingCustomNodePackageUninstall(conflictingPackage, package);
-            return false;
+            if (!ConfirmConflictingCustomNodePackageUninstall(conflictingPackage, package))
+            {
+                return false;
+            }
+
+            shouldLoadPackage = false;
+            return true;
         }
 
         private Package FindConflictingCustomNodePackage(Package package)
