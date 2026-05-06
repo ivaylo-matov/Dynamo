@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using Dynamo.Core;
 using Dynamo.Models;
@@ -18,6 +19,13 @@ namespace Dynamo.PackageManager
         public enum State
         {
             Uninitialized, Downloading, Downloaded, Installing, Installed, Error
+        }
+
+        internal enum ExtractionState
+        {
+            Success,
+            InvalidPackage,
+            Cancelled
         }
 
         private string _errorString = "";
@@ -105,6 +113,11 @@ namespace Dynamo.PackageManager
         /// <returns>Whether the operation succeeded or not</returns>
         public bool Extract(DynamoModel dynamoModel, string installDirectory, out Package pkg)
         {
+            return Extract(dynamoModel, installDirectory, null, out pkg) == ExtractionState.Success;
+        }
+
+        internal ExtractionState Extract(DynamoModel dynamoModel, string installDirectory, Func<Package, bool> validatePackage, out Package pkg)
+        {
             this.DownloadState = State.Installing;
 
             // unzip, place files
@@ -117,13 +130,22 @@ namespace Dynamo.PackageManager
             // provide handle to installed package 
             pkg = Package.FromDirectory(unzipPath, dynamoModel.Logger);
 
+            // validate package metadata before installing
             if (pkg == null)
             {
-                return false;
+                TryDeleteDirectory(unzipPath);
+                return ExtractionState.InvalidPackage;
             }
 
             if (String.IsNullOrEmpty(installDirectory))
                 installDirectory = dynamoModel.PathManager.DefaultPackagesDirectory;
+
+            // validate staged package before final copy
+            if (validatePackage != null && !validatePackage(pkg))
+            {
+                TryDeleteDirectory(unzipPath);
+                return ExtractionState.Cancelled;
+            }
 
             var installedPath = BuildInstallDirectoryString(installDirectory, pkg.Name);
             Directory.CreateDirectory(installedPath);
@@ -139,7 +161,26 @@ namespace Dynamo.PackageManager
             // Update root directory to final path
             pkg.RootDirectory = installedPath;
 
-            return true;
+            return ExtractionState.Success;
+        }
+
+        private static void TryDeleteDirectory(string directory)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory))
+                {
+                    Directory.Delete(directory, true);
+                }
+            }
+            catch (IOException)
+            {
+                Debug.WriteLine($"Failed to delete package staging directory {directory}");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                Debug.WriteLine($"Failed to delete package staging directory {directory}");
+            }
         }
 
         // cancel, install, redownload
