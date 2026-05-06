@@ -1164,10 +1164,9 @@ namespace Dynamo.ViewModels
                 return;
             }
 
-            DynamoViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.RemoveAll(x => x.Equals(dynPkg.RootDirectory));
-
             if (!shouldLoadPackage)
             {
+                ClearPackageUninstallMarker(dynPkg);
                 // The package will load after restart when the conflicting package is removed.
                 packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
                 return;
@@ -1181,7 +1180,18 @@ namespace Dynamo.ViewModels
                 return;
             }
 
+            ClearPackageUninstallMarker(dynPkg);
             packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
+        }
+
+        private void ClearPackageUninstallMarker(Package package)
+        {
+            if (package == null)
+            {
+                return;
+            }
+
+            DynamoViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.RemoveAll(x => x.Equals(package.RootDirectory));
         }
 
         private bool ShouldFinalizePackageInstall(Package package, out bool shouldLoadPackage)
@@ -1252,33 +1262,30 @@ namespace Dynamo.ViewModels
             return true;
         }
 
-        private static void CleanupFailedPackageInstall(Package package, PackageLoader packageLoader)
+        private void CleanupFailedPackageInstall(Package package, PackageLoader packageLoader)
         {
             if (package == null)
             {
                 return;
             }
 
-            packageLoader.Remove(package);
-            TryDeletePackageDirectory(package.RootDirectory);
-        }
+            var packageDirectory = package.RootDirectory;
+            packageLoader?.Remove(package);
 
-        private static void TryDeletePackageDirectory(string directory)
-        {
             try
             {
-                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory))
+                if (!string.IsNullOrEmpty(packageDirectory) && Directory.Exists(packageDirectory))
                 {
-                    Directory.Delete(directory, true);
+                    Directory.Delete(packageDirectory, true);
                 }
             }
             catch (IOException ex)
             {
-                DynamoConsoleLogger.OnLogMessageToDynamoConsole($"Failed to delete package directory {directory}: {ex}");
+                DynamoViewModel.Model.Logger.Log($"Failed to delete package directory {packageDirectory}: {ex}");
             }
             catch (UnauthorizedAccessException ex)
             {
-                DynamoConsoleLogger.OnLogMessageToDynamoConsole($"Failed to delete package directory {directory}: {ex}");
+                DynamoViewModel.Model.Logger.Log($"Failed to delete package directory {packageDirectory}: {ex}");
             }
         }
 

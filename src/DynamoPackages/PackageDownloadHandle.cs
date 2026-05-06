@@ -1,7 +1,7 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using Dynamo.Core;
+using Dynamo.Logging;
 using Dynamo.Models;
 
 using Greg.Responses;
@@ -133,7 +133,7 @@ namespace Dynamo.PackageManager
             // validate package metadata before installing
             if (pkg == null)
             {
-                TryDeleteDirectory(unzipPath);
+                TryDeleteDirectory(unzipPath, dynamoModel.Logger);
                 return ExtractionState.InvalidPackage;
             }
 
@@ -143,7 +143,7 @@ namespace Dynamo.PackageManager
             // validate staged package before final copy
             if (validatePackage != null && !validatePackage(pkg))
             {
-                TryDeleteDirectory(unzipPath);
+                TryDeleteDirectory(unzipPath, dynamoModel.Logger);
                 return ExtractionState.Cancelled;
             }
 
@@ -164,7 +164,7 @@ namespace Dynamo.PackageManager
             return ExtractionState.Success;
         }
 
-        private static void TryDeleteDirectory(string directory)
+        private static void TryDeleteDirectory(string directory, ILogger logger)
         {
             try
             {
@@ -173,18 +173,15 @@ namespace Dynamo.PackageManager
                     Directory.Delete(directory, true);
                 }
             }
-            catch (IOException)
+            catch (IOException ex)
             {
-                Debug.WriteLine($"Failed to delete package staging directory {directory}");
+                logger?.Log($"Failed to delete package staging directory {directory}: {ex}");
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
-                Debug.WriteLine($"Failed to delete package staging directory {directory}");
+                logger?.Log($"Failed to delete package staging directory {directory}: {ex}");
             }
         }
-
-        // cancel, install, redownload
-
     }
 
 }
