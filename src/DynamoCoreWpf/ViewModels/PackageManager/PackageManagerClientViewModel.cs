@@ -1122,7 +1122,6 @@ namespace Dynamo.ViewModels
             {
                 if (!packageDownloadHandle.TryPrepareInstallation(DynamoViewModel.Model, out var dynPkg, out stagingDirectory))
                 {
-                    packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Error;
                     packageDownloadHandle.Error(Resources.MessageInvalidPackage);
                     return;
                 }
@@ -1146,7 +1145,6 @@ namespace Dynamo.ViewModels
 
                         if (installedPkg == null)
                         {
-                            packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Error;
                             packageDownloadHandle.Error(Resources.MessagePackageInstallCancelledDueToCustomNodeConflict);
                             return;
                         }
@@ -1156,7 +1154,6 @@ namespace Dynamo.ViewModels
 
                         if (!userChoseReplace)
                         {
-                            packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Error;
                             packageDownloadHandle.Error(Resources.MessagePackageInstallCancelledDueToCustomNodeConflict);
                             return;
                         }
