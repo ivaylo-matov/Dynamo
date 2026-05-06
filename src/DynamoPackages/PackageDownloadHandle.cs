@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Dynamo.Core;
+using Dynamo.Logging;
 using Dynamo.Models;
 
 using Greg.Responses;
@@ -18,6 +19,14 @@ namespace Dynamo.PackageManager
         public enum State
         {
             Uninitialized, Downloading, Downloaded, Installing, Installed, Error
+        }
+
+        /// <summary>
+        /// Possible states for the extraction of a package after download
+        /// </summary>
+        internal enum ExtractionState
+        {
+            Success, InvalidPackage, Cancelled
         }
 
         private string _errorString = "";
@@ -105,6 +114,11 @@ namespace Dynamo.PackageManager
         /// <returns>Whether the operation succeeded or not</returns>
         public bool Extract(DynamoModel dynamoModel, string installDirectory, out Package pkg)
         {
+            return Extract(dynamoModel, installDirectory, null, out pkg) == ExtractionState.Success;
+        }
+
+        internal ExtractionState Extract(DynamoModel dynamoModel, string installDirectory, Func<Package, bool> validatePackage, out Package pkg)
+        {
             this.DownloadState = State.Installing;
 
             // unzip, place files
@@ -117,13 +131,21 @@ namespace Dynamo.PackageManager
             // provide handle to installed package 
             pkg = Package.FromDirectory(unzipPath, dynamoModel.Logger);
 
+            // Validate package metadata before installing
             if (pkg == null)
             {
-                return false;
+                TryDeleteDirectory(unzipPath, dynamoModel.Logger);
+                return ExtractionState.InvalidPackage;
             }
 
             if (String.IsNullOrEmpty(installDirectory))
                 installDirectory = dynamoModel.PathManager.DefaultPackagesDirectory;
+
+            if (validatePackage != null && !validatePackage(pkg))
+            {
+                TryDeleteDirectory(unzipPath, dynamoModel.Logger);
+                return ExtractionState.Cancelled;
+            }
 
             var installedPath = BuildInstallDirectoryString(installDirectory, pkg.Name);
             Directory.CreateDirectory(installedPath);
@@ -139,11 +161,28 @@ namespace Dynamo.PackageManager
             // Update root directory to final path
             pkg.RootDirectory = installedPath;
 
-            return true;
+            return ExtractionState.Success;
         }
 
-        // cancel, install, redownload
-
+        private static void TryDeleteDirectory(string directory, ILogger logger)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory))
+                {
+                    Directory.Delete(directory, true);
+                }
+            }
+            catch (IOException)
+            {
+                logger?.Log($"Failed to delete package staging directory {directory}");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                logger?.Log($"Failed to delete package staging directory {directory}");
+            }
+        }
     }
 
+     // cancel, install, redownload
 }
