@@ -22,11 +22,13 @@ namespace Dynamo.PackageManager
         }
 
         /// <summary>
-        /// Possible states for the extraction of a package after download
+        /// Possible states for the extraction of a package after download.
         /// </summary>
         internal enum ExtractionState
         {
-            Success, InvalidPackage, Cancelled
+            Success,
+            InvalidPackage,
+            Cancelled
         }
 
         private string _errorString = "";
@@ -131,7 +133,7 @@ namespace Dynamo.PackageManager
             // provide handle to installed package 
             pkg = Package.FromDirectory(unzipPath, dynamoModel.Logger);
 
-            // Validate package metadata before installing
+            // validate package metadata before installing
             if (pkg == null)
             {
                 TryDeleteDirectory(unzipPath, dynamoModel.Logger);
@@ -141,6 +143,7 @@ namespace Dynamo.PackageManager
             if (String.IsNullOrEmpty(installDirectory))
                 installDirectory = dynamoModel.PathManager.DefaultPackagesDirectory;
 
+            // validate staged package before final copy
             if (validatePackage != null && !validatePackage(pkg))
             {
                 TryDeleteDirectory(unzipPath, dynamoModel.Logger);
@@ -173,16 +176,14 @@ namespace Dynamo.PackageManager
                     Directory.Delete(directory, true);
                 }
             }
-            catch (IOException)
+            catch (IOException ex)
             {
-                logger?.Log($"Failed to delete package staging directory {directory}");
+                logger?.Log($"Failed to delete package staging directory {directory}: {ex}");
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
-                logger?.Log($"Failed to delete package staging directory {directory}");
+                logger?.Log($"Failed to delete package staging directory {directory}: {ex}");
             }
         }
     }
-
-     // cancel, install, redownload
 }
