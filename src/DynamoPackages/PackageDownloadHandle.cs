@@ -128,40 +128,60 @@ namespace Dynamo.PackageManager
                 throw new Exception(Properties.Resources.PackageEmpty);
             }
 
-            // provide handle to installed package 
-            pkg = Package.FromDirectory(unzipPath, dynamoModel.Logger);
+            try
+            {
+                // provide handle to installed package
+                pkg = Package.FromDirectory(unzipPath, dynamoModel.Logger);
 
-            // Validate package metadata before installing
-            if (pkg == null)
+                // Validate package metadata before installing
+                if (pkg == null)
+                {
+                    return ExtractionState.InvalidPackage;
+                }
+
+                if (String.IsNullOrEmpty(installDirectory))
+                    installDirectory = dynamoModel.PathManager.DefaultPackagesDirectory;
+
+                if (validatePackage != null && !validatePackage(pkg))
+                {
+                    pkg = null;
+                    return ExtractionState.Cancelled;
+                }
+
+                var installedPath = BuildInstallDirectoryString(installDirectory, pkg.Name);
+                var installedPathAlreadyExists = Directory.Exists(installedPath);
+
+                try
+                {
+                    Directory.CreateDirectory(installedPath);
+
+                    // Now create all of the directories
+                    foreach (string dirPath in Directory.GetDirectories(unzipPath, "*", SearchOption.AllDirectories))
+                        Directory.CreateDirectory(dirPath.Replace(unzipPath, installedPath));
+
+                    // Copy all the files
+                    foreach (string newPath in Directory.GetFiles(unzipPath, "*.*", SearchOption.AllDirectories))
+                        File.Copy(newPath, newPath.Replace(unzipPath, installedPath));
+                }
+                catch
+                {
+                    if (!installedPathAlreadyExists)
+                    {
+                        TryDeleteDirectory(installedPath, dynamoModel.Logger);
+                    }
+
+                    throw;
+                }
+
+                // Update root directory to final path
+                pkg.RootDirectory = installedPath;
+
+                return ExtractionState.Success;
+            }
+            finally
             {
                 TryDeleteDirectory(unzipPath, dynamoModel.Logger);
-                return ExtractionState.InvalidPackage;
             }
-
-            if (String.IsNullOrEmpty(installDirectory))
-                installDirectory = dynamoModel.PathManager.DefaultPackagesDirectory;
-
-            if (validatePackage != null && !validatePackage(pkg))
-            {
-                TryDeleteDirectory(unzipPath, dynamoModel.Logger);
-                return ExtractionState.Cancelled;
-            }
-
-            var installedPath = BuildInstallDirectoryString(installDirectory, pkg.Name);
-            Directory.CreateDirectory(installedPath);
-
-            // Now create all of the directories
-            foreach (string dirPath in Directory.GetDirectories(unzipPath, "*", SearchOption.AllDirectories))
-                Directory.CreateDirectory(dirPath.Replace(unzipPath, installedPath));
-
-            // Copy all the files
-            foreach (string newPath in Directory.GetFiles(unzipPath, "*.*", SearchOption.AllDirectories))
-                File.Copy(newPath, newPath.Replace(unzipPath, installedPath));
-
-            // Update root directory to final path
-            pkg.RootDirectory = installedPath;
-
-            return ExtractionState.Success;
         }
 
         private static void TryDeleteDirectory(string directory, ILogger logger)
@@ -183,6 +203,4 @@ namespace Dynamo.PackageManager
             }
         }
     }
-
-     // cancel, install, redownload
 }

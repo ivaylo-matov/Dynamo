@@ -1147,19 +1147,19 @@ namespace Dynamo.ViewModels
             var packageLoader = PackageManagerExtension.PackageLoader;
 
             var shouldLoadPackage = true;
-            var extractionsState = packageDownloadHandle.Extract(
+            var extractionState = packageDownloadHandle.Extract(
                 DynamoViewModel.Model,
                 downloadPath,
                 package => ShouldFinalizePackageInstall(package, out shouldLoadPackage),
                 out dynPkg);
 
-            if (extractionsState == PackageDownloadHandle.ExtractionState.InvalidPackage)
+            if (extractionState == PackageDownloadHandle.ExtractionState.InvalidPackage)
             {
                 packageDownloadHandle.Error(Resources.MessageInvalidPackage);
                 return;
             }
 
-            if (extractionsState == PackageDownloadHandle.ExtractionState.Cancelled)
+            if (extractionState == PackageDownloadHandle.ExtractionState.Cancelled)
             {
                 packageDownloadHandle.Error(Resources.CannotDownloadPackageMessageBoxTitle);
                 return;

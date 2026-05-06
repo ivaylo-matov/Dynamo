@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -59,6 +60,38 @@ namespace DynamoCoreWpfTests.PackageManager
             }
 
             return null;
+        }
+
+        private Package LoadCustomRoundingPackage(PackageLoader pkgLoader)
+        {
+            var packageLocation = Path.Combine(PackagesDirectory, "Custom Rounding");
+            var pkg = pkgLoader.ScanPackageDirectory(packageLocation);
+            pkgLoader.LoadPackages(new List<Package> { pkg });
+
+            return pkg;
+        }
+
+        private string CreateConflictingCustomNodePackageZip(string packageName)
+        {
+            var packageRoot = Path.Combine(TempFolder, packageName);
+            var customNodeDirectory = Path.Combine(packageRoot, "dyf");
+            Directory.CreateDirectory(customNodeDirectory);
+
+            var packageJson = @"{""file_hash"":null,""name"":""" + packageName + @""",""version"":""1.0.0"",""description"":""Test package with a conflicting custom node."",""group"":""DynamoTests"",""keywords"":[],""dependencies"":[],""license"":""MIT"",""contents"":"""",""engine_version"":""0.5.2.10107"",""engine_metadata"":"""",""engine"":""dynamo""}";
+            File.WriteAllText(Path.Combine(packageRoot, "pkg.json"), packageJson);
+
+            File.Copy(
+                Path.Combine(PackagesDirectory, "Custom Rounding", "dyf", "CustomRound.dyf"),
+                Path.Combine(customNodeDirectory, "ConflictingCustomRound.dyf"));
+
+            var zipPath = Path.Combine(TempFolder, packageName + ".zip");
+            ZipFile.CreateFromDirectory(packageRoot, zipPath);
+            return zipPath;
+        }
+
+        private static string GetPackageInstallDirectory(string packageDirectory, string packageName)
+        {
+            return packageDirectory + @"\" + packageName.Replace("/", "_").Replace(@"\", "_");
         }
 
         public IEnumerable<Window> GetWindowEnumerable(WindowCollection windows)
@@ -1570,6 +1603,115 @@ namespace DynamoCoreWpfTests.PackageManager
                 // 2. That a package with the same name and version already exists.
                 dlgMock.Verify(x => x.Show(It.IsAny<Window>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<MessageBoxButton>(), It.IsAny<MessageBoxImage>()), Times.Exactly(1));
                 dlgMock.ResetCalls();
+            }
+        }
+
+        [Test]
+        [Description("User rejects replacing an installed package that owns a conflicting custom node GUID")]
+        public void SetPackageStateWhenConflictingCustomNodeInstallRejectedDoesNotInstallPackage()
+        {
+            var pkgLoader = GetPackageLoader();
+            var installedPackage = LoadCustomRoundingPackage(pkgLoader);
+            var conflictingPackageName = "Conflicting Custom Rounding";
+            var installRoot = Path.Combine(TempFolder, "packages");
+            var zipPath = CreateConflictingCustomNodePackageZip(conflictingPackageName);
+            var expectedInstallPath = GetPackageInstallDirectory(installRoot, conflictingPackageName);
+            var packageDownloadHandle = new PackageDownloadHandle
+            {
+                Name = conflictingPackageName,
+                VersionName = "1.0.0"
+            };
+            packageDownloadHandle.Done(zipPath);
+
+            var dlgMock = new Mock<MessageBoxService.IMessageBox>();
+            dlgMock.Setup(m => m.Show(
+                    It.Is<string>(x => x.Contains(installedPackage.Name) && x.Contains(conflictingPackageName)),
+                    It.IsAny<string>(),
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error))
+                .Returns(MessageBoxResult.No);
+            MessageBoxService.OverrideMessageBoxDuringTests(dlgMock.Object);
+
+            try
+            {
+                var scheduledUninstallsBeforeInstall = ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.ToList();
+
+                var mockGreg = new Mock<IGregClient>();
+                var client = new Dynamo.PackageManager.PackageManagerClient(
+                    mockGreg.Object,
+                    MockMaker.Empty<IPackageUploadBuilder>(),
+                    string.Empty);
+                var pmVm = new PackageManagerClientViewModel(ViewModel, client);
+                pmVm.SetPackageState(packageDownloadHandle, installRoot);
+
+                Assert.AreEqual(PackageDownloadHandle.State.Error, packageDownloadHandle.DownloadState);
+                Assert.IsFalse(Directory.Exists(expectedInstallPath));
+                Assert.IsFalse(pkgLoader.LocalPackages.Any(x => x.Name == conflictingPackageName));
+                Assert.AreEqual(PackageLoadState.ScheduledTypes.None, installedPackage.LoadState.ScheduledState);
+                CollectionAssert.AreEquivalent(scheduledUninstallsBeforeInstall, ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall);
+                dlgMock.Verify(m => m.Show(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error), Times.Once);
+            }
+            finally
+            {
+                MessageBoxService.OverrideMessageBoxDuringTests(null);
+            }
+        }
+
+        [Test]
+        [Description("User accepts replacing an installed package that owns a conflicting custom node GUID")]
+        public void SetPackageStateWhenConflictingCustomNodeInstallAcceptedInstallsPackageForRestart()
+        {
+            var pkgLoader = GetPackageLoader();
+            var installedPackage = LoadCustomRoundingPackage(pkgLoader);
+            var conflictingPackageName = "Conflicting Custom Rounding";
+            var installRoot = Path.Combine(TempFolder, "packages");
+            var zipPath = CreateConflictingCustomNodePackageZip(conflictingPackageName);
+            var expectedInstallPath = GetPackageInstallDirectory(installRoot, conflictingPackageName);
+            var packageDownloadHandle = new PackageDownloadHandle
+            {
+                Name = conflictingPackageName,
+                VersionName = "1.0.0"
+            };
+            packageDownloadHandle.Done(zipPath);
+
+            var dlgMock = new Mock<MessageBoxService.IMessageBox>();
+            dlgMock.Setup(m => m.Show(
+                    It.Is<string>(x => x.Contains(installedPackage.Name) && x.Contains(conflictingPackageName)),
+                    It.IsAny<string>(),
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error))
+                .Returns(MessageBoxResult.Yes);
+            MessageBoxService.OverrideMessageBoxDuringTests(dlgMock.Object);
+
+            try
+            {
+                var mockGreg = new Mock<IGregClient>();
+                var client = new Dynamo.PackageManager.PackageManagerClient(
+                    mockGreg.Object,
+                    MockMaker.Empty<IPackageUploadBuilder>(),
+                    string.Empty);
+                var pmVm = new PackageManagerClientViewModel(ViewModel, client);
+                pmVm.SetPackageState(packageDownloadHandle, installRoot);
+
+                Assert.AreEqual(PackageDownloadHandle.State.Installed, packageDownloadHandle.DownloadState);
+                Assert.IsTrue(Directory.Exists(expectedInstallPath));
+                Assert.IsTrue(ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Contains(installedPackage.RootDirectory));
+                Assert.AreEqual(PackageLoadState.ScheduledTypes.ScheduledForDeletion, installedPackage.LoadState.ScheduledState);
+                Assert.IsFalse(pkgLoader.LocalPackages.Any(x => x.Name == conflictingPackageName));
+                Assert.IsFalse(ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Contains(expectedInstallPath));
+                dlgMock.Verify(m => m.Show(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error), Times.Once);
+            }
+            finally
+            {
+                MessageBoxService.OverrideMessageBoxDuringTests(null);
             }
         }
 

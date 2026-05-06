@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -31,6 +32,55 @@ namespace Dynamo.PackageManager.Tests
             libraries.Add("DesignScriptBuiltin.dll");
             libraries.Add("DSCoreNodes.dll");
             base.GetLibrariesToPreload(libraries);
+        }
+
+        [Test]
+        public void ExtractWhenValidationCancelledDeletesStagingDirectory()
+        {
+            var packageName = "CancelledPackage";
+            var zipPath = CreatePackageZip(packageName);
+            var installRoot = Path.Combine(TempFolder, "packages");
+            string stagingPath = null;
+            var handle = new PackageDownloadHandle
+            {
+                Name = packageName,
+                VersionName = "1.0.0"
+            };
+            handle.Done(zipPath);
+
+            var extractionState = handle.Extract(
+                CurrentDynamoModel,
+                installRoot,
+                package =>
+                {
+                    stagingPath = package.RootDirectory;
+                    return false;
+                },
+                out var package);
+
+            Assert.AreEqual(PackageDownloadHandle.ExtractionState.Cancelled, extractionState);
+            Assert.IsNull(package);
+            Assert.IsNotNull(stagingPath);
+            Assert.IsFalse(Directory.Exists(stagingPath));
+            Assert.IsFalse(Directory.Exists(GetPackageInstallDirectory(installRoot, packageName)));
+        }
+
+        private string CreatePackageZip(string packageName)
+        {
+            var packageRoot = Path.Combine(TempFolder, packageName);
+            Directory.CreateDirectory(packageRoot);
+
+            var packageJson = @"{""file_hash"":null,""name"":""" + packageName + @""",""version"":""1.0.0"",""description"":""Test package."",""group"":""DynamoTests"",""keywords"":[],""dependencies"":[],""license"":""MIT"",""contents"":"""",""engine_version"":""0.5.2.10107"",""engine_metadata"":"""",""engine"":""dynamo""}";
+            File.WriteAllText(Path.Combine(packageRoot, "pkg.json"), packageJson);
+
+            var zipPath = Path.Combine(TempFolder, packageName + ".zip");
+            ZipFile.CreateFromDirectory(packageRoot, zipPath);
+            return zipPath;
+        }
+
+        private static string GetPackageInstallDirectory(string packageDirectory, string packageName)
+        {
+            return packageDirectory + @"\" + packageName.Replace("/", "_").Replace(@"\", "_");
         }
 
         [Test]
