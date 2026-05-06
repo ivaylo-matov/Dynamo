@@ -1144,9 +1144,7 @@ namespace Dynamo.ViewModels
         internal void SetPackageState(PackageDownloadHandle packageDownloadHandle, string downloadPath)
         {
             Package dynPkg;
-
             var packageLoader = PackageManagerExtension.PackageLoader;
-
 
             var shouldLoadPackage = true;
             var extractionsState = packageDownloadHandle.Extract(
@@ -1204,7 +1202,8 @@ namespace Dynamo.ViewModels
 
         private Package FindConflictingCustomNodePackage(Package pkg)
         {
-            if (pkg == null || !Directory.Exists(pkg.CustomNodeDirectory)) return null;
+            if (pkg == null || !Directory.Exists(pkg.CustomNodeDirectory))
+                return null;
 
             var customNodemanager = DynamoViewModel.Model.CustomNodeManager;
             var packageLoader = PackageManagerExtension.PackageLoader;
