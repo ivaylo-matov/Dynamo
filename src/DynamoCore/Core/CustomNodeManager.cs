@@ -669,7 +669,7 @@ namespace Dynamo.Core
                     // TODO (for now we don't raise an error for different
                     //versions of the same package, don't want to effect publish new version workflows.
 
-                    if (newInfo.PackageInfo.Name != info.PackageInfo.Name)
+                    if (WouldThrowCrossPackageCustomNodeCollision(newInfo, info))
                     {
                         var ex = new CustomNodePackageLoadException(newInfoPath, infoPath, message);
                         Log(ex.Message, WarningLevel.Moderate);
@@ -696,6 +696,95 @@ namespace Dynamo.Core
 
             NodeInfos[newInfo.FunctionId] = newInfo;
             OnInfoUpdated(newInfo);
+        }
+
+        /// <summary>
+        /// Returns whether registering <paramref name="newPackageNode"/> would throw
+        /// <see cref="CustomNodePackageLoadException"/> because <paramref name="existingRegisteredInfo"/>
+        /// already represents a different package (same custom node id).
+        /// </summary>
+        private static bool WouldThrowCrossPackageCustomNodeCollision(
+            CustomNodeInfo newPackageNode,
+            CustomNodeInfo existingRegisteredInfo)
+        {
+            if (newPackageNode == null || existingRegisteredInfo == null)
+            {
+                return false;
+            }
+
+            if (!newPackageNode.IsPackageMember || !existingRegisteredInfo.IsPackageMember)
+            {
+                return false;
+            }
+
+            if (existingRegisteredInfo.PackageInfo == null || newPackageNode.PackageInfo == null)
+            {
+                return false;
+            }
+
+            return newPackageNode.PackageInfo.Name != existingRegisteredInfo.PackageInfo.Name;
+        }
+
+        /// <summary>
+        /// When custom node definitions under <paramref name="customNodeDefinitionsDirectory"/> were loaded as
+        /// part of <paramref name="candidatePackageInfo"/>, determines whether that would hit the same
+        /// cross-package GUID collision as <see cref="SetNodeInfo"/> (without mutating node registration).
+        /// </summary>
+        /// <param name="customNodeDefinitionsDirectory">Absolute path to the package's custom node folder (often "dyf").</param>
+        /// <param name="isTestMode">Same flag used when loading custom nodes from disk.</param>
+        /// <param name="candidatePackageInfo">Package identity for the staged definitions.</param>
+        /// <param name="conflictingExisting">Existing registration that blocks the install, if any.</param>
+        /// <param name="candidateNode">One staged definition that collides, if any.</param>
+        /// <returns>True when the install should be blocked pending user resolution.</returns>
+        internal bool TryFindCrossPackageCustomNodeGuidConflictWithLoadedPackages(
+            string customNodeDefinitionsDirectory,
+            bool isTestMode,
+            PackageInfo candidatePackageInfo,
+            out CustomNodeInfo conflictingExisting,
+            out CustomNodeInfo candidateNode)
+        {
+            conflictingExisting = null;
+            candidateNode = null;
+
+            if (string.IsNullOrEmpty(customNodeDefinitionsDirectory) || !Directory.Exists(customNodeDefinitionsDirectory))
+            {
+                return false;
+            }
+
+            IEnumerable<string> dyfs;
+            try
+            {
+                dyfs = Directory.EnumerateFiles(customNodeDefinitionsDirectory, "*.dyf");
+            }
+            catch (Exception e)
+            {
+                Log(string.Format(Resources.CustomNodeFolderLoadFailure, customNodeDefinitionsDirectory));
+                Log(e);
+                return false;
+            }
+
+            foreach (var file in dyfs)
+            {
+                if (!TryGetInfoFromPath(file, isTestMode, out var newInfo))
+                {
+                    continue;
+                }
+
+                newInfo.IsPackageMember = true;
+                newInfo.PackageInfo = candidatePackageInfo;
+
+                if (newInfo.IsPackageMember && NodeInfos.TryGetValue(newInfo.FunctionId, out var existing))
+                {
+                    if (WouldThrowCrossPackageCustomNodeCollision(newInfo, existing))
+                    {
+                        conflictingExisting = existing;
+                        candidateNode = newInfo;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

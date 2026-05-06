@@ -1488,16 +1488,11 @@ namespace Dynamo.PackageManager
 
         private void ConflictingCustomNodePackageLoaded(Package installed, Package conflicting)
         {
-            var message = string.Format(Resources.MessageUninstallCustomNodeToContinue,
-                installed.Name + " " + installed.VersionName, conflicting.Name + " " + conflicting.VersionName);
-
-            var dialogResult = MessageBoxService.Show(message,
-                Resources.CannotDownloadPackageMessageBoxTitle,
-                MessageBoxButton.YesNo, MessageBoxImage.Error);
-
-            if (dialogResult == MessageBoxResult.Yes)
+            if (PackageCustomNodePackageConflictDialog.ShowShouldMarkInstalledPackageForUninstall(
+                PackageManagerClientViewModel?.ViewModelOwner,
+                installed,
+                conflicting))
             {
-                // mark for uninstallation
                 var settings = PackageManagerClientViewModel.DynamoViewModel.Model.PreferenceSettings;
                 installed.MarkForUninstall(settings);
             }

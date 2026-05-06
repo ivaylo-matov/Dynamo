@@ -1140,19 +1140,97 @@ namespace Dynamo.ViewModels
         /// Check Dynamo package install state
         /// </summary>
         /// <param name="packageDownloadHandle">package download handle</param>
-        /// <param name="downloadPath">package download path</param>
+        /// <param name="downloadPath">Root directory override for the Dynamo package folder (not the downloaded zip path).</param>
         internal void SetPackageState(PackageDownloadHandle packageDownloadHandle, string downloadPath)
         {
-            Package dynPkg;
-            if (packageDownloadHandle.Extract(DynamoViewModel.Model, downloadPath, out dynPkg))
+            string stagingPath = null;
+            try
             {
+                if (!packageDownloadHandle.TryStageDownloadedPackageForInstall(
+                    DynamoViewModel.Model,
+                    out Package dynPkg,
+                    out stagingPath))
+                {
+                    packageDownloadHandle.Error(Resources.MessageInvalidPackage);
+                    return;
+                }
+
+                if (Directory.Exists(dynPkg.CustomNodeDirectory))
+                {
+                    Version packageVersion;
+                    try
+                    {
+                        packageVersion = VersionUtilities.PartialParse(dynPkg.VersionName);
+                    }
+                    catch
+                    {
+                        packageVersion = new Version(0, 0);
+                    }
+
+                    var candidatePackageInfo = new PackageInfo(dynPkg.Name, packageVersion);
+
+                    if (DynamoViewModel.Model.CustomNodeManager.TryFindCrossPackageCustomNodeGuidConflictWithLoadedPackages(
+                        dynPkg.CustomNodeDirectory,
+                        DynamoViewModel.Model.IsTestMode,
+                        candidatePackageInfo,
+                        out var conflictingExisting,
+                        out _))
+                    {
+                        var loader = PackageManagerExtension.PackageLoader;
+                        var installedPkg = loader.GetOwnerPackage(conflictingExisting);
+                        if (installedPkg == null)
+                        {
+                            var installedDir = string.IsNullOrEmpty(conflictingExisting.Path)
+                                ? string.Empty
+                                : Path.GetDirectoryName(conflictingExisting.Path);
+                            installedPkg = loader.LocalPackages.FirstOrDefault(x => x.CustomNodeDirectory == installedDir);
+                        }
+
+                        if (installedPkg == null)
+                        {
+                            packageDownloadHandle.CancelStagedPackageInstall(stagingPath);
+                            stagingPath = null;
+                            packageDownloadHandle.Error(Resources.MessageInvalidPackage);
+                            return;
+                        }
+
+                        if (!PackageCustomNodePackageConflictDialog.ShowShouldMarkInstalledPackageForUninstall(
+                            ViewModelOwner,
+                            installedPkg,
+                            dynPkg))
+                        {
+                            packageDownloadHandle.CancelStagedPackageInstall(stagingPath);
+                            stagingPath = null;
+                            return;
+                        }
+
+                        var prefs = DynamoViewModel.Model.PreferenceSettings;
+                        installedPkg.MarkForUninstall(prefs);
+                        foreach (var cn in installedPkg.LoadedCustomNodes.ToList())
+                        {
+                            DynamoViewModel.Model.CustomNodeManager.Remove(cn.FunctionId);
+                        }
+                    }
+                }
+
+                packageDownloadHandle.CommitStagedPackageToInstallDirectory(
+                    DynamoViewModel.Model,
+                    downloadPath,
+                    dynPkg,
+                    stagingPath);
+                stagingPath = null;
+
                 PackageManagerExtension.PackageLoader.LoadPackages(new List<Package> { dynPkg });
                 packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
             }
-            else
+            catch (Exception e)
             {
-                packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Error;
-                packageDownloadHandle.Error(Resources.MessageInvalidPackage);
+                if (stagingPath != null)
+                {
+                    packageDownloadHandle.CancelStagedPackageInstall(stagingPath);
+                }
+
+                packageDownloadHandle.Error(e.Message);
             }
         }
 

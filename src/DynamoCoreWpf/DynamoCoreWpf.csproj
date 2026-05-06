@@ -908,6 +908,7 @@
     <Compile Include="ViewModels\PackageManager\PackageItemLeafViewModel.cs" />
     <Compile Include="ViewModels\PackageManager\PackageItemRootViewModel.cs" />
     <Compile Include="ViewModels\PackageManager\PackageItemViewModel.cs" />
+    <Compile Include="ViewModels\PackageManager\PackageCustomNodePackageConflictDialog.cs" />
     <Compile Include="ViewModels\PackageManager\PackageManagerClientViewModel.cs" />
     <Compile Include="ViewModels\PackageManager\PackageManagerSearchElementViewModel.cs" />
     <Compile Include="ViewModels\PackageManager\PackageManagerSearchViewModel.cs" />
