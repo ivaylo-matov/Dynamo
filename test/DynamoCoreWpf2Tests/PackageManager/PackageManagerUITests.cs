@@ -943,6 +943,7 @@ namespace DynamoCoreWpfTests.PackageManager
             var conflictingPackageZip = CreatePackageZip(conflictingPackageDirectory);
             var installDirectory = Path.Combine(packageRootDirectory, "install");
             var expectedConflictingPackageInstallDirectory = Path.Combine(installDirectory, "DynamoFormaBeta for 2.x");
+            ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Add(expectedConflictingPackageInstallDirectory);
 
             var dlgMock = new Mock<MessageBoxService.IMessageBox>();
             dlgMock.Setup(m => m.Show(
@@ -987,6 +988,7 @@ namespace DynamoCoreWpfTests.PackageManager
                 Assert.IsFalse(ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Contains(installedPackage.RootDirectory));
                 Assert.AreEqual(PackageDownloadHandle.State.Error, downloadHandle.DownloadState);
                 Assert.IsFalse(Directory.Exists(expectedConflictingPackageInstallDirectory));
+                Assert.IsTrue(ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Contains(expectedConflictingPackageInstallDirectory));
                 Assert.IsFalse(loader.LocalPackages.Any(package => package.Name == "DynamoFormaBeta for 2.x"));
             }
             finally
@@ -1021,6 +1023,7 @@ namespace DynamoCoreWpfTests.PackageManager
             var conflictingPackageZip = CreatePackageZip(conflictingPackageDirectory);
             var installDirectory = Path.Combine(packageRootDirectory, "install");
             var expectedConflictingPackageInstallDirectory = Path.Combine(installDirectory, "DynamoFormaBeta for 2.x");
+            ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Add(expectedConflictingPackageInstallDirectory);
 
             var dlgMock = new Mock<MessageBoxService.IMessageBox>();
             dlgMock.Setup(m => m.Show(
@@ -1063,6 +1066,7 @@ namespace DynamoCoreWpfTests.PackageManager
 
                 Assert.AreEqual(PackageLoadState.ScheduledTypes.ScheduledForDeletion, installedPackage.LoadState.ScheduledState);
                 Assert.IsTrue(ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Contains(installedPackage.RootDirectory));
+                Assert.IsFalse(ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Contains(expectedConflictingPackageInstallDirectory));
                 Assert.AreEqual(PackageDownloadHandle.State.Installed, downloadHandle.DownloadState);
                 Assert.IsTrue(Directory.Exists(expectedConflictingPackageInstallDirectory));
                 Assert.IsFalse(loader.LocalPackages.Any(package => package.Name == "DynamoFormaBeta for 2.x"));

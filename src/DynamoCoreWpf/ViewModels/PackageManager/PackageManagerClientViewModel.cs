@@ -1164,6 +1164,8 @@ namespace Dynamo.ViewModels
                 return;
             }
 
+            DynamoViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.RemoveAll(x => x.Equals(dynPkg.RootDirectory));
+
             if (!shouldLoadPackage)
             {
                 // The package will load after restart when the conflicting package is removed.
