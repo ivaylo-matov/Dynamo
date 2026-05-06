@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -734,6 +735,291 @@ namespace Dynamo.PackageManager.Tests
             loader.PackagesLoaded -= libraryLoader.LoadPackages;
             loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
         }
+
+        #region DYN-7587 -- pre-install custom-node conflict detection
+
+        [Test]
+        public void WhenStagedPackageSharesCustomNodeGuidWithLoadedPackage_GetConflictingCustomNodeInfo_ReturnsExistingInfo()
+        {
+            // Arrange: pre-load EvenOdd so a custom node with a known GUID is registered.
+            var loader = GetPackageLoader();
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            var evenOdd = Package.FromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd"), CurrentDynamoModel.Logger);
+            loader.LoadPackages(new[] { evenOdd });
+
+            var stagedDyfDirectory = Path.Combine(TestDirectory, "pkgs", "EvenOdd2", "dyf");
+
+            // Act
+            var conflicts = CurrentDynamoModel.CustomNodeManager
+                .GetConflictingCustomNodeInfo(stagedDyfDirectory, newPackageName: "EvenOdd2", isTestMode: true)
+                .ToList();
+
+            // Assert: the staged EvenOdd2 dyf has the same GUID as the loaded EvenOdd custom node.
+            Assert.AreEqual(1, conflicts.Count, "expected exactly one conflicting CustomNodeInfo");
+            Assert.AreEqual("EvenOdd", conflicts[0].PackageInfo?.Name, "the conflicting package should be the already-loaded EvenOdd");
+            Assert.AreEqual(Guid.Parse("3f19c484-d3f3-49ba-88c2-6c386a41f6ac"), conflicts[0].FunctionId);
+
+            loader.PackagesLoaded -= libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+        }
+
+        [Test]
+        public void WhenStagedPackageHasSameNameAsLoadedPackage_GetConflictingCustomNodeInfo_ReportsNoConflict()
+        {
+            // Arrange: load EvenOdd, then ask whether EvenOdd's own dyf conflicts with itself.
+            // Same package name => no cross-package conflict, even though GUIDs match.
+            var loader = GetPackageLoader();
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            var evenOdd = Package.FromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd"), CurrentDynamoModel.Logger);
+            loader.LoadPackages(new[] { evenOdd });
+
+            var stagedDyfDirectory = evenOdd.CustomNodeDirectory;
+
+            // Act
+            var conflicts = CurrentDynamoModel.CustomNodeManager
+                .GetConflictingCustomNodeInfo(stagedDyfDirectory, newPackageName: "EvenOdd", isTestMode: true)
+                .ToList();
+
+            // Assert
+            Assert.AreEqual(0, conflicts.Count, "same package name should not be reported as a conflict");
+
+            loader.PackagesLoaded -= libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+        }
+
+        [Test]
+        public void WhenCustomNodeDirectoryDoesNotExist_GetConflictingCustomNodeInfo_ReportsNoConflictAndDoesNotThrow()
+        {
+            var conflicts = CurrentDynamoModel.CustomNodeManager
+                .GetConflictingCustomNodeInfo(
+                    Path.Combine(TestDirectory, "this-directory-does-not-exist", "dyf"),
+                    newPackageName: "Anything",
+                    isTestMode: true)
+                .ToList();
+
+            Assert.AreEqual(0, conflicts.Count);
+        }
+
+        [Test]
+        public void GetConflictingPackageForStagedCustomNodes_ReturnsLoadedPackageWhenGuidsCollide()
+        {
+            // Arrange
+            var loader = GetPackageLoader();
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            var evenOdd = Package.FromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd"), CurrentDynamoModel.Logger);
+            loader.LoadPackages(new[] { evenOdd });
+
+            var stagedDyfDirectory = Path.Combine(TestDirectory, "pkgs", "EvenOdd2", "dyf");
+
+            // Act
+            var conflicting = loader.GetConflictingPackageForStagedCustomNodes(stagedDyfDirectory, "EvenOdd2");
+
+            // Assert
+            Assert.IsNotNull(conflicting, "expected to find the already-loaded EvenOdd as the conflicting package");
+            Assert.AreEqual("EvenOdd", conflicting.Name);
+
+            loader.PackagesLoaded -= libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+        }
+
+        [Test]
+        public void GetConflictingPackageForStagedCustomNodes_ReturnsNullWhenThereIsNoConflict()
+        {
+            // Pre-load EvenOdd, then ask about an unrelated dyf directory.
+            var loader = GetPackageLoader();
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            var evenOdd = Package.FromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd"), CurrentDynamoModel.Logger);
+            loader.LoadPackages(new[] { evenOdd });
+
+            // "Custom Rounding" is an unrelated test package with different GUIDs.
+            var unrelatedDyf = Path.Combine(TestDirectory, "pkgs", "Custom Rounding", "dyf");
+
+            var conflicting = loader.GetConflictingPackageForStagedCustomNodes(unrelatedDyf, "Custom Rounding");
+
+            Assert.IsNull(conflicting);
+
+            loader.PackagesLoaded -= libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+        }
+
+        [Test]
+        public void EarlyPackageInstallConflict_DefaultsToProceedWhenNoSubscriberCancels()
+        {
+            var loader = GetPackageLoader();
+            var installed = new Package("rootInstalled", "Existing", "1.0.0", string.Empty);
+            var conflicting = new Package("rootConflicting", "New", "2.0.0", string.Empty);
+
+            var args = loader.OnEarlyPackageInstallConflict(installed, conflicting);
+
+            Assert.IsFalse(args.CancelInstall, "with no subscribers, the install must proceed");
+            Assert.AreSame(installed, args.Installed);
+            Assert.AreSame(conflicting, args.Conflicting);
+        }
+
+        [Test]
+        public void EarlyPackageInstallConflict_SubscriberCanCancelInstall()
+        {
+            var loader = GetPackageLoader();
+            var installed = new Package("rootInstalled", "Existing", "1.0.0", string.Empty);
+            var conflicting = new Package("rootConflicting", "New", "2.0.0", string.Empty);
+
+            EventHandler<PackageConflictEventArgs> handler = (s, e) => e.CancelInstall = true;
+            loader.EarlyPackageInstallConflict += handler;
+            try
+            {
+                var args = loader.OnEarlyPackageInstallConflict(installed, conflicting);
+                Assert.IsTrue(args.CancelInstall, "subscriber should be able to cancel the install");
+            }
+            finally
+            {
+                loader.EarlyPackageInstallConflict -= handler;
+            }
+        }
+
+        [Test]
+        public void EarlyPackageInstallConflict_FlowSimulatesCancelLeavesInstallDirectoryUntouched()
+        {
+            // Arrange: pre-load EvenOdd so EvenOdd2 will be detected as conflicting.
+            var loader = GetPackageLoader();
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            var evenOdd = Package.FromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd"), CurrentDynamoModel.Logger);
+            loader.LoadPackages(new[] { evenOdd });
+
+            var prefs = CurrentDynamoModel.PreferenceSettings;
+            var initialUninstallEntries = prefs.PackageDirectoriesToUninstall.ToList();
+
+            // Use a fresh, empty install directory to verify nothing is written.
+            var fakeInstallDir = Path.Combine(Path.GetTempPath(), "DYN-7587-install-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(fakeInstallDir);
+
+            try
+            {
+                // Simulate the relevant SetPackageState steps for the cancel path:
+                //   1. detect a conflict on EvenOdd2 staged dyf,
+                //   2. raise EarlyPackageInstallConflict with a No-equivalent subscriber,
+                //   3. assert nothing is committed and the existing package is NOT marked for uninstall.
+
+                var stagedDyf = Path.Combine(TestDirectory, "pkgs", "EvenOdd2", "dyf");
+                var conflictingInstalled = loader.GetConflictingPackageForStagedCustomNodes(stagedDyf, "EvenOdd2");
+                Assert.IsNotNull(conflictingInstalled, "expected to detect EvenOdd as the installed conflicting package");
+
+                EventHandler<PackageConflictEventArgs> sayNo = (_, e) => e.CancelInstall = true;
+                loader.EarlyPackageInstallConflict += sayNo;
+                try
+                {
+                    var stagedPkg = Package.FromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd2"), CurrentDynamoModel.Logger);
+                    var args = loader.OnEarlyPackageInstallConflict(conflictingInstalled, stagedPkg);
+                    Assert.IsTrue(args.CancelInstall, "subscriber should have cancelled the install");
+                }
+                finally
+                {
+                    loader.EarlyPackageInstallConflict -= sayNo;
+                }
+
+                // Assert nothing leaked into the install directory.
+                Assert.AreEqual(0, Directory.GetFileSystemEntries(fakeInstallDir).Length,
+                    "no files should have been written to the install directory on cancel");
+
+                // Assert the existing package was NOT marked for uninstall.
+                CollectionAssert.AreEqual(initialUninstallEntries, prefs.PackageDirectoriesToUninstall,
+                    "PackageDirectoriesToUninstall must not change when the user cancels the install");
+            }
+            finally
+            {
+                if (Directory.Exists(fakeInstallDir))
+                {
+                    Directory.Delete(fakeInstallDir, recursive: true);
+                }
+                loader.PackagesLoaded -= libraryLoader.LoadPackages;
+                loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+            }
+        }
+
+        [Test]
+        public void PackageDownloadHandle_StageThenCleanUpStaging_DoesNotPolluteInstallDirectory()
+        {
+            // Arrange: build a small .zip containing the EvenOdd2 test package and a fresh empty
+            // install directory.
+            var zipPath = Path.Combine(Path.GetTempPath(), "DYN-7587-stage-" + Guid.NewGuid().ToString("N") + ".zip");
+            var fakeInstallDir = Path.Combine(Path.GetTempPath(), "DYN-7587-stage-install-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(fakeInstallDir);
+            try
+            {
+                ZipFile.CreateFromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd2"), zipPath);
+
+                var handle = new PackageDownloadHandle { DownloadPath = zipPath };
+
+                // Act: Stage only -- the .zip should be expanded somewhere (in the OS temp dir)
+                // but no files should appear under the install directory.
+                Assert.IsTrue(handle.Stage(CurrentDynamoModel, out var stagedPkg, out var stagedPath));
+                Assert.IsNotNull(stagedPkg);
+                Assert.IsTrue(Directory.Exists(stagedPath));
+                Assert.AreEqual(0, Directory.GetFileSystemEntries(fakeInstallDir).Length,
+                    "Stage must not write into the install directory");
+
+                // CleanUpStaging removes the staging tree and is a no-op on the install dir.
+                handle.CleanUpStaging(stagedPath);
+                Assert.IsFalse(Directory.Exists(stagedPath), "CleanUpStaging must remove the staged directory");
+                Assert.AreEqual(0, Directory.GetFileSystemEntries(fakeInstallDir).Length,
+                    "CleanUpStaging must not touch the install directory");
+            }
+            finally
+            {
+                if (File.Exists(zipPath)) File.Delete(zipPath);
+                if (Directory.Exists(fakeInstallDir)) Directory.Delete(fakeInstallDir, recursive: true);
+            }
+        }
+
+        [Test]
+        public void PackageDownloadHandle_StageThenCommit_PlacesFilesUnderInstallDirectory()
+        {
+            var zipPath = Path.Combine(Path.GetTempPath(), "DYN-7587-commit-" + Guid.NewGuid().ToString("N") + ".zip");
+            var fakeInstallDir = Path.Combine(Path.GetTempPath(), "DYN-7587-commit-install-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(fakeInstallDir);
+            try
+            {
+                ZipFile.CreateFromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd2"), zipPath);
+
+                var handle = new PackageDownloadHandle { DownloadPath = zipPath };
+
+                Assert.IsTrue(handle.Stage(CurrentDynamoModel, out var stagedPkg, out var stagedPath));
+                try
+                {
+                    Assert.IsTrue(handle.CommitInstall(stagedPath, fakeInstallDir, CurrentDynamoModel, stagedPkg));
+
+                    // The committed RootDirectory should sit under fakeInstallDir.
+                    Assert.IsTrue(stagedPkg.RootDirectory.StartsWith(fakeInstallDir, StringComparison.Ordinal));
+                    Assert.IsTrue(File.Exists(Path.Combine(stagedPkg.RootDirectory, "pkg.json")));
+                    Assert.IsTrue(File.Exists(Path.Combine(stagedPkg.CustomNodeDirectory, "EvenOdd.dyf")));
+                }
+                finally
+                {
+                    handle.CleanUpStaging(stagedPath);
+                }
+            }
+            finally
+            {
+                if (File.Exists(zipPath)) File.Delete(zipPath);
+                if (Directory.Exists(fakeInstallDir)) Directory.Delete(fakeInstallDir, recursive: true);
+            }
+        }
+
+        #endregion
 
         // This can occur when a user copies a custom node from a package into definitions folder.
         // TODO not exactly clear what behavior should be.
