@@ -1114,7 +1114,7 @@ namespace Dynamo.ViewModels
         /// Check Dynamo package install state
         /// </summary>
         /// <param name="packageDownloadHandle">package download handle</param>
-        /// <param name="downloadPath">package download path</param>
+        /// <param name="packagesRootDirectory">Root folder for package installation (custom path or empty for default)</param>
         internal void SetPackageState(PackageDownloadHandle packageDownloadHandle, string packagesRootDirectory)
         {
             string stagingDirectory = null;
