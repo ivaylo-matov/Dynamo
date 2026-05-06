@@ -130,6 +130,7 @@ namespace Dynamo.PackageManager
             // provide handle to installed package 
             pkg = Package.FromDirectory(unzipPath, dynamoModel.Logger);
 
+            // validate package metadata before installing
             if (pkg == null)
             {
                 TryDeleteDirectory(unzipPath);
@@ -139,6 +140,7 @@ namespace Dynamo.PackageManager
             if (String.IsNullOrEmpty(installDirectory))
                 installDirectory = dynamoModel.PathManager.DefaultPackagesDirectory;
 
+            // validate staged package before final copy
             if (validatePackage != null && !validatePackage(pkg))
             {
                 TryDeleteDirectory(unzipPath);
