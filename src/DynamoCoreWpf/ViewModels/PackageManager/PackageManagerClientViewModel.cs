@@ -1143,17 +1143,74 @@ namespace Dynamo.ViewModels
         /// <param name="downloadPath">package download path</param>
         internal void SetPackageState(PackageDownloadHandle packageDownloadHandle, string downloadPath)
         {
-            Package dynPkg;
-            if (packageDownloadHandle.Extract(DynamoViewModel.Model, downloadPath, out dynPkg))
+            // Stage the package into a temp folder so we can validate its custom node definitions
+            // against the already-loaded custom node packages before copying anything into the
+            // Dynamo packages folder. This prevents partial installs when the user declines a
+            // conflict prompt below.
+            var staged = packageDownloadHandle.BuildStagedPackage(DynamoViewModel.Model, downloadPath);
+            if (staged == null)
             {
-                PackageManagerExtension.PackageLoader.LoadPackages(new List<Package> { dynPkg });
-                packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
-            }
-            else
-            {
-                packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Error;
                 packageDownloadHandle.Error(Resources.MessageInvalidPackage);
+                return;
             }
+
+            if (!ResolvePreInstallCustomNodeConflicts(staged))
+            {
+                // The user declined the conflict prompt. Clean up the staged temp folder and
+                // leave the Dynamo packages folder, the loaded package list, and the
+                // PackageDirectoriesToUninstall preference list untouched.
+                PackageDownloadHandle.CleanupStaging(staged);
+                packageDownloadHandle.Error(Resources.CannotDownloadPackageMessageBoxTitle);
+                return;
+            }
+
+            PackageDownloadHandle.FinalizeExtraction(staged);
+            PackageManagerExtension.PackageLoader.LoadPackages(new List<Package> { staged.Package });
+            packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
+        }
+
+        /// <summary>
+        /// Inspects the staged package's .dyf files for custom node guid conflicts with packages
+        /// already loaded by Dynamo. If conflicts are found, surfaces the existing
+        /// "Cannot Download Package" dialog so the user can choose whether to mark the loaded
+        /// package(s) for uninstall and continue, or cancel the install.
+        /// </summary>
+        /// <param name="staged">Staged package to validate.</param>
+        /// <returns>True if the install should proceed; false if the user cancelled.</returns>
+        private bool ResolvePreInstallCustomNodeConflicts(StagedPackage staged)
+        {
+            var packageLoader = PackageManagerExtension.PackageLoader;
+            var customNodeManager = DynamoViewModel.Model.CustomNodeManager;
+
+            var conflictingPackages = packageLoader
+                .GetPackagesConflictingWithStagedPackage(staged.Package, customNodeManager, DynamoModel.IsTestMode)
+                .ToList();
+
+            if (conflictingPackages.Count == 0)
+            {
+                return true;
+            }
+
+            var conflictingNames = JoinPackageNames(conflictingPackages);
+            var stagedName = staged.Package.Name + " " + staged.Package.VersionName;
+            var message = string.Format(Resources.MessageUninstallCustomNodeToContinue,
+                conflictingNames, stagedName);
+
+            var dialogResult = MessageBoxService.Show(ViewModelOwner, message,
+                Resources.CannotDownloadPackageMessageBoxTitle,
+                MessageBoxButton.YesNo, MessageBoxImage.Error);
+
+            if (dialogResult != MessageBoxResult.Yes)
+            {
+                return false;
+            }
+
+            var settings = DynamoViewModel.Model.PreferenceSettings;
+            foreach (var pkg in conflictingPackages)
+            {
+                pkg.MarkForUninstall(settings);
+            }
+            return true;
         }
 
         public void ClearCompletedDownloads()

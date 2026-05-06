@@ -97,7 +97,8 @@ namespace Dynamo.PackageManager
         }
 
         /// <summary>
-        /// Extracts and parses the metadata of a downloaded package
+        /// Extracts and parses the metadata of a downloaded package.
+        /// Calls <see cref="BuildStagedPackage"/> followed by <see cref="FinalizeExtraction"/>.
         /// </summary>
         /// <param name="dynamoModel">Dynamo model</param>
         /// <param name="installDirectory">If specified, overrides Dynamo's default base folder for packages</param>
@@ -105,45 +106,129 @@ namespace Dynamo.PackageManager
         /// <returns>Whether the operation succeeded or not</returns>
         public bool Extract(DynamoModel dynamoModel, string installDirectory, out Package pkg)
         {
+            var staged = BuildStagedPackage(dynamoModel, installDirectory);
+            if (staged == null)
+            {
+                pkg = null;
+                return false;
+            }
+
+            FinalizeExtraction(staged);
+            pkg = staged.Package;
+            return true;
+        }
+
+        /// <summary>
+        /// Unzips the downloaded package into a temporary staging folder and parses its
+        /// metadata, but does not yet copy any files into Dynamo's package folder. The returned
+        /// <see cref="StagedPackage"/> can be inspected (for example, for conflicting custom node
+        /// definitions) before either calling <see cref="FinalizeExtraction"/> to install the
+        /// package or <see cref="CleanupStaging"/> to discard it.
+        /// </summary>
+        /// <param name="dynamoModel">Dynamo model</param>
+        /// <param name="installDirectory">If specified, overrides Dynamo's default base folder for packages</param>
+        /// <returns>A staged package handle, or null if the package metadata could not be parsed</returns>
+        internal StagedPackage BuildStagedPackage(DynamoModel dynamoModel, string installDirectory)
+        {
             this.DownloadState = State.Installing;
 
-            // unzip, place files
+            // unzip into a temp staging folder; nothing is written to the Dynamo packages folder yet.
             var unzipPath = Greg.Utility.FileUtilities.UnZip(DownloadPath);
             if (!Directory.Exists(unzipPath))
             {
                 throw new Exception(Properties.Resources.PackageEmpty);
             }
 
-            // provide handle to installed package 
-            pkg = Package.FromDirectory(unzipPath, dynamoModel.Logger);
-
-            if (pkg == null)
+            var stagedPkg = Package.FromDirectory(unzipPath, dynamoModel.Logger);
+            if (stagedPkg == null)
             {
-                return false;
+                return null;
             }
 
             if (String.IsNullOrEmpty(installDirectory))
                 installDirectory = dynamoModel.PathManager.DefaultPackagesDirectory;
 
-            var installedPath = BuildInstallDirectoryString(installDirectory, pkg.Name);
-            Directory.CreateDirectory(installedPath);
+            var installedPath = BuildInstallDirectoryString(installDirectory, stagedPkg.Name);
 
-            // Now create all of the directories
-            foreach (string dirPath in Directory.GetDirectories(unzipPath, "*", SearchOption.AllDirectories))
-                Directory.CreateDirectory(dirPath.Replace(unzipPath, installedPath));
+            return new StagedPackage(stagedPkg, unzipPath, installedPath);
+        }
 
-            // Copy all the files
-            foreach (string newPath in Directory.GetFiles(unzipPath, "*.*", SearchOption.AllDirectories))
-                File.Copy(newPath, newPath.Replace(unzipPath, installedPath));
+        /// <summary>
+        /// Copies the staged package contents into Dynamo's package folder and updates
+        /// <see cref="Package.RootDirectory"/> to point at the final installed location.
+        /// </summary>
+        /// <param name="staged">Staged package returned from <see cref="BuildStagedPackage"/>.</param>
+        internal static void FinalizeExtraction(StagedPackage staged)
+        {
+            if (staged == null) throw new ArgumentNullException(nameof(staged));
 
-            // Update root directory to final path
-            pkg.RootDirectory = installedPath;
+            Directory.CreateDirectory(staged.InstalledPath);
 
-            return true;
+            foreach (string dirPath in Directory.GetDirectories(staged.StagingPath, "*", SearchOption.AllDirectories))
+                Directory.CreateDirectory(dirPath.Replace(staged.StagingPath, staged.InstalledPath));
+
+            foreach (string newPath in Directory.GetFiles(staged.StagingPath, "*.*", SearchOption.AllDirectories))
+                File.Copy(newPath, newPath.Replace(staged.StagingPath, staged.InstalledPath));
+
+            staged.Package.RootDirectory = staged.InstalledPath;
+        }
+
+        /// <summary>
+        /// Deletes the temporary staging folder created by <see cref="BuildStagedPackage"/>.
+        /// Used to back out an install when, for example, the user cancels after a conflict
+        /// with an already-loaded package is detected.
+        /// </summary>
+        /// <param name="staged">Staged package returned from <see cref="BuildStagedPackage"/>.</param>
+        internal static void CleanupStaging(StagedPackage staged)
+        {
+            if (staged == null) return;
+
+            try
+            {
+                if (Directory.Exists(staged.StagingPath))
+                {
+                    Directory.Delete(staged.StagingPath, true);
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
 
         // cancel, install, redownload
 
+    }
+
+    /// <summary>
+    /// Represents a downloaded package that has been unzipped to a temporary staging folder
+    /// but has not yet been copied into Dynamo's package folder. Returned by
+    /// <see cref="PackageDownloadHandle.BuildStagedPackage"/>.
+    /// </summary>
+    internal class StagedPackage
+    {
+        /// <summary>
+        /// Package metadata parsed from the staged pkg.json. Its <see cref="Package.RootDirectory"/>
+        /// initially points at <see cref="StagingPath"/> and is updated to <see cref="InstalledPath"/>
+        /// once <see cref="PackageDownloadHandle.FinalizeExtraction"/> is called.
+        /// </summary>
+        public Package Package { get; }
+
+        /// <summary>
+        /// Temporary folder containing the unzipped package contents.
+        /// </summary>
+        public string StagingPath { get; }
+
+        /// <summary>
+        /// Final installation folder under Dynamo's packages directory. Created and populated
+        /// by <see cref="PackageDownloadHandle.FinalizeExtraction"/>.
+        /// </summary>
+        public string InstalledPath { get; }
+
+        internal StagedPackage(Package package, string stagingPath, string installedPath)
+        {
+            Package = package;
+            StagingPath = stagingPath;
+            InstalledPath = installedPath;
+        }
     }
 
 }
