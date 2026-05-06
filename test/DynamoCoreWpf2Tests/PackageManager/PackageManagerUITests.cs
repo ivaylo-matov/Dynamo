@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -73,6 +74,16 @@ namespace DynamoCoreWpfTests.PackageManager
         public static bool ComparePaths(string path1, string path2)
         {
             return PackageDirectoryBuilder.NormalizePath(path1) == PackageDirectoryBuilder.NormalizePath(path2);
+        }
+
+        private static string CreatePackageZip(string packageDirectory, string targetDirectory, string packageName)
+        {
+            Directory.CreateDirectory(targetDirectory);
+
+            var zipPath = Path.Combine(targetDirectory, packageName + ".zip");
+            ZipFile.CreateFromDirectory(packageDirectory, zipPath);
+
+            return zipPath;
         }
 
         public void AssertWindowOwnedByDynamoView<T>()
@@ -1570,6 +1581,129 @@ namespace DynamoCoreWpfTests.PackageManager
                 // 2. That a package with the same name and version already exists.
                 dlgMock.Verify(x => x.Show(It.IsAny<Window>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<MessageBoxButton>(), It.IsAny<MessageBoxImage>()), Times.Exactly(1));
                 dlgMock.ResetCalls();
+            }
+        }
+
+        [Test]
+        public void SetPackageState_WhenConflictingCustomNodePackageIsRejected_DoesNotInstallOrMarkExistingPackageForUninstall()
+        {
+            var packageLoader = GetPackageLoader();
+            var existingPackageDirectory = Path.Combine(PackagesDirectory, "EvenOdd");
+            var existingPackage = packageLoader.ScanPackageDirectory(existingPackageDirectory);
+            packageLoader.LoadPackages(new List<Package> { existingPackage });
+
+            var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            var installDirectory = Path.Combine(tempDirectory, "packages");
+            var conflictingPackageDirectory = Path.Combine(PackagesDirectory, "EvenOdd2");
+            var conflictingPackageInstallDirectory = Path.Combine(installDirectory, "EvenOdd2");
+
+            try
+            {
+                var zipPath = CreatePackageZip(conflictingPackageDirectory, tempDirectory, "EvenOdd2");
+                var packageDownloadHandle = new PackageDownloadHandle()
+                {
+                    Name = "EvenOdd2",
+                    Id = "EvenOdd2",
+                    VersionName = "1.0.0",
+                    DownloadPath = zipPath
+                };
+
+                var dlgMock = new Mock<MessageBoxService.IMessageBox>();
+                dlgMock.Setup(m => m.Show(
+                    It.IsAny<string>(),
+                    Dynamo.Wpf.Properties.Resources.CannotDownloadPackageMessageBoxTitle,
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error))
+                    .Returns(MessageBoxResult.No);
+                MessageBoxService.OverrideMessageBoxDuringTests(dlgMock.Object);
+
+                var mockGreg = new Mock<IGregClient>();
+                var client = new Dynamo.PackageManager.PackageManagerClient(
+                    mockGreg.Object,
+                    MockMaker.Empty<IPackageUploadBuilder>(),
+                    string.Empty);
+                var pmVm = new PackageManagerClientViewModel(ViewModel, client);
+                pmVm.SetPackageState(packageDownloadHandle, installDirectory);
+
+                Assert.AreEqual(PackageDownloadHandle.State.Error, packageDownloadHandle.DownloadState);
+                Assert.IsFalse(Directory.Exists(conflictingPackageInstallDirectory));
+                Assert.IsFalse(packageLoader.LocalPackages.Any(x => x.Name == "EvenOdd2"));
+                Assert.IsFalse(ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Contains(existingPackage.RootDirectory));
+                Assert.IsFalse(Directory.GetDirectories(tempDirectory).Any(x => Path.GetFileName(x) == "EvenOdd2"));
+
+                dlgMock.Verify(m => m.Show(
+                    It.IsAny<string>(),
+                    Dynamo.Wpf.Properties.Resources.CannotDownloadPackageMessageBoxTitle,
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error), Times.Once);
+            }
+            finally
+            {
+                if (Directory.Exists(tempDirectory))
+                {
+                    Directory.Delete(tempDirectory, true);
+                }
+            }
+        }
+
+        [Test]
+        public void SetPackageState_WhenConflictingCustomNodePackageIsAccepted_InstallsAndMarksExistingPackageForUninstall()
+        {
+            var packageLoader = GetPackageLoader();
+            var existingPackageDirectory = Path.Combine(PackagesDirectory, "EvenOdd");
+            var existingPackage = packageLoader.ScanPackageDirectory(existingPackageDirectory);
+            packageLoader.LoadPackages(new List<Package> { existingPackage });
+
+            var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            var installDirectory = Path.Combine(tempDirectory, "packages");
+            var conflictingPackageDirectory = Path.Combine(PackagesDirectory, "EvenOdd2");
+            var conflictingPackageInstallDirectory = Path.Combine(installDirectory, "EvenOdd2");
+
+            try
+            {
+                var zipPath = CreatePackageZip(conflictingPackageDirectory, tempDirectory, "EvenOdd2");
+                var packageDownloadHandle = new PackageDownloadHandle()
+                {
+                    Name = "EvenOdd2",
+                    Id = "EvenOdd2",
+                    VersionName = "1.0.0",
+                    DownloadPath = zipPath
+                };
+
+                var dlgMock = new Mock<MessageBoxService.IMessageBox>();
+                dlgMock.Setup(m => m.Show(
+                    It.IsAny<string>(),
+                    Dynamo.Wpf.Properties.Resources.CannotDownloadPackageMessageBoxTitle,
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error))
+                    .Returns(MessageBoxResult.Yes);
+                MessageBoxService.OverrideMessageBoxDuringTests(dlgMock.Object);
+
+                var mockGreg = new Mock<IGregClient>();
+                var client = new Dynamo.PackageManager.PackageManagerClient(
+                    mockGreg.Object,
+                    MockMaker.Empty<IPackageUploadBuilder>(),
+                    string.Empty);
+                var pmVm = new PackageManagerClientViewModel(ViewModel, client);
+                pmVm.SetPackageState(packageDownloadHandle, installDirectory);
+
+                Assert.AreEqual(PackageDownloadHandle.State.Installed, packageDownloadHandle.DownloadState);
+                Assert.IsTrue(Directory.Exists(conflictingPackageInstallDirectory));
+                Assert.IsTrue(ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Contains(existingPackage.RootDirectory));
+                Assert.IsFalse(ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.Contains(conflictingPackageInstallDirectory));
+
+                dlgMock.Verify(m => m.Show(
+                    It.IsAny<string>(),
+                    Dynamo.Wpf.Properties.Resources.CannotDownloadPackageMessageBoxTitle,
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error), Times.Once);
+            }
+            finally
+            {
+                if (Directory.Exists(tempDirectory))
+                {
+                    Directory.Delete(tempDirectory, true);
+                }
             }
         }
 
