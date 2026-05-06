@@ -1488,6 +1488,41 @@ namespace Dynamo.PackageManager
 
         private void ConflictingCustomNodePackageLoaded(Package installed, Package conflicting)
         {
+            if (PromptForCustomNodeConflictResolution(installed, conflicting))
+            {
+                // mark for uninstallation
+                var settings = PackageManagerClientViewModel.DynamoViewModel.Model.PreferenceSettings;
+                installed.MarkForUninstall(settings);
+            }
+        }
+
+        /// <summary>
+        /// Handles the pre-install conflict event raised by <see cref="PackageLoader.EarlyPackageInstallConflict"/>.
+        /// Reuses the existing "Cannot Download Package" dialog. On <c>No</c> the install is
+        /// cancelled (the staged contents are discarded by the caller and the existing package
+        /// is not marked for uninstall). On <c>Yes</c> the existing package is marked for
+        /// uninstall and the caller proceeds with the commit.
+        /// </summary>
+        private void EarlyPackageInstallConflict(object sender, PackageConflictEventArgs args)
+        {
+            if (PromptForCustomNodeConflictResolution(args.Installed, args.Conflicting))
+            {
+                var settings = PackageManagerClientViewModel.DynamoViewModel.Model.PreferenceSettings;
+                args.Installed.MarkForUninstall(settings);
+                args.CancelInstall = false;
+            }
+            else
+            {
+                args.CancelInstall = true;
+            }
+        }
+
+        /// <summary>
+        /// Shows the shared "Cannot Download Package" dialog. Returns <c>true</c> if the user
+        /// chose to proceed (Yes), <c>false</c> if they declined (No or cancelled).
+        /// </summary>
+        private static bool PromptForCustomNodeConflictResolution(Package installed, Package conflicting)
+        {
             var message = string.Format(Resources.MessageUninstallCustomNodeToContinue,
                 installed.Name + " " + installed.VersionName, conflicting.Name + " " + conflicting.VersionName);
 
@@ -1495,12 +1530,7 @@ namespace Dynamo.PackageManager
                 Resources.CannotDownloadPackageMessageBoxTitle,
                 MessageBoxButton.YesNo, MessageBoxImage.Error);
 
-            if (dialogResult == MessageBoxResult.Yes)
-            {
-                // mark for uninstallation
-                var settings = PackageManagerClientViewModel.DynamoViewModel.Model.PreferenceSettings;
-                installed.MarkForUninstall(settings);
-            }
+            return dialogResult == MessageBoxResult.Yes;
         }
 
         private void DownloadsOnCollectionChanged(object sender, NotifyCollectionChangedEventArgs args)
@@ -1635,6 +1665,8 @@ namespace Dynamo.PackageManager
             PackageManagerClientViewModel.Downloads.CollectionChanged += DownloadsOnCollectionChanged;
             PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.ConflictingCustomNodePackageLoaded +=
                 ConflictingCustomNodePackageLoaded;
+            PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.EarlyPackageInstallConflict +=
+                EarlyPackageInstallConflict;
         }
 
         internal void UnregisterTransientHandlers()
@@ -1643,6 +1675,8 @@ namespace Dynamo.PackageManager
             PackageManagerClientViewModel.Downloads.CollectionChanged -= DownloadsOnCollectionChanged;
             PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.ConflictingCustomNodePackageLoaded -=
                 ConflictingCustomNodePackageLoaded;
+            PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.EarlyPackageInstallConflict -=
+                EarlyPackageInstallConflict;
         }
 
         /// <summary>

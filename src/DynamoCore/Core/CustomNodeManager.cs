@@ -597,6 +597,61 @@ namespace Dynamo.Core
         }
 
         /// <summary>
+        ///     Inspects the .dyf files in <paramref name="customNodeDirectory"/> without registering
+        ///     them and returns the <see cref="CustomNodeInfo"/> entries of currently-loaded custom
+        ///     nodes that share a GUID with one of the staged files but originate from a different
+        ///     package.
+        ///     <para>
+        ///     This is intended for callers that want to detect a package conflict before the
+        ///     staged package is committed to the Dynamo packages directory (so the install can
+        ///     be cancelled cleanly without leaving partial files on disk).
+        ///     </para>
+        /// </summary>
+        /// <param name="customNodeDirectory">Directory containing the staged package's .dyf files.</param>
+        /// <param name="newPackageName">Name of the staged package. Used to suppress same-package matches.</param>
+        /// <param name="isTestMode">Test-mode flag forwarded to <see cref="TryGetInfoFromPath"/>.</param>
+        /// <returns>
+        ///     Existing <see cref="CustomNodeInfo"/> entries that conflict with the staged package.
+        ///     Empty if there is no conflict or the directory does not exist.
+        /// </returns>
+        internal IEnumerable<CustomNodeInfo> GetConflictingCustomNodeInfo(
+            string customNodeDirectory, string newPackageName, bool isTestMode)
+        {
+            if (string.IsNullOrEmpty(customNodeDirectory) || !Directory.Exists(customNodeDirectory))
+            {
+                yield break;
+            }
+
+            string[] dyfs;
+            try
+            {
+                dyfs = Directory.GetFiles(customNodeDirectory, "*.dyf");
+            }
+            catch (Exception e)
+            {
+                Log(string.Format(Resources.CustomNodeFolderLoadFailure, customNodeDirectory));
+                Log(e);
+                yield break;
+            }
+
+            foreach (var file in dyfs)
+            {
+                if (!TryGetInfoFromPath(file, isTestMode, out var stagedInfo) || stagedInfo == null)
+                {
+                    continue;
+                }
+
+                if (NodeInfos.TryGetValue(stagedInfo.FunctionId, out var existing) &&
+                    existing.IsPackageMember &&
+                    existing.PackageInfo != null &&
+                    !string.Equals(existing.PackageInfo.Name, newPackageName, StringComparison.Ordinal))
+                {
+                    yield return existing;
+                }
+            }
+        }
+
+        /// <summary>
         ///     Enumerates all of the files in the search path and get's their guids.
         ///     Does not instantiate the nodes.
         /// </summary>

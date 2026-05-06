@@ -97,6 +97,94 @@ namespace Dynamo.PackageManager
         }
 
         /// <summary>
+        /// Unzips the downloaded package into a temporary staging directory and parses its metadata.
+        /// The staged package's <see cref="Package.RootDirectory"/> is set to the staging directory
+        /// so that callers can inspect its contents (for example, to validate <c>.dyf</c> custom-node
+        /// GUIDs against already-loaded packages) before committing the install via
+        /// <see cref="CommitInstall"/>.
+        /// </summary>
+        /// <param name="dynamoModel">Dynamo model used for logging.</param>
+        /// <param name="pkg">The package parsed from the staged directory, or null on failure.</param>
+        /// <param name="stagedPath">Absolute path of the temporary staging directory.</param>
+        /// <returns>True if the package was staged and parsed successfully; false otherwise.</returns>
+        internal bool Stage(DynamoModel dynamoModel, out Package pkg, out string stagedPath)
+        {
+            this.DownloadState = State.Installing;
+
+            stagedPath = Greg.Utility.FileUtilities.UnZip(DownloadPath);
+            if (!Directory.Exists(stagedPath))
+            {
+                throw new Exception(Properties.Resources.PackageEmpty);
+            }
+
+            pkg = Package.FromDirectory(stagedPath, dynamoModel.Logger);
+            return pkg != null;
+        }
+
+        /// <summary>
+        /// Commits a previously-staged package to the Dynamo packages directory by copying the
+        /// staged contents to the final install location. Updates <see cref="Package.RootDirectory"/>
+        /// of <paramref name="pkg"/> to point at the committed location.
+        /// </summary>
+        /// <param name="stagedPath">Path returned by <see cref="Stage"/>.</param>
+        /// <param name="installDirectory">
+        /// Base packages directory. If null or empty, <paramref name="dynamoModel"/>'s default is used.
+        /// </param>
+        /// <param name="dynamoModel">Dynamo model used to resolve the default packages directory.</param>
+        /// <param name="pkg">Package metadata produced by <see cref="Stage"/>.</param>
+        /// <returns>True if the commit succeeded; false otherwise.</returns>
+        internal bool CommitInstall(string stagedPath, string installDirectory, DynamoModel dynamoModel, Package pkg)
+        {
+            if (pkg == null || string.IsNullOrEmpty(stagedPath) || !Directory.Exists(stagedPath))
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(installDirectory))
+            {
+                installDirectory = dynamoModel.PathManager.DefaultPackagesDirectory;
+            }
+
+            var installedPath = BuildInstallDirectoryString(installDirectory, pkg.Name);
+            Directory.CreateDirectory(installedPath);
+
+            foreach (string dirPath in Directory.GetDirectories(stagedPath, "*", SearchOption.AllDirectories))
+                Directory.CreateDirectory(dirPath.Replace(stagedPath, installedPath));
+
+            foreach (string newPath in Directory.GetFiles(stagedPath, "*.*", SearchOption.AllDirectories))
+                File.Copy(newPath, newPath.Replace(stagedPath, installedPath));
+
+            pkg.RootDirectory = installedPath;
+            return true;
+        }
+
+        /// <summary>
+        /// Removes the temporary staging directory created by <see cref="Stage"/>. Failures are
+        /// swallowed because cleanup is best-effort: a leftover staging directory in the OS temp
+        /// folder is harmless and will be reaped by the OS.
+        /// </summary>
+        /// <param name="stagedPath">Path returned by <see cref="Stage"/>.</param>
+        internal void CleanUpStaging(string stagedPath)
+        {
+            if (string.IsNullOrEmpty(stagedPath))
+            {
+                return;
+            }
+
+            try
+            {
+                if (Directory.Exists(stagedPath))
+                {
+                    Directory.Delete(stagedPath, recursive: true);
+                }
+            }
+            catch
+            {
+                // best-effort cleanup; ignore IO/permission failures
+            }
+        }
+
+        /// <summary>
         /// Extracts and parses the metadata of a downloaded package
         /// </summary>
         /// <param name="dynamoModel">Dynamo model</param>
@@ -105,41 +193,20 @@ namespace Dynamo.PackageManager
         /// <returns>Whether the operation succeeded or not</returns>
         public bool Extract(DynamoModel dynamoModel, string installDirectory, out Package pkg)
         {
-            this.DownloadState = State.Installing;
-
-            // unzip, place files
-            var unzipPath = Greg.Utility.FileUtilities.UnZip(DownloadPath);
-            if (!Directory.Exists(unzipPath))
+            string stagedPath = null;
+            try
             {
-                throw new Exception(Properties.Resources.PackageEmpty);
+                if (!Stage(dynamoModel, out pkg, out stagedPath))
+                {
+                    return false;
+                }
+
+                return CommitInstall(stagedPath, installDirectory, dynamoModel, pkg);
             }
-
-            // provide handle to installed package 
-            pkg = Package.FromDirectory(unzipPath, dynamoModel.Logger);
-
-            if (pkg == null)
+            finally
             {
-                return false;
+                CleanUpStaging(stagedPath);
             }
-
-            if (String.IsNullOrEmpty(installDirectory))
-                installDirectory = dynamoModel.PathManager.DefaultPackagesDirectory;
-
-            var installedPath = BuildInstallDirectoryString(installDirectory, pkg.Name);
-            Directory.CreateDirectory(installedPath);
-
-            // Now create all of the directories
-            foreach (string dirPath in Directory.GetDirectories(unzipPath, "*", SearchOption.AllDirectories))
-                Directory.CreateDirectory(dirPath.Replace(unzipPath, installedPath));
-
-            // Copy all the files
-            foreach (string newPath in Directory.GetFiles(unzipPath, "*.*", SearchOption.AllDirectories))
-                File.Copy(newPath, newPath.Replace(unzipPath, installedPath));
-
-            // Update root directory to final path
-            pkg.RootDirectory = installedPath;
-
-            return true;
         }
 
         // cancel, install, redownload
