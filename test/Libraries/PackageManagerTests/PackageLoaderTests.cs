@@ -607,6 +607,83 @@ namespace Dynamo.PackageManager.Tests
         }
 
         [Test]
+        public void TryGetConflictingPackageCustomNodeInfoDetectsDifferentPackageSameGuid()
+        {
+            var pathManager = new Mock<IPathManager>();
+            pathManager.SetupGet(x => x.PackagesDirectories).Returns(
+                () => new List<string> { PackagesDirectory });
+
+            var loader = new PackageLoader(pathManager.Object);
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            Func<string, PackageInfo, IEnumerable<CustomNodeInfo>> reqLoadCNDelegate = (dir, pkgInfo) =>
+                CurrentDynamoModel.CustomNodeManager.AddUninitializedCustomNodesInPath(dir, isTestMode: false, packageInfo: pkgInfo);
+            loader.RequestLoadCustomNodeDirectory += reqLoadCNDelegate;
+
+            loader.LoadAll(new LoadPackageParams
+            {
+                Preferences = CurrentDynamoModel.PreferenceSettings,
+            });
+
+            var evenOdd2Dyf = Path.Combine(TestDirectory, "pkgs", "EvenOdd2", "dyf");
+            var incomingInfo = new PackageInfo("EvenOdd2", new System.Version(1, 0, 0));
+            var hasConflict = CurrentDynamoModel.CustomNodeManager.TryGetConflictingPackageCustomNodeInfo(
+                evenOdd2Dyf,
+                false,
+                incomingInfo,
+                out var conflicting);
+
+            Assert.IsTrue(hasConflict);
+            Assert.IsNotNull(conflicting);
+            Assert.AreEqual("EvenOdd", conflicting.PackageInfo.Name);
+
+            loader.PackagesLoaded -= libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+            loader.RequestLoadCustomNodeDirectory -= reqLoadCNDelegate;
+        }
+
+        [Test]
+        public void TryGetConflictingPackageCustomNodeInfoReturnsFalseForSamePackageName()
+        {
+            var pathManager = new Mock<IPathManager>();
+            pathManager.SetupGet(x => x.PackagesDirectories).Returns(
+                () => new List<string> { PackagesDirectory });
+
+            var loader = new PackageLoader(pathManager.Object);
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            Func<string, PackageInfo, IEnumerable<CustomNodeInfo>> reqLoadCNDelegate = (dir, pkgInfo) =>
+                CurrentDynamoModel.CustomNodeManager.AddUninitializedCustomNodesInPath(dir, isTestMode: false, packageInfo: pkgInfo);
+            loader.RequestLoadCustomNodeDirectory += reqLoadCNDelegate;
+
+            loader.LoadAll(new LoadPackageParams
+            {
+                Preferences = CurrentDynamoModel.PreferenceSettings,
+            });
+
+            var evenOddDyf = Path.Combine(TestDirectory, "pkgs", "EvenOdd", "dyf");
+            var incomingInfo = new PackageInfo("EvenOdd", new System.Version(1, 0, 0));
+            var hasConflict = CurrentDynamoModel.CustomNodeManager.TryGetConflictingPackageCustomNodeInfo(
+                evenOddDyf,
+                false,
+                incomingInfo,
+                out var conflicting);
+
+            Assert.IsFalse(hasConflict);
+            Assert.IsNull(conflicting);
+
+            loader.PackagesLoaded -= libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+            loader.RequestLoadCustomNodeDirectory -= reqLoadCNDelegate;
+        }
+
+        [Test]
         public void PlacingCustomNodeInstanceFromPackageRetainsCorrectPackageInfoState()
         {
             var loader = GetPackageLoader();
