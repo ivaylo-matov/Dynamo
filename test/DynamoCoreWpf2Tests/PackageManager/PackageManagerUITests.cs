@@ -1716,6 +1716,57 @@ namespace DynamoCoreWpfTests.PackageManager
         }
 
         [Test]
+        [Description("Accepted custom node conflict does not schedule the installed package if extraction cannot finish")]
+        public void SetPackageStateWhenAcceptedConflictingCustomNodeInstallFailsDoesNotScheduleUninstall()
+        {
+            var pkgLoader = GetPackageLoader();
+            var installedPackage = LoadCustomRoundingPackage(pkgLoader);
+            var conflictingPackageName = "Conflicting Custom Rounding";
+            var installRoot = Path.Combine(TempFolder, "packages");
+            var zipPath = CreateConflictingCustomNodePackageZip(conflictingPackageName);
+            var expectedInstallPath = GetPackageInstallDirectory(installRoot, conflictingPackageName);
+            var packageDownloadHandle = new PackageDownloadHandle
+            {
+                Name = conflictingPackageName,
+                VersionName = "1.0.0"
+            };
+            packageDownloadHandle.Done(zipPath);
+
+            Directory.CreateDirectory(expectedInstallPath);
+            File.WriteAllText(Path.Combine(expectedInstallPath, "pkg.json"), "existing file");
+
+            var dlgMock = new Mock<MessageBoxService.IMessageBox>();
+            dlgMock.Setup(m => m.Show(
+                    It.Is<string>(x => x.Contains(installedPackage.Name) && x.Contains(conflictingPackageName)),
+                    It.IsAny<string>(),
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error))
+                .Returns(MessageBoxResult.Yes);
+            MessageBoxService.OverrideMessageBoxDuringTests(dlgMock.Object);
+
+            try
+            {
+                var scheduledUninstallsBeforeInstall = ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.ToList();
+                var mockGreg = new Mock<IGregClient>();
+                var client = new Dynamo.PackageManager.PackageManagerClient(
+                    mockGreg.Object,
+                    MockMaker.Empty<IPackageUploadBuilder>(),
+                    string.Empty);
+                var pmVm = new PackageManagerClientViewModel(ViewModel, client);
+
+                Assert.Throws<IOException>(() => pmVm.SetPackageState(packageDownloadHandle, installRoot));
+
+                Assert.AreEqual(PackageLoadState.ScheduledTypes.None, installedPackage.LoadState.ScheduledState);
+                CollectionAssert.AreEquivalent(scheduledUninstallsBeforeInstall, ViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall);
+                Assert.IsFalse(pkgLoader.LocalPackages.Any(x => x.Name == conflictingPackageName));
+            }
+            finally
+            {
+                MessageBoxService.OverrideMessageBoxDuringTests(null);
+            }
+        }
+
+        [Test]
         [Description("User tries to download package in Dynamo 3.x which was published in Dynamo 2.x")]
         public void PackageManagerShowsWarningWhenDownloadingLegacyPackage()
         {

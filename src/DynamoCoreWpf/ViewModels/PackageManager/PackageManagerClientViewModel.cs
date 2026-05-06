@@ -1147,10 +1147,11 @@ namespace Dynamo.ViewModels
             var packageLoader = PackageManagerExtension.PackageLoader;
 
             var shouldLoadPackage = true;
+            Package packageToUninstall = null;
             var extractionState = packageDownloadHandle.Extract(
                 DynamoViewModel.Model,
                 downloadPath,
-                package => ShouldFinalizePackageInstall(package, out shouldLoadPackage),
+                package => ShouldFinalizePackageInstall(package, out shouldLoadPackage, out packageToUninstall),
                 out dynPkg);
 
             if (extractionState == PackageDownloadHandle.ExtractionState.InvalidPackage)
@@ -1166,6 +1167,7 @@ namespace Dynamo.ViewModels
             }
 
             DynamoViewModel.Model.PreferenceSettings.PackageDirectoriesToUninstall.RemoveAll(x => x.Equals(dynPkg.RootDirectory));
+            packageToUninstall?.MarkForUninstall(DynamoViewModel.Model.PreferenceSettings);
 
             if (!shouldLoadPackage)
             {
@@ -1185,9 +1187,10 @@ namespace Dynamo.ViewModels
             packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
         }
 
-        private bool ShouldFinalizePackageInstall(Package pkg, out bool shouldLoadPackage)
+        private bool ShouldFinalizePackageInstall(Package pkg, out bool shouldLoadPackage, out Package packageToUninstall)
         {
             shouldLoadPackage = true;
+            packageToUninstall = null;
 
             var conflictingPkgs = FindConflictingCustomNodePackage(pkg);
             if (conflictingPkgs == null)
@@ -1197,6 +1200,7 @@ namespace Dynamo.ViewModels
                 return false;
 
             shouldLoadPackage = false;
+            packageToUninstall = conflictingPkgs;
             return true;
         }
 
@@ -1236,7 +1240,6 @@ namespace Dynamo.ViewModels
             if (dialogResult != MessageBoxResult.Yes)
                 return false;
 
-            installed.MarkForUninstall(DynamoViewModel.Model.PreferenceSettings);
             return true;
         }
 
