@@ -75,6 +75,29 @@ namespace DynamoCoreWpfTests.PackageManager
             return PackageDirectoryBuilder.NormalizePath(path1) == PackageDirectoryBuilder.NormalizePath(path2);
         }
 
+        private class TestDirectoryInfo : IDirectoryInfo
+        {
+            internal TestDirectoryInfo(string fullName)
+            {
+                FullName = fullName;
+            }
+
+            public string FullName { get; }
+        }
+
+        private static HashSet<string> GetGregPackageOutputDirectories()
+        {
+            var tempFolder = Greg.Utility.FileUtilities.GetTempFolder();
+            return Directory.Exists(tempFolder)
+                ? new HashSet<string>(Directory.GetDirectories(tempFolder, "gregPkgOutput*.zip*"))
+                : new HashSet<string>();
+        }
+
+        private static string GetPackageInstallDirectory(string packagesDirectory, string packageName)
+        {
+            return packagesDirectory + @"\" + packageName.Replace("/", "_").Replace(@"\", "_");
+        }
+
         public void AssertWindowOwnedByDynamoView<T>()
         {
             var windows = GetWindowEnumerable(View.OwnedWindows);
@@ -810,6 +833,94 @@ namespace DynamoCoreWpfTests.PackageManager
             dlgMock.Verify(x => x.Show(It.IsAny<Window>(), It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<MessageBoxButton>(), It.IsAny<MessageBoxImage>()), Times.Exactly(2));
             dlgMock.ResetCalls();
+        }
+
+        [Test]
+        [Description("User declines to install a downloaded package that conflicts with custom nodes from an existing package")]
+        public void PackageManagerCustomNodeConflictNoDoesNotInstallPackageOrLeaveTempExtraction()
+        {
+            var pkgLoader = GetPackageLoader();
+
+            var installedPackageLocation = Path.Combine(PackagesDirectory, "EvenOdd");
+            var installedPackage = pkgLoader.ScanPackageDirectory(installedPackageLocation);
+            Assert.IsNotNull(installedPackage);
+
+            pkgLoader.LoadPackages(new[] { installedPackage });
+
+            Assert.AreEqual(PackageLoadState.StateTypes.Loaded, installedPackage.LoadState.State);
+            Assert.IsTrue(installedPackage.LoadedCustomNodes.Any());
+
+            var mockGreg = new Mock<IGregClient>();
+            var client = new Dynamo.PackageManager.PackageManagerClient(mockGreg.Object, MockMaker.Empty<IPackageUploadBuilder>(), string.Empty);
+            var pmVm = new PackageManagerClientViewModel(ViewModel, client);
+
+            var dlgMock = new Mock<MessageBoxService.IMessageBox>();
+            dlgMock.Setup(m => m.Show(
+                    It.IsAny<string>(),
+                    Dynamo.Wpf.Properties.Resources.CannotDownloadPackageMessageBoxTitle,
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error))
+                .Returns(MessageBoxResult.No);
+            MessageBoxService.OverrideMessageBoxDuringTests(dlgMock.Object);
+
+            var conflictingPackageName = "EvenOdd2";
+            var conflictingPackageLocation = Path.Combine(PackagesDirectory, conflictingPackageName);
+            var installDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            var expectedInstallDirectory = GetPackageInstallDirectory(installDirectory, conflictingPackageName);
+            var packageOutputDirectoriesBeforeInstall = GetGregPackageOutputDirectories();
+            IFileInfo zippedPackage = null;
+
+            try
+            {
+                Directory.CreateDirectory(installDirectory);
+                zippedPackage = new MutatingFileCompressor().Zip(new TestDirectoryInfo(conflictingPackageLocation));
+
+                var packageDownloadHandle = new PackageDownloadHandle
+                {
+                    Id = conflictingPackageName,
+                    Name = conflictingPackageName,
+                    VersionName = "1.0.0"
+                };
+                packageDownloadHandle.Done(zippedPackage.Name);
+
+                pmVm.SetPackageState(packageDownloadHandle, installDirectory);
+
+                Assert.AreEqual(PackageDownloadHandle.State.Error, packageDownloadHandle.DownloadState);
+                Assert.AreEqual(Dynamo.Wpf.Properties.Resources.CannotDownloadPackageMessageBoxTitle, packageDownloadHandle.ErrorString);
+                Assert.IsFalse(Directory.Exists(expectedInstallDirectory));
+                Assert.IsFalse(pkgLoader.LocalPackages.Any(package => package.Name == conflictingPackageName));
+
+                var remainingPackageOutputDirectories = GetGregPackageOutputDirectories()
+                    .Except(packageOutputDirectoriesBeforeInstall)
+                    .ToList();
+                CollectionAssert.IsEmpty(remainingPackageOutputDirectories);
+
+                dlgMock.Verify(m => m.Show(
+                        It.IsAny<string>(),
+                        Dynamo.Wpf.Properties.Resources.CannotDownloadPackageMessageBoxTitle,
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Error),
+                    Times.Once);
+            }
+            finally
+            {
+                MessageBoxService.OverrideMessageBoxDuringTests(null);
+
+                if (zippedPackage != null && File.Exists(zippedPackage.Name))
+                {
+                    File.Delete(zippedPackage.Name);
+                }
+
+                if (Directory.Exists(expectedInstallDirectory))
+                {
+                    Directory.Delete(expectedInstallDirectory, true);
+                }
+
+                if (Directory.Exists(installDirectory))
+                {
+                    Directory.Delete(installDirectory, true);
+                }
+            }
         }
 
         [Test]
