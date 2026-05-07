@@ -4855,24 +4855,6 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The package install was cancelled because of a custom node conflict with an already-loaded package..
-        /// </summary>
-        public static string MessagePackageInstallCancelled {
-            get {
-                return ResourceManager.GetString("MessagePackageInstallCancelled", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to This package conflicts with a currently-loaded package and will be loaded after Dynamo restarts..
-        /// </summary>
-        public static string MessagePackageRequiresRestart {
-            get {
-                return ResourceManager.GetString("MessagePackageRequiresRestart", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to To load the built-in package {1}, {0} needs to first delete any conflicting packages.
         ///
         ///Delete the following packages: {2}?.

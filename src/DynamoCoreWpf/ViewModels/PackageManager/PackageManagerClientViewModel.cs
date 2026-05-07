@@ -1171,25 +1171,26 @@ namespace Dynamo.ViewModels
                     var args = loader.OnEarlyPackageInstallConflict(conflictingInstalled, dynPkg);
                     if (args.CancelInstall)
                     {
-                        packageDownloadHandle.Error(Resources.MessagePackageInstallCancelled);
+                        // User declined the conflict prompt: nothing is committed, no in-list
+                        // notification text is set. Just transition the handle to Error so the
+                        // download UI stops showing it as in-flight.
+                        packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Error;
                         return;
                     }
 
                     // User opted to proceed: copy the staged contents to the packages directory,
                     // but do NOT call LoadPackages — the conflicting package is still loaded in
                     // this session and would re-throw CustomNodePackageLoadException. The new
-                    // package will be picked up on next startup, after the conflicting package
-                    // has been removed by DoCachedPackageUninstalls.
+                    // package is picked up on next startup, after the conflicting package has
+                    // been removed by DoCachedPackageUninstalls (LoadAll re-scans the packages
+                    // directory at startup), so we deliberately do not add it to LocalPackages
+                    // here either — that would surface a misleading in-list error.
                     if (!packageDownloadHandle.CommitInstall(stagedPath, installPath, dynamoModel, dynPkg))
                     {
                         packageDownloadHandle.Error(Resources.MessageInvalidPackage);
                         return;
                     }
 
-                    // Track the staged package so it appears in LocalPackages (in an Error state
-                    // with a "requires restart" message) but is not loaded this session.
-                    loader.Add(dynPkg);
-                    dynPkg.LoadState.SetAsError(Resources.MessagePackageRequiresRestart);
                     packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
                     return;
                 }

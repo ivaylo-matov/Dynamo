@@ -979,14 +979,6 @@ You can always redownload the package.</value>
   <data name="MessageInvalidPackage" xml:space="preserve">
     <value>Failed to load an invalid package.</value>
   </data>
-  <data name="MessagePackageInstallCancelled" xml:space="preserve">
-    <value>The package install was cancelled because of a custom node conflict with an already-loaded package.</value>
-    <comment>Error shown on a download handle when the user declines a custom-node-conflict prompt during install.</comment>
-  </data>
-  <data name="MessagePackageRequiresRestart" xml:space="preserve">
-    <value>This package conflicts with a currently-loaded package and will be loaded after Dynamo restarts.</value>
-    <comment>Error/state message shown on a package that was extracted to disk but cannot be loaded in the current session because of a custom-node conflict.</comment>
-  </data>
   <data name="MessageFailedToDelete" xml:space="preserve">
     <value>{0} failed to delete the package.  You may need to delete the package's root directory manually.</value>
   </data>
