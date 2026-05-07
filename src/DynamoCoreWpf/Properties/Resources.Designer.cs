@@ -4692,11 +4692,20 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Package installation was cancelled because one or more custom nodes conflict with another installed package..
+        ///   Looks up a localized string similar to Installation cancelled due to custom node conflict..
         /// </summary>
         public static string MessagePackageInstallCancelledDueToCustomNodeConflict {
             get {
                 return ResourceManager.GetString("MessagePackageInstallCancelledDueToCustomNodeConflict", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Installed. Restart Dynamo to remove the conflicting package and load this one..
+        /// </summary>
+        public static string MessagePackageInstallRestartToCompleteCustomNodeReplace {
+            get {
+                return ResourceManager.GetString("MessagePackageInstallRestartToCompleteCustomNodeReplace", resourceCulture);
             }
         }
         

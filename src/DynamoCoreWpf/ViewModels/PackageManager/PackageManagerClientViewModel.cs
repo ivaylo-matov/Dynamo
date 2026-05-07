@@ -1160,6 +1160,7 @@ namespace Dynamo.ViewModels
 
                         packageDownloadHandle.CompleteInstallation(dynPkg, stagingDirectory, packagesRoot);
                         packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
+                        packageDownloadHandle.ErrorString = Resources.MessagePackageInstallRestartToCompleteCustomNodeReplace;
                         return;
                     }
                 }
