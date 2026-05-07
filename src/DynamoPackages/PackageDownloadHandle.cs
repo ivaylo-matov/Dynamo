@@ -98,15 +98,11 @@ namespace Dynamo.PackageManager
 
         /// <summary>
         /// Unzips the downloaded package into a temporary staging directory and parses its metadata.
-        /// The staged package's <see cref="Package.RootDirectory"/> is set to the staging directory
-        /// so that callers can inspect its contents (for example, to validate <c>.dyf</c> custom-node
-        /// GUIDs against already-loaded packages) before committing the install via
-        /// <see cref="CommitInstall"/>.
         /// </summary>
-        /// <param name="dynamoModel">Dynamo model used for logging.</param>
-        /// <param name="pkg">The package parsed from the staged directory, or null on failure.</param>
-        /// <param name="stagedPath">Absolute path of the temporary staging directory.</param>
-        /// <returns>True if the package was staged and parsed successfully; false otherwise.</returns>
+        /// <param name="dynamoModel">Dynamo model.</param>
+        /// <param name="pkg">Parsed package, or null on failure.</param>
+        /// <param name="stagedPath">Absolute path of the staging directory.</param>
+        /// <returns>True on success.</returns>
         internal bool Stage(DynamoModel dynamoModel, out Package pkg, out string stagedPath)
         {
             this.DownloadState = State.Installing;
@@ -122,17 +118,14 @@ namespace Dynamo.PackageManager
         }
 
         /// <summary>
-        /// Commits a previously-staged package to the Dynamo packages directory by copying the
-        /// staged contents to the final install location. Updates <see cref="Package.RootDirectory"/>
-        /// of <paramref name="pkg"/> to point at the committed location.
+        /// Copies the staged package into the Dynamo packages directory and updates
+        /// <see cref="Package.RootDirectory"/> to the committed path.
         /// </summary>
         /// <param name="stagedPath">Path returned by <see cref="Stage"/>.</param>
-        /// <param name="installDirectory">
-        /// Base packages directory. If null or empty, <paramref name="dynamoModel"/>'s default is used.
-        /// </param>
-        /// <param name="dynamoModel">Dynamo model used to resolve the default packages directory.</param>
-        /// <param name="pkg">Package metadata produced by <see cref="Stage"/>.</param>
-        /// <returns>True if the commit succeeded; false otherwise.</returns>
+        /// <param name="installDirectory">Base packages directory; falls back to the model default if null/empty.</param>
+        /// <param name="dynamoModel">Dynamo model.</param>
+        /// <param name="pkg">Package returned by <see cref="Stage"/>.</param>
+        /// <returns>True on success.</returns>
         internal bool CommitInstall(string stagedPath, string installDirectory, DynamoModel dynamoModel, Package pkg)
         {
             if (pkg == null || string.IsNullOrEmpty(stagedPath) || !Directory.Exists(stagedPath))
@@ -159,9 +152,7 @@ namespace Dynamo.PackageManager
         }
 
         /// <summary>
-        /// Removes the temporary staging directory created by <see cref="Stage"/>. Failures are
-        /// swallowed because cleanup is best-effort: a leftover staging directory in the OS temp
-        /// folder is harmless and will be reaped by the OS.
+        /// Best-effort delete of the staging directory created by <see cref="Stage"/>.
         /// </summary>
         /// <param name="stagedPath">Path returned by <see cref="Stage"/>.</param>
         internal void CleanUpStaging(string stagedPath)

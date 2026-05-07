@@ -1137,17 +1137,14 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        /// Stages the downloaded package, validates it for custom-node GUID conflicts against
-        /// already-loaded packages, and then either commits the install or cleans up the
-        /// staging folder. When a conflict is found, the existing
-        /// <see cref="PackageLoader.ConflictingCustomNodePackageLoaded"/> event is raised
-        /// (which shows the existing "Cannot Download Package" dialog and, on Yes, marks
-        /// the older package for uninstall). The decision is detected by snapshotting the
-        /// older package's <see cref="PackageLoadState.ScheduledState"/> across the prompt:
-        /// <c>MarkForUninstall</c> mutates it on Yes, leaves it unchanged on No.
+        /// Stages the package, validates custom-node GUIDs against loaded packages, and
+        /// commits or cleans up. On conflict, raises the existing
+        /// <see cref="PackageLoader.ConflictingCustomNodePackageLoaded"/> event and infers
+        /// Yes/No from the older package's <see cref="PackageLoadState.ScheduledState"/>
+        /// changing across the prompt.
         /// </summary>
-        /// <param name="packageDownloadHandle">Package download handle managing the install lifecycle.</param>
-        /// <param name="installPath">Override base directory for package install. May be null/empty.</param>
+        /// <param name="packageDownloadHandle">Download handle for the install.</param>
+        /// <param name="installPath">Override packages directory; may be null/empty.</param>
         internal void SetPackageState(PackageDownloadHandle packageDownloadHandle, string installPath)
         {
             var loader = PackageManagerExtension.PackageLoader;

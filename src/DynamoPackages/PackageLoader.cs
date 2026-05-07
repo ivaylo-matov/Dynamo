@@ -311,9 +311,7 @@ namespace Dynamo.PackageManager
         public event Action<Package, Package> ConflictingCustomNodePackageLoaded;
 
         /// <summary>
-        /// Raises <see cref="ConflictingCustomNodePackageLoaded"/>. Exposed so the package
-        /// install pipeline can drive the same dialog before committing a staged package
-        /// (DYN-7587), without bypassing the normal subscribers.
+        /// Raises <see cref="ConflictingCustomNodePackageLoaded"/>.
         /// </summary>
         internal void OnConflictingPackageLoaded(Package installed, Package conflicting)
         {
