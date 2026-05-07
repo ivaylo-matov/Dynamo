@@ -292,7 +292,7 @@ namespace Dynamo.PackageManager
             {
                 Package originalPackage =
                     localPackages.FirstOrDefault(x => x.CustomNodeDirectory == e.InstalledPath);
-                NotifyUserOfConflictingCustomNodePackage(originalPackage, package);
+                OnConflictingPackageLoaded(originalPackage, package);
 
                 package.LoadState.SetAsError(e.Message);
             }
@@ -316,7 +316,11 @@ namespace Dynamo.PackageManager
         /// </summary>
         public event Func<Package, Package, bool> ConflictingCustomNodePackageLoaded;
 
-        private bool OnConflictingPackageLoaded(Package installed, Package conflicting)
+        /// <summary>
+        /// Invokes <see cref="ConflictingCustomNodePackageLoaded"/> (e.g. conflict dialog). Does not change package load state.
+        /// </summary>
+        /// <returns>True if the user accepts replacing the installed package after restart (Yes).</returns>
+        internal bool OnConflictingPackageLoaded(Package installed, Package conflicting)
         {
             var handler = ConflictingCustomNodePackageLoaded;
             if (handler == null)
@@ -334,15 +338,6 @@ namespace Dynamo.PackageManager
             }
 
             return acceptReplace;
-        }
-
-        /// <summary>
-        /// Runs the same conflict UI as a failed custom node load, without mutating package load state.
-        /// </summary>
-        /// <returns>True if the user chose to replace the installed package after restart.</returns>
-        public bool NotifyUserOfConflictingCustomNodePackage(Package installedPackage, Package conflictingPackage)
-        {
-            return OnConflictingPackageLoaded(installedPackage, conflictingPackage);
         }
 
         /// <summary>

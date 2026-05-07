@@ -1150,7 +1150,7 @@ namespace Dynamo.ViewModels
                         }
 
                         var userChoseReplace =
-                            PackageManagerExtension.PackageLoader.NotifyUserOfConflictingCustomNodePackage(installedPkg, dynPkg);
+                            PackageManagerExtension.PackageLoader.OnConflictingPackageLoaded(installedPkg, dynPkg);
 
                         if (!userChoseReplace)
                         {
