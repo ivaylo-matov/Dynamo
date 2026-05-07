@@ -23,7 +23,6 @@ namespace Dynamo.PackageManager
         private Action<Assembly> RequestLoadNodeLibraryHandler;
         //TODO should we add a new handler specifically for packages? this is the package manager afterall so maybe not.
         private event Func<string, PackageInfo, IEnumerable<CustomNodeInfo>> RequestLoadCustomNodeDirectoryHandler;
-        private Func<string, string, IEnumerable<CustomNodeInfo>> RequestCustomNodeConflictCheckHandler;
         private Action<IEnumerable<Assembly>> LoadPackagesHandler;
 
         public event Func<string, IExtension> RequestLoadExtension;
@@ -98,11 +97,6 @@ namespace Dynamo.PackageManager
                 PackageLoader.RequestLoadCustomNodeDirectory -=
                     RequestLoadCustomNodeDirectoryHandler;
             }
-            if (RequestCustomNodeConflictCheckHandler != null)
-            {
-                PackageLoader.RequestCustomNodeConflictCheck -=
-                    RequestCustomNodeConflictCheckHandler;
-            }
             if (RequestLoadExtension != null)
             {
                 PackageLoader.RequestLoadExtension -=
@@ -148,10 +142,6 @@ namespace Dynamo.PackageManager
             RequestLoadCustomNodeDirectoryHandler = (dir,pkgInfo) => customNodeManager
                     .AddUninitializedCustomNodesInPath(dir, DynamoModel.IsTestMode, pkgInfo);
 
-            //Resolve custom-node GUID conflicts for a staged package without registering its nodes.
-            RequestCustomNodeConflictCheckHandler = (dir, newPkgName) => customNodeManager
-                    .GetConflictingCustomNodeInfo(dir, newPkgName, DynamoModel.IsTestMode);
-
             //when the customNodeManager requests to know the owner of a customNode handle this query.
             customNodeManager.RequestCustomNodeOwner += handleCustomNodeOwnerQuery;
 
@@ -161,7 +151,6 @@ namespace Dynamo.PackageManager
             PackageLoader.PackagesLoaded += LoadPackagesHandler;
             PackageLoader.RequestLoadNodeLibrary += RequestLoadNodeLibraryHandler;
             PackageLoader.RequestLoadCustomNodeDirectory += RequestLoadCustomNodeDirectoryHandler;
-            PackageLoader.RequestCustomNodeConflictCheck += RequestCustomNodeConflictCheckHandler;
 
             PythonServices.PythonEngineManager.Instance.AvailableEngines.CollectionChanged += PythonEngineAdded;
                 

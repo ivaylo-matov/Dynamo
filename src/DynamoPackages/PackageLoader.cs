@@ -38,14 +38,6 @@ namespace Dynamo.PackageManager
         internal event Action<IExtension> RequestAddExtension;
 
         /// <summary>
-        /// Inspects a staged package's custom-node directory for GUID conflicts against
-        /// already-loaded custom-node packages, without registering the staged custom nodes.
-        /// Subscribers receive the staged custom-node directory path and the staged package
-        /// name and return the existing <see cref="CustomNodeInfo"/> entries that conflict.
-        /// </summary>
-        internal event Func<string, string, IEnumerable<CustomNodeInfo>> RequestCustomNodeConflictCheck;
-
-        /// <summary>
         /// This event is raised when a package is first added to the list of packages this package loader is loading.
         /// This event occurs before the package is fully loaded. 
         /// </summary>
@@ -317,69 +309,16 @@ namespace Dynamo.PackageManager
         /// with an existing package is tried to load.
         /// </summary>
         public event Action<Package, Package> ConflictingCustomNodePackageLoaded;
-        private void OnConflictingPackageLoaded(Package installed, Package conflicting)
+
+        /// <summary>
+        /// Raises <see cref="ConflictingCustomNodePackageLoaded"/>. Exposed so the package
+        /// install pipeline can drive the same dialog before committing a staged package
+        /// (DYN-7587), without bypassing the normal subscribers.
+        /// </summary>
+        internal void OnConflictingPackageLoaded(Package installed, Package conflicting)
         {
             var handler = ConflictingCustomNodePackageLoaded;
             handler?.Invoke(installed, conflicting);
-        }
-
-        /// <summary>
-        /// Event raised when a package install has been staged but, prior to being committed
-        /// to the Dynamo packages directory, has been detected to contain custom-node GUIDs
-        /// that conflict with an already-loaded custom-node package. Subscribers can prompt
-        /// the user and either set <see cref="PackageConflictEventArgs.CancelInstall"/> to
-        /// abort the install or mark the existing package for uninstall to allow the install
-        /// to proceed (effective on next session).
-        /// </summary>
-        public event EventHandler<PackageConflictEventArgs> EarlyPackageInstallConflict;
-
-        /// <summary>
-        /// Raises <see cref="EarlyPackageInstallConflict"/>. Returns the resulting event args so
-        /// callers can inspect <see cref="PackageConflictEventArgs.CancelInstall"/>. If there is
-        /// no subscriber, the args are returned with <c>CancelInstall = false</c> (i.e. proceed).
-        /// </summary>
-        internal PackageConflictEventArgs OnEarlyPackageInstallConflict(Package installed, Package conflicting)
-        {
-            var args = new PackageConflictEventArgs(installed, conflicting);
-            EarlyPackageInstallConflict?.Invoke(this, args);
-            return args;
-        }
-
-        /// <summary>
-        /// Returns the already-loaded <see cref="Package"/> whose custom nodes share a GUID with
-        /// one of the .dyf files in <paramref name="customNodeDirectory"/>, or null if there is no
-        /// conflict (or no subscriber to <see cref="RequestCustomNodeConflictCheck"/>).
-        /// </summary>
-        /// <param name="customNodeDirectory">Staged package's custom-node directory.</param>
-        /// <param name="newPackageName">Staged package's name (used to skip same-package matches).</param>
-        internal Package GetConflictingPackageForStagedCustomNodes(string customNodeDirectory, string newPackageName)
-        {
-            var handler = RequestCustomNodeConflictCheck;
-            if (handler == null)
-            {
-                return null;
-            }
-
-            IEnumerable<CustomNodeInfo> conflicts;
-            try
-            {
-                conflicts = handler(customNodeDirectory, newPackageName);
-            }
-            catch (Exception ex)
-            {
-                Log("Exception while checking for staged custom-node package conflicts: " + ex);
-                return null;
-            }
-
-            var firstConflict = conflicts?.FirstOrDefault();
-            if (firstConflict?.PackageInfo == null)
-            {
-                return null;
-            }
-
-            var conflictingPackageName = firstConflict.PackageInfo.Name;
-            return localPackages.FirstOrDefault(p =>
-                string.Equals(p.Name, conflictingPackageName, StringComparison.Ordinal));
         }
 
         /// <summary>

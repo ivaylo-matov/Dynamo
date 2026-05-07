@@ -807,89 +807,37 @@ namespace Dynamo.PackageManager.Tests
         }
 
         [Test]
-        public void GetConflictingPackageForStagedCustomNodes_ReturnsLoadedPackageWhenGuidsCollide()
+        public void OnConflictingPackageLoaded_ReusesExistingDialogEventToDriveResolution()
         {
-            // Arrange
-            var loader = GetPackageLoader();
-            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
-            loader.PackagesLoaded += libraryLoader.LoadPackages;
-            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
-
-            var evenOdd = Package.FromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd"), CurrentDynamoModel.Logger);
-            loader.LoadPackages(new[] { evenOdd });
-
-            var stagedDyfDirectory = Path.Combine(TestDirectory, "pkgs", "EvenOdd2", "dyf");
-
-            // Act
-            var conflicting = loader.GetConflictingPackageForStagedCustomNodes(stagedDyfDirectory, "EvenOdd2");
-
-            // Assert
-            Assert.IsNotNull(conflicting, "expected to find the already-loaded EvenOdd as the conflicting package");
-            Assert.AreEqual("EvenOdd", conflicting.Name);
-
-            loader.PackagesLoaded -= libraryLoader.LoadPackages;
-            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
-        }
-
-        [Test]
-        public void GetConflictingPackageForStagedCustomNodes_ReturnsNullWhenThereIsNoConflict()
-        {
-            // Pre-load EvenOdd, then ask about an unrelated dyf directory.
-            var loader = GetPackageLoader();
-            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
-            loader.PackagesLoaded += libraryLoader.LoadPackages;
-            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
-
-            var evenOdd = Package.FromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd"), CurrentDynamoModel.Logger);
-            loader.LoadPackages(new[] { evenOdd });
-
-            // "Custom Rounding" is an unrelated test package with different GUIDs.
-            var unrelatedDyf = Path.Combine(TestDirectory, "pkgs", "Custom Rounding", "dyf");
-
-            var conflicting = loader.GetConflictingPackageForStagedCustomNodes(unrelatedDyf, "Custom Rounding");
-
-            Assert.IsNull(conflicting);
-
-            loader.PackagesLoaded -= libraryLoader.LoadPackages;
-            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
-        }
-
-        [Test]
-        public void EarlyPackageInstallConflict_DefaultsToProceedWhenNoSubscriberCancels()
-        {
+            // The install pipeline drives the existing ConflictingCustomNodePackageLoaded
+            // event from outside PackageLoader to detect Yes/No through ScheduledState
+            // changes. Verify that the helper raises the event with the expected args.
             var loader = GetPackageLoader();
             var installed = new Package("rootInstalled", "Existing", "1.0.0", string.Empty);
             var conflicting = new Package("rootConflicting", "New", "2.0.0", string.Empty);
 
-            var args = loader.OnEarlyPackageInstallConflict(installed, conflicting);
-
-            Assert.IsFalse(args.CancelInstall, "with no subscribers, the install must proceed");
-            Assert.AreSame(installed, args.Installed);
-            Assert.AreSame(conflicting, args.Conflicting);
-        }
-
-        [Test]
-        public void EarlyPackageInstallConflict_SubscriberCanCancelInstall()
-        {
-            var loader = GetPackageLoader();
-            var installed = new Package("rootInstalled", "Existing", "1.0.0", string.Empty);
-            var conflicting = new Package("rootConflicting", "New", "2.0.0", string.Empty);
-
-            EventHandler<PackageConflictEventArgs> handler = (s, e) => e.CancelInstall = true;
-            loader.EarlyPackageInstallConflict += handler;
+            Package observedInstalled = null;
+            Package observedConflicting = null;
+            Action<Package, Package> handler = (i, c) =>
+            {
+                observedInstalled = i;
+                observedConflicting = c;
+            };
+            loader.ConflictingCustomNodePackageLoaded += handler;
             try
             {
-                var args = loader.OnEarlyPackageInstallConflict(installed, conflicting);
-                Assert.IsTrue(args.CancelInstall, "subscriber should be able to cancel the install");
+                loader.OnConflictingPackageLoaded(installed, conflicting);
+                Assert.AreSame(installed, observedInstalled);
+                Assert.AreSame(conflicting, observedConflicting);
             }
             finally
             {
-                loader.EarlyPackageInstallConflict -= handler;
+                loader.ConflictingCustomNodePackageLoaded -= handler;
             }
         }
 
         [Test]
-        public void EarlyPackageInstallConflict_FlowSimulatesCancelLeavesInstallDirectoryUntouched()
+        public void EarlyConflictNoPath_CleansUpStagingAndDoesNotMarkExistingForUninstall()
         {
             // Arrange: pre-load EvenOdd so EvenOdd2 will be detected as conflicting.
             var loader = GetPackageLoader();
@@ -903,48 +851,135 @@ namespace Dynamo.PackageManager.Tests
             var prefs = CurrentDynamoModel.PreferenceSettings;
             var initialUninstallEntries = prefs.PackageDirectoriesToUninstall.ToList();
 
-            // Use a fresh, empty install directory to verify nothing is written.
-            var fakeInstallDir = Path.Combine(Path.GetTempPath(), "DYN-7587-install-" + Guid.NewGuid().ToString("N"));
+            var zipPath = Path.Combine(Path.GetTempPath(), "DYN-7587-no-" + Guid.NewGuid().ToString("N") + ".zip");
+            var fakeInstallDir = Path.Combine(Path.GetTempPath(), "DYN-7587-no-install-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(fakeInstallDir);
+            ZipFile.CreateFromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd2"), zipPath);
 
+            // A "No" subscriber: just observes, never calls MarkForUninstall.
+            Action<Package, Package> sayNo = (_, __) => { /* user clicked No */ };
+            loader.ConflictingCustomNodePackageLoaded += sayNo;
+
+            string stagedPath = null;
             try
             {
-                // Simulate the relevant SetPackageState steps for the cancel path:
-                //   1. detect a conflict on EvenOdd2 staged dyf,
-                //   2. raise EarlyPackageInstallConflict with a No-equivalent subscriber,
-                //   3. assert nothing is committed and the existing package is NOT marked for uninstall.
+                var handle = new PackageDownloadHandle { DownloadPath = zipPath };
+                Assert.IsTrue(handle.Stage(CurrentDynamoModel, out var stagedPkg, out stagedPath));
 
-                var stagedDyf = Path.Combine(TestDirectory, "pkgs", "EvenOdd2", "dyf");
-                var conflictingInstalled = loader.GetConflictingPackageForStagedCustomNodes(stagedDyf, "EvenOdd2");
-                Assert.IsNotNull(conflictingInstalled, "expected to detect EvenOdd as the installed conflicting package");
+                // Detect conflict via the same call SetPackageState makes.
+                var conflictingInfo = CurrentDynamoModel.CustomNodeManager
+                    .GetConflictingCustomNodeInfo(stagedPkg.CustomNodeDirectory, stagedPkg.Name, isTestMode: true)
+                    .FirstOrDefault();
+                Assert.IsNotNull(conflictingInfo, "expected to detect a conflict against the loaded EvenOdd");
 
-                EventHandler<PackageConflictEventArgs> sayNo = (_, e) => e.CancelInstall = true;
-                loader.EarlyPackageInstallConflict += sayNo;
-                try
-                {
-                    var stagedPkg = Package.FromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd2"), CurrentDynamoModel.Logger);
-                    var args = loader.OnEarlyPackageInstallConflict(conflictingInstalled, stagedPkg);
-                    Assert.IsTrue(args.CancelInstall, "subscriber should have cancelled the install");
-                }
-                finally
-                {
-                    loader.EarlyPackageInstallConflict -= sayNo;
-                }
+                var conflictingInstalled = loader.LocalPackages.FirstOrDefault(
+                    p => p.Name == conflictingInfo.PackageInfo.Name);
+                Assert.IsNotNull(conflictingInstalled);
 
-                // Assert nothing leaked into the install directory.
+                // Drive the existing dialog event and check ScheduledState across the prompt
+                // (this is exactly what SetPackageState does).
+                var preScheduled = conflictingInstalled.LoadState.ScheduledState;
+                loader.OnConflictingPackageLoaded(conflictingInstalled, stagedPkg);
+                var userAcceptedUninstall =
+                    conflictingInstalled.LoadState.ScheduledState != preScheduled;
+
+                Assert.IsFalse(userAcceptedUninstall, "the No subscriber must not change ScheduledState");
+
+                // Cancel path: do not commit, clean up staging.
+                handle.CleanUpStaging(stagedPath);
+                stagedPath = null;
+
+                // Nothing should have been written to the install directory.
                 Assert.AreEqual(0, Directory.GetFileSystemEntries(fakeInstallDir).Length,
                     "no files should have been written to the install directory on cancel");
 
-                // Assert the existing package was NOT marked for uninstall.
+                // The existing package must not have been marked for uninstall.
                 CollectionAssert.AreEqual(initialUninstallEntries, prefs.PackageDirectoriesToUninstall,
                     "PackageDirectoriesToUninstall must not change when the user cancels the install");
             }
             finally
             {
-                if (Directory.Exists(fakeInstallDir))
+                loader.ConflictingCustomNodePackageLoaded -= sayNo;
+                if (stagedPath != null && Directory.Exists(stagedPath))
                 {
-                    Directory.Delete(fakeInstallDir, recursive: true);
+                    Directory.Delete(stagedPath, recursive: true);
                 }
+                if (File.Exists(zipPath)) File.Delete(zipPath);
+                if (Directory.Exists(fakeInstallDir)) Directory.Delete(fakeInstallDir, recursive: true);
+                loader.PackagesLoaded -= libraryLoader.LoadPackages;
+                loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+            }
+        }
+
+        [Test]
+        public void EarlyConflictYesPath_MarksExistingForUninstallAndCommitsWithoutLoading()
+        {
+            // Arrange: pre-load EvenOdd so EvenOdd2 will be detected as conflicting.
+            var loader = GetPackageLoader();
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            var evenOdd = Package.FromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd"), CurrentDynamoModel.Logger);
+            loader.LoadPackages(new[] { evenOdd });
+
+            var prefs = CurrentDynamoModel.PreferenceSettings;
+
+            var zipPath = Path.Combine(Path.GetTempPath(), "DYN-7587-yes-" + Guid.NewGuid().ToString("N") + ".zip");
+            var fakeInstallDir = Path.Combine(Path.GetTempPath(), "DYN-7587-yes-install-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(fakeInstallDir);
+            ZipFile.CreateFromDirectory(Path.Combine(TestDirectory, "pkgs", "EvenOdd2"), zipPath);
+
+            // A "Yes" subscriber: marks the installed package for uninstall, just like the
+            // production PackageManagerSearchViewModel handler does on Yes.
+            Action<Package, Package> sayYes = (installed, _) => installed.MarkForUninstall(prefs);
+            loader.ConflictingCustomNodePackageLoaded += sayYes;
+
+            string stagedPath = null;
+            try
+            {
+                var handle = new PackageDownloadHandle { DownloadPath = zipPath };
+                Assert.IsTrue(handle.Stage(CurrentDynamoModel, out var stagedPkg, out stagedPath));
+
+                var conflictingInfo = CurrentDynamoModel.CustomNodeManager
+                    .GetConflictingCustomNodeInfo(stagedPkg.CustomNodeDirectory, stagedPkg.Name, isTestMode: true)
+                    .FirstOrDefault();
+                Assert.IsNotNull(conflictingInfo);
+
+                var conflictingInstalled = loader.LocalPackages.FirstOrDefault(
+                    p => p.Name == conflictingInfo.PackageInfo.Name);
+                Assert.IsNotNull(conflictingInstalled);
+
+                var preScheduled = conflictingInstalled.LoadState.ScheduledState;
+                loader.OnConflictingPackageLoaded(conflictingInstalled, stagedPkg);
+                var userAcceptedUninstall =
+                    conflictingInstalled.LoadState.ScheduledState != preScheduled;
+
+                Assert.IsTrue(userAcceptedUninstall,
+                    "Yes subscriber should change ScheduledState via MarkForUninstall");
+                Assert.IsTrue(prefs.PackageDirectoriesToUninstall.Contains(conflictingInstalled.RootDirectory),
+                    "the older package should be queued for deletion after restart");
+
+                // Yes path: commit the staged contents and verify they appear under the install dir.
+                Assert.IsTrue(handle.CommitInstall(stagedPath, fakeInstallDir, CurrentDynamoModel, stagedPkg));
+                Assert.IsTrue(stagedPkg.RootDirectory.StartsWith(fakeInstallDir, StringComparison.Ordinal));
+                Assert.IsTrue(File.Exists(Path.Combine(stagedPkg.RootDirectory, "pkg.json")));
+
+                // The conflicting new package must NOT be added to LocalPackages this session
+                // (it'll load on next start once the older package is removed).
+                Assert.IsNull(loader.LocalPackages.FirstOrDefault(p => ReferenceEquals(p, stagedPkg)));
+            }
+            finally
+            {
+                loader.ConflictingCustomNodePackageLoaded -= sayYes;
+                // Reset the older package's scheduled state so other tests aren't affected.
+                if (loader.LocalPackages.Any(p => p.Name == "EvenOdd"))
+                {
+                    loader.LocalPackages.First(p => p.Name == "EvenOdd").UnmarkForUninstall(prefs);
+                }
+                if (stagedPath != null) new PackageDownloadHandle().CleanUpStaging(stagedPath);
+                if (File.Exists(zipPath)) File.Delete(zipPath);
+                if (Directory.Exists(fakeInstallDir)) Directory.Delete(fakeInstallDir, recursive: true);
                 loader.PackagesLoaded -= libraryLoader.LoadPackages;
                 loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
             }
