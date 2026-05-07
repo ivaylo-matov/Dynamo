@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Dynamo.Logging;
 using Dynamo.Models;
 
 using Greg.Responses;
@@ -98,7 +99,7 @@ namespace Dynamo.PackageManager
         /// <summary>
         /// Unzips the downloaded package to a staging directory and parses <c>pkg.json</c>.
         /// The caller must delete <paramref name="stagingDirectory"/> with
-        /// <see cref="DiscardStagingDirectory"/> when installation is aborted or after
+        /// <see cref="DiscardStagingDirectory"/> (pass <paramref name="dynamoModel"/>.Logger) when installation is aborted or after
         /// <see cref="CompleteInstallation"/> (which leaves the staging folder in place — discard afterward).
         /// </summary>
         public bool TryPrepareInstallation(DynamoModel dynamoModel, out Package pkg, out string stagingDirectory)
@@ -154,7 +155,9 @@ namespace Dynamo.PackageManager
         /// <summary>
         /// Deletes a staging directory created by <see cref="TryPrepareInstallation"/>.
         /// </summary>
-        public static void DiscardStagingDirectory(string stagingDirectory)
+        /// <param name="stagingDirectory">Path to remove.</param>
+        /// <param name="logger">Optional logger for delete failures (same style as other package directory cleanup).</param>
+        public static void DiscardStagingDirectory(string stagingDirectory, ILogger logger)
         {
             if (string.IsNullOrEmpty(stagingDirectory) || !Directory.Exists(stagingDirectory))
             {
@@ -165,11 +168,23 @@ namespace Dynamo.PackageManager
             {
                 Directory.Delete(stagingDirectory, true);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
+                logger?.LogWarning(
+                    string.Format(
+                        "Failed to delete package staging directory at \"{0}\". {1}",
+                        stagingDirectory,
+                        ex.Message),
+                    WarningLevel.Moderate);
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                logger?.LogWarning(
+                    string.Format(
+                        "Failed to delete package staging directory at \"{0}\". {1}",
+                        stagingDirectory,
+                        ex.Message),
+                    WarningLevel.Moderate);
             }
         }
 
@@ -200,7 +215,7 @@ namespace Dynamo.PackageManager
             }
             finally
             {
-                DiscardStagingDirectory(stagingDirectory);
+                DiscardStagingDirectory(stagingDirectory, dynamoModel.Logger);
             }
         }
 

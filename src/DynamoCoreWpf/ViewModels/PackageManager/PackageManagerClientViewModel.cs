@@ -1170,7 +1170,7 @@ namespace Dynamo.ViewModels
             }
             finally
             {
-                PackageDownloadHandle.DiscardStagingDirectory(stagingDirectory);
+                PackageDownloadHandle.DiscardStagingDirectory(stagingDirectory, DynamoViewModel.Model.Logger);
             }
         }
 
