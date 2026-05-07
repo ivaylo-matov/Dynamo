@@ -608,7 +608,7 @@ namespace Dynamo.PackageManager.Tests
         }
 
         [Test]
-        public void StagedCustomNodeConflict_UserDeclinesInstall_DoesNotCopyPackageAndRemovesStaging()
+        public void DecliningStagedCustomNodeConflictPackageDoesNotCommitAndRemovesStaging()
         {
             // Load test packages (EvenOdd has a custom node that EvenOdd2 duplicates by GUID).
             var pathManager = new Mock<IPathManager>();
@@ -670,7 +670,7 @@ namespace Dynamo.PackageManager.Tests
         }
 
         [Test]
-        public void StagedCustomNodeConflict_UserAcceptsReplace_CopiesNewPackageAndMarksExistingForUninstallOnRestart()
+        public void AcceptingStagedCustomNodeConflictPackageCommitsAndMarksExistingForUninstall()
         {
             var pathManager = new Mock<IPathManager>();
             pathManager.SetupGet(x => x.PackagesDirectories).Returns(() => new List<string> { PackagesDirectory });
