@@ -735,6 +735,115 @@ namespace Dynamo.PackageManager.Tests
             loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
         }
 
+        [Test]
+        public void GetPackagesConflictingWithStagedPackageReturnsAlreadyLoadedConflictingPackage()
+        {
+            var loader = GetPackageLoader();
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            // The "EvenOdd2" package shares a custom node guid with "EvenOdd" but uses a
+            // different package name, which is exactly the conflict case the pre-install
+            // validation must catch before files are copied into the Dynamo packages folder.
+            Func<string, PackageInfo, IEnumerable<CustomNodeInfo>> reqLoadCNDelegate = (dir, pkgInfo) =>
+                CurrentDynamoModel.CustomNodeManager.AddUninitializedCustomNodesInPath(dir, isTestMode: true, packageInfo: pkgInfo);
+            loader.RequestLoadCustomNodeDirectory += reqLoadCNDelegate;
+
+            var packageDirectory = Path.Combine(TestDirectory, "pkgs", "EvenOdd");
+            var stagedDirectory = Path.Combine(TestDirectory, "pkgs", "EvenOdd2");
+
+            var loadedPackage = Package.FromDirectory(packageDirectory, CurrentDynamoModel.Logger);
+            loader.LoadPackages(new[] { loadedPackage });
+
+            var stagedPackage = Package.FromDirectory(stagedDirectory, CurrentDynamoModel.Logger);
+
+            var conflicts = loader
+                .GetPackagesConflictingWithStagedPackage(stagedPackage, CurrentDynamoModel.CustomNodeManager, isTestMode: true)
+                .ToList();
+
+            Assert.AreEqual(1, conflicts.Count);
+            Assert.AreSame(loadedPackage, conflicts[0]);
+
+            loader.PackagesLoaded -= libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+            loader.RequestLoadCustomNodeDirectory -= reqLoadCNDelegate;
+        }
+
+        [Test]
+        public void GetPackagesConflictingWithStagedPackageReturnsEmptyWhenSameName()
+        {
+            var loader = GetPackageLoader();
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            Func<string, PackageInfo, IEnumerable<CustomNodeInfo>> reqLoadCNDelegate = (dir, pkgInfo) =>
+                CurrentDynamoModel.CustomNodeManager.AddUninitializedCustomNodesInPath(dir, isTestMode: true, packageInfo: pkgInfo);
+            loader.RequestLoadCustomNodeDirectory += reqLoadCNDelegate;
+
+            var packageDirectory = Path.Combine(TestDirectory, "pkgs", "EvenOdd");
+            var loadedPackage = Package.FromDirectory(packageDirectory, CurrentDynamoModel.Logger);
+            loader.LoadPackages(new[] { loadedPackage });
+
+            // Restage the same package: same name and guids should NOT be reported as a conflict;
+            // re-installing/upgrading a package is treated as a same-package overwrite, matching
+            // the existing logic in CustomNodeManager.SetNodeInfo.
+            var restaged = Package.FromDirectory(packageDirectory, CurrentDynamoModel.Logger);
+
+            var conflicts = loader
+                .GetPackagesConflictingWithStagedPackage(restaged, CurrentDynamoModel.CustomNodeManager, isTestMode: true)
+                .ToList();
+
+            Assert.IsEmpty(conflicts);
+
+            loader.PackagesLoaded -= libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+            loader.RequestLoadCustomNodeDirectory -= reqLoadCNDelegate;
+        }
+
+        [Test]
+        public void ConflictingCustomNodePackageLoadedEventDoesNotFireWhenInstalledPackageAlreadyMarkedForUninstall()
+        {
+            var pathManager = new Mock<Dynamo.Interfaces.IPathManager>();
+            pathManager.SetupGet(x => x.PackagesDirectories).Returns(
+                () => new List<string> { PackagesDirectory });
+
+            var loader = new PackageLoader(pathManager.Object);
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+            Func<string, PackageInfo, IEnumerable<CustomNodeInfo>> reqLoadCNDelegate = (dir, pkgInfo) =>
+                CurrentDynamoModel.CustomNodeManager.AddUninitializedCustomNodesInPath(dir, isTestMode: false, packageInfo: pkgInfo);
+            loader.RequestLoadCustomNodeDirectory += reqLoadCNDelegate;
+
+            var packageDirectory = Path.Combine(TestDirectory, "pkgs", "EvenOdd");
+            var packageDirectory2 = Path.Combine(TestDirectory, "pkgs", "EvenOdd2");
+            var loadedPackage = Package.FromDirectory(packageDirectory, CurrentDynamoModel.Logger);
+            loader.LoadPackages(new[] { loadedPackage });
+
+            // Simulate the user having already accepted the pre-install conflict prompt: the
+            // older package is marked for uninstall before the new package is loaded.
+            loadedPackage.MarkForUninstall(CurrentDynamoModel.PreferenceSettings);
+
+            var eventFired = false;
+            loader.ConflictingCustomNodePackageLoaded += (installed, conflicting) => eventFired = true;
+
+            var conflictingPackage = Package.FromDirectory(packageDirectory2, CurrentDynamoModel.Logger);
+            loader.LoadPackages(new[] { conflictingPackage });
+
+            Assert.IsFalse(eventFired,
+                "ConflictingCustomNodePackageLoaded must not fire when the installed package " +
+                "is already scheduled for uninstall (the user already chose to proceed).");
+
+            loader.PackagesLoaded -= libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+            loader.RequestLoadCustomNodeDirectory -= reqLoadCNDelegate;
+        }
+
         // This can occur when a user copies a custom node from a package into definitions folder.
         // TODO not exactly clear what behavior should be.
         [Test]

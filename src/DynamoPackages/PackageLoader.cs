@@ -311,8 +311,87 @@ namespace Dynamo.PackageManager
         public event Action<Package, Package> ConflictingCustomNodePackageLoaded;
         private void OnConflictingPackageLoaded(Package installed, Package conflicting)
         {
+            // If the installed package is already scheduled for uninstall/unload, the user has
+            // already been prompted about this conflict (typically via the pre-install conflict
+            // check in PackageManagerClientViewModel.SetPackageState) and accepted. Avoid showing
+            // the same dialog a second time when the package then fails to load due to the still
+            // -registered CustomNodeInfo entries.
+            if (installed != null
+                && installed.LoadState != null
+                && installed.LoadState.ScheduledState != PackageLoadState.ScheduledTypes.None)
+            {
+                return;
+            }
+
             var handler = ConflictingCustomNodePackageLoaded;
             handler?.Invoke(installed, conflicting);
+        }
+
+        /// <summary>
+        /// Returns the loaded local packages whose custom node definitions conflict with the
+        /// .dyf files staged for <paramref name="stagedPackage"/>. Used by the package install
+        /// flow to surface the "Cannot Download Package" dialog before the staged package is
+        /// copied into Dynamo's package folder.
+        /// </summary>
+        /// <param name="stagedPackage">Package whose <see cref="Package.CustomNodeDirectory"/> contains the staged .dyf files.</param>
+        /// <param name="customNodeManager">Custom node manager used to look up existing custom node info.</param>
+        /// <param name="isTestMode">Test-mode flag forwarded to the .dyf header reader.</param>
+        /// <returns>Distinct local packages that own a conflicting custom node definition.</returns>
+        internal IEnumerable<Package> GetPackagesConflictingWithStagedPackage(
+            Package stagedPackage,
+            CustomNodeManager customNodeManager,
+            bool isTestMode)
+        {
+            if (stagedPackage == null) throw new ArgumentNullException(nameof(stagedPackage));
+            if (customNodeManager == null) throw new ArgumentNullException(nameof(customNodeManager));
+
+            if (!Directory.Exists(stagedPackage.CustomNodeDirectory))
+            {
+                return Enumerable.Empty<Package>();
+            }
+
+            Version stagedVersion;
+            try
+            {
+                stagedVersion = new Version(stagedPackage.VersionName);
+            }
+            catch
+            {
+                // If we cannot parse the staged version we still need a PackageInfo to drive the
+                // name-based conflict check; use a default version.
+                stagedVersion = new Version(0, 0, 0, 0);
+            }
+
+            var newPackageInfo = new Graph.Workspaces.PackageInfo(stagedPackage.Name, stagedVersion);
+
+            var conflictingInfos = customNodeManager
+                .GetConflictingCustomNodeInfos(stagedPackage.CustomNodeDirectory, newPackageInfo, isTestMode)
+                .ToList();
+
+            if (conflictingInfos.Count == 0)
+            {
+                return Enumerable.Empty<Package>();
+            }
+
+            // Map each conflicting CustomNodeInfo back to the local Package that owns it. This
+            // mirrors the lookup done in the existing CustomNodePackageLoadException catch block.
+            var owners = new List<Package>();
+            foreach (var info in conflictingInfos)
+            {
+                if (string.IsNullOrEmpty(info.Path)) continue;
+
+                var infoDir = Path.GetDirectoryName(info.Path);
+                if (string.IsNullOrEmpty(infoDir)) continue;
+
+                var owner = localPackages.FirstOrDefault(x =>
+                    string.Equals(x.CustomNodeDirectory, infoDir, StringComparison.OrdinalIgnoreCase));
+                if (owner != null && !owners.Contains(owner))
+                {
+                    owners.Add(owner);
+                }
+            }
+
+            return owners;
         }
 
         /// <summary>

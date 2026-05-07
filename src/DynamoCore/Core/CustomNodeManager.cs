@@ -597,6 +597,49 @@ namespace Dynamo.Core
         }
 
         /// <summary>
+        /// Returns the existing <see cref="CustomNodeInfo"/> entries that would conflict with
+        /// custom nodes found in <paramref name="customNodeDirectory"/> if they were registered
+        /// against the package described by <paramref name="newPackageInfo"/>.
+        /// A conflict is reported when a .dyf in the directory shares a function id with an
+        /// already-registered custom node that belongs to a different package.
+        /// This method only inspects metadata; it does not register or load any custom nodes.
+        /// </summary>
+        /// <param name="customNodeDirectory">Directory to scan for staged .dyf files.</param>
+        /// <param name="newPackageInfo">Identity of the package whose custom nodes are being staged.</param>
+        /// <param name="isTestMode">Test-mode flag forwarded to the .dyf header reader.</param>
+        /// <returns>Existing CustomNodeInfos from a different package that conflict by function id.</returns>
+        internal IEnumerable<CustomNodeInfo> GetConflictingCustomNodeInfos(
+            string customNodeDirectory,
+            PackageInfo newPackageInfo,
+            bool isTestMode)
+        {
+            if (string.IsNullOrEmpty(customNodeDirectory) || !Directory.Exists(customNodeDirectory))
+            {
+                yield break;
+            }
+
+            foreach (var stagedInfo in ScanNodeHeadersInDirectory(customNodeDirectory, isTestMode))
+            {
+                if (!NodeInfos.TryGetValue(stagedInfo.FunctionId, out CustomNodeInfo existingInfo))
+                {
+                    continue;
+                }
+
+                // Mirrors the conflict logic in SetNodeInfo: only report a conflict when both
+                // sides come from packages with different names. Same-package different-version
+                // and loose-vs-package overrides are intentionally tolerated here, just as the
+                // existing load-time check tolerates them.
+                if (existingInfo.IsPackageMember
+                    && existingInfo.PackageInfo != null
+                    && newPackageInfo != null
+                    && existingInfo.PackageInfo.Name != newPackageInfo.Name)
+                {
+                    yield return existingInfo;
+                }
+            }
+        }
+
+        /// <summary>
         ///     Enumerates all of the files in the search path and get's their guids.
         ///     Does not instantiate the nodes.
         /// </summary>
