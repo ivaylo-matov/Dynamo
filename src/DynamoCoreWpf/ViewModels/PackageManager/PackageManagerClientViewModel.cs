@@ -1135,7 +1135,7 @@ namespace Dynamo.ViewModels
                     var incomingInfo = new PackageInfo(dynPkg.Name, new Version(dynPkg.VersionName));
                     if (DynamoViewModel.Model.CustomNodeManager.TryGetConflictingPackageCustomNodeInfo(
                             dynPkg.CustomNodeDirectory,
-                            DynamoViewModel.Model.IsTestMode,
+                            DynamoModel.IsTestMode,
                             incomingInfo,
                             out var conflictingExisting))
                     {
