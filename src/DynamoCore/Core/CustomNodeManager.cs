@@ -597,6 +597,52 @@ namespace Dynamo.Core
         }
 
         /// <summary>
+        ///     Returns loaded <see cref="CustomNodeInfo"/> entries whose GUIDs collide with .dyf
+        ///     files in <paramref name="customNodeDirectory"/> but belong to a different package.
+        ///     The .dyf files are inspected without being registered.
+        /// </summary>
+        /// <param name="customNodeDirectory">Directory containing the staged .dyf files.</param>
+        /// <param name="newPackageName">Staged package name; same-package matches are skipped.</param>
+        /// <param name="isTestMode">Test-mode flag.</param>
+        /// <returns>Conflicting entries, or empty if none.</returns>
+        internal IEnumerable<CustomNodeInfo> GetConflictingCustomNodeInfo(
+            string customNodeDirectory, string newPackageName, bool isTestMode)
+        {
+            if (string.IsNullOrEmpty(customNodeDirectory) || !Directory.Exists(customNodeDirectory))
+            {
+                yield break;
+            }
+
+            string[] dyfs;
+            try
+            {
+                dyfs = Directory.GetFiles(customNodeDirectory, "*.dyf");
+            }
+            catch (Exception e)
+            {
+                Log(string.Format(Resources.CustomNodeFolderLoadFailure, customNodeDirectory));
+                Log(e);
+                yield break;
+            }
+
+            foreach (var file in dyfs)
+            {
+                if (!TryGetInfoFromPath(file, isTestMode, out var stagedInfo) || stagedInfo == null)
+                {
+                    continue;
+                }
+
+                if (NodeInfos.TryGetValue(stagedInfo.FunctionId, out var existing) &&
+                    existing.IsPackageMember &&
+                    existing.PackageInfo != null &&
+                    !string.Equals(existing.PackageInfo.Name, newPackageName, StringComparison.Ordinal))
+                {
+                    yield return existing;
+                }
+            }
+        }
+
+        /// <summary>
         ///     Enumerates all of the files in the search path and get's their guids.
         ///     Does not instantiate the nodes.
         /// </summary>

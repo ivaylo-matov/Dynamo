@@ -1137,22 +1137,84 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        /// Check Dynamo package install state
+        /// Stages the package, validates custom-node GUIDs against loaded packages, and
+        /// commits or cleans up. On conflict, raises the existing
+        /// <see cref="PackageLoader.ConflictingCustomNodePackageLoaded"/> event and infers
+        /// Yes/No from the older package's <see cref="PackageLoadState.ScheduledState"/>
+        /// changing across the prompt.
         /// </summary>
-        /// <param name="packageDownloadHandle">package download handle</param>
-        /// <param name="downloadPath">package download path</param>
-        internal void SetPackageState(PackageDownloadHandle packageDownloadHandle, string downloadPath)
+        /// <param name="packageDownloadHandle">Download handle for the install.</param>
+        /// <param name="installPath">Override packages directory; may be null/empty.</param>
+        internal void SetPackageState(PackageDownloadHandle packageDownloadHandle, string installPath)
         {
+            var loader = PackageManagerExtension.PackageLoader;
+            var dynamoModel = DynamoViewModel.Model;
+
             Package dynPkg;
-            if (packageDownloadHandle.Extract(DynamoViewModel.Model, downloadPath, out dynPkg))
+            string stagedPath = null;
+            try
             {
-                PackageManagerExtension.PackageLoader.LoadPackages(new List<Package> { dynPkg });
+                if (!packageDownloadHandle.Stage(dynamoModel, out dynPkg, out stagedPath))
+                {
+                    packageDownloadHandle.Error(Resources.MessageInvalidPackage);
+                    return;
+                }
+
+                // Detect custom-node GUID conflicts BEFORE committing the staged package to the
+                // Dynamo packages directory.
+                var conflictingInfo = dynamoModel.CustomNodeManager
+                    .GetConflictingCustomNodeInfo(dynPkg.CustomNodeDirectory, dynPkg.Name, DynamoModel.IsTestMode)
+                    .FirstOrDefault();
+
+                var conflictingInstalled = conflictingInfo?.PackageInfo == null
+                    ? null
+                    : loader.LocalPackages.FirstOrDefault(p =>
+                        string.Equals(p.Name, conflictingInfo.PackageInfo.Name, StringComparison.Ordinal));
+
+                if (conflictingInstalled != null)
+                {
+                    var preScheduledState = conflictingInstalled.LoadState.ScheduledState;
+                    loader.OnConflictingPackageLoaded(conflictingInstalled, dynPkg);
+                    var userAcceptedUninstall =
+                        conflictingInstalled.LoadState.ScheduledState != preScheduledState;
+
+                    if (!userAcceptedUninstall)
+                    {
+                        // User declined (or no subscriber prompted): cancel the install.
+                        // Staged files are discarded by the finally-block; no copy happens;
+                        // the older package is not marked for uninstall.
+                        packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Error;
+                        return;
+                    }
+
+                    // User accepted: the older package is now scheduled for uninstall.
+                    // Commit the staged contents but do NOT call LoadPackages — the conflicting
+                    // package is still loaded this session and would re-throw the same
+                    // CustomNodePackageLoadException. LoadAll picks up the new package on next
+                    // start, after DoCachedPackageUninstalls removes the older one.
+                    if (!packageDownloadHandle.CommitInstall(stagedPath, installPath, dynamoModel, dynPkg))
+                    {
+                        packageDownloadHandle.Error(Resources.MessageInvalidPackage);
+                        return;
+                    }
+
+                    packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
+                    return;
+                }
+
+                // No conflict: commit and load normally.
+                if (!packageDownloadHandle.CommitInstall(stagedPath, installPath, dynamoModel, dynPkg))
+                {
+                    packageDownloadHandle.Error(Resources.MessageInvalidPackage);
+                    return;
+                }
+
+                loader.LoadPackages(new List<Package> { dynPkg });
                 packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
             }
-            else
+            finally
             {
-                packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Error;
-                packageDownloadHandle.Error(Resources.MessageInvalidPackage);
+                packageDownloadHandle.CleanUpStaging(stagedPath);
             }
         }
 

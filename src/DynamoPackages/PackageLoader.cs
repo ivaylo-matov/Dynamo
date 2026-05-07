@@ -309,7 +309,11 @@ namespace Dynamo.PackageManager
         /// with an existing package is tried to load.
         /// </summary>
         public event Action<Package, Package> ConflictingCustomNodePackageLoaded;
-        private void OnConflictingPackageLoaded(Package installed, Package conflicting)
+
+        /// <summary>
+        /// Raises <see cref="ConflictingCustomNodePackageLoaded"/>.
+        /// </summary>
+        internal void OnConflictingPackageLoaded(Package installed, Package conflicting)
         {
             var handler = ConflictingCustomNodePackageLoaded;
             handler?.Invoke(installed, conflicting);
