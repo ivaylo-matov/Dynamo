@@ -1147,25 +1147,25 @@ namespace Dynamo.ViewModels
             // against the already-loaded custom node packages before copying anything into the
             // Dynamo packages folder. This prevents partial installs when the user declines a
             // conflict prompt below.
-            var staged = packageDownloadHandle.BuildStagedPackage(DynamoViewModel.Model, downloadPath);
-            if (staged == null)
+            var stagedPkg = packageDownloadHandle.BuildStagedPackage(DynamoViewModel.Model, downloadPath);
+            if (stagedPkg == null)
             {
                 packageDownloadHandle.Error(Resources.MessageInvalidPackage);
                 return;
             }
 
-            if (!ResolvePreInstallCustomNodeConflicts(staged))
+            if (!ResolvePreInstallCustomNodeConflicts(stagedPkg))
             {
                 // The user declined the conflict prompt. Clean up the staged temp folder and
                 // leave the Dynamo packages folder, the loaded package list, and the
                 // PackageDirectoriesToUninstall preference list untouched.
-                PackageDownloadHandle.CleanupStaging(staged);
+                packageDownloadHandle.CleanupStaging();
                 packageDownloadHandle.Error(Resources.CannotDownloadPackageMessageBoxTitle);
                 return;
             }
 
-            PackageDownloadHandle.FinalizeExtraction(staged);
-            PackageManagerExtension.PackageLoader.LoadPackages(new List<Package> { staged.Package });
+            packageDownloadHandle.FinalizeExtraction(stagedPkg);
+            PackageManagerExtension.PackageLoader.LoadPackages(new List<Package> { stagedPkg });
             packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
         }
 
@@ -1175,15 +1175,15 @@ namespace Dynamo.ViewModels
         /// "Cannot Download Package" dialog so the user can choose whether to mark the loaded
         /// package(s) for uninstall and continue, or cancel the install.
         /// </summary>
-        /// <param name="staged">Staged package to validate.</param>
+        /// <param name="stagedPkg">Staged package to validate.</param>
         /// <returns>True if the install should proceed; false if the user cancelled.</returns>
-        private bool ResolvePreInstallCustomNodeConflicts(StagedPackage staged)
+        private bool ResolvePreInstallCustomNodeConflicts(Package stagedPkg)
         {
             var packageLoader = PackageManagerExtension.PackageLoader;
             var customNodeManager = DynamoViewModel.Model.CustomNodeManager;
 
             var conflictingPackages = packageLoader
-                .GetPackagesConflictingWithStagedPackage(staged.Package, customNodeManager, DynamoModel.IsTestMode)
+                .GetPackagesConflictingWithStagedPackage(stagedPkg, customNodeManager, DynamoModel.IsTestMode)
                 .ToList();
 
             if (conflictingPackages.Count == 0)
@@ -1192,7 +1192,7 @@ namespace Dynamo.ViewModels
             }
 
             var conflictingNames = JoinPackageNames(conflictingPackages);
-            var stagedName = staged.Package.Name + " " + staged.Package.VersionName;
+            var stagedName = stagedPkg.Name + " " + stagedPkg.VersionName;
             var message = string.Format(Resources.MessageUninstallCustomNodeToContinue,
                 conflictingNames, stagedName);
 

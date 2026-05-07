@@ -49,72 +49,69 @@ namespace Dynamo.PackageManager.Tests
             return zipPath;
         }
 
-        [Test]
-        public void BuildStagedPackageDoesNotCopyFilesIntoInstallDirectory()
+        private PackageDownloadHandle CreateHandleForPackage(string packageSourceDir, string name)
         {
-            var sourceDir = Path.Combine(TestDirectory, "pkgs", "EvenOdd2");
-            var zipPath = CreateTestPackageZip(sourceDir);
-
-            var installDirectory = Path.Combine(scratchDirectory, "packages");
-            Directory.CreateDirectory(installDirectory);
-
-            var handle = new PackageDownloadHandle
+            var zipPath = CreateTestPackageZip(packageSourceDir);
+            return new PackageDownloadHandle
             {
-                Name = "EvenOdd2",
+                Name = name,
                 DownloadPath = zipPath,
                 VersionName = "1.0.0",
             };
+        }
 
-            var staged = handle.BuildStagedPackage(CurrentDynamoModel, installDirectory);
+        [Test]
+        public void BuildStagedPackageDoesNotCreatePackageInstallDirectory()
+        {
+            var sourceDir = Path.Combine(TestDirectory, "pkgs", "EvenOdd2");
+            var installDirectory = Path.Combine(scratchDirectory, "packages");
+            Directory.CreateDirectory(installDirectory);
 
-            Assert.IsNotNull(staged);
-            Assert.AreEqual("EvenOdd2", staged.Package.Name);
-            Assert.IsTrue(Directory.Exists(staged.StagingPath),
-                "Staging folder should exist immediately after BuildStagedPackage.");
-            Assert.IsFalse(Directory.Exists(staged.InstalledPath),
-                "BuildStagedPackage must not create the final install directory.");
-            Assert.AreEqual(staged.StagingPath, staged.Package.RootDirectory,
-                "Staged package's RootDirectory should still point at the temp staging folder.");
+            var existingEntries = Directory.GetFileSystemEntries(installDirectory);
+            var handle = CreateHandleForPackage(sourceDir, "EvenOdd2");
 
-            PackageDownloadHandle.CleanupStaging(staged);
+            var stagedPkg = handle.BuildStagedPackage(CurrentDynamoModel, installDirectory);
+
+            Assert.IsNotNull(stagedPkg);
+            Assert.AreEqual("EvenOdd2", stagedPkg.Name);
+            Assert.IsTrue(Directory.Exists(stagedPkg.RootDirectory),
+                "Staged package's RootDirectory should point at an existing temp staging folder.");
+            CollectionAssert.AreEqual(existingEntries, Directory.GetFileSystemEntries(installDirectory),
+                "BuildStagedPackage must not write anything into the install directory.");
+
+            handle.CleanupStaging();
         }
 
         [Test]
         public void FinalizeExtractionCopiesFilesAndUpdatesRootDirectory()
         {
             var sourceDir = Path.Combine(TestDirectory, "pkgs", "EvenOdd");
-            var zipPath = CreateTestPackageZip(sourceDir);
-
             var installDirectory = Path.Combine(scratchDirectory, "packages");
             Directory.CreateDirectory(installDirectory);
 
-            var handle = new PackageDownloadHandle
-            {
-                Name = "EvenOdd",
-                DownloadPath = zipPath,
-                VersionName = "1.0.0",
-            };
+            var handle = CreateHandleForPackage(sourceDir, "EvenOdd");
 
-            var staged = handle.BuildStagedPackage(CurrentDynamoModel, installDirectory);
-            Assert.IsNotNull(staged);
+            var stagedPkg = handle.BuildStagedPackage(CurrentDynamoModel, installDirectory);
+            Assert.IsNotNull(stagedPkg);
+            var stagingPath = stagedPkg.RootDirectory;
 
             try
             {
-                PackageDownloadHandle.FinalizeExtraction(staged);
+                handle.FinalizeExtraction(stagedPkg);
 
-                Assert.IsTrue(Directory.Exists(staged.InstalledPath),
-                    "FinalizeExtraction should create the final install directory.");
-                Assert.IsTrue(File.Exists(Path.Combine(staged.InstalledPath, "pkg.json")),
+                Assert.AreNotEqual(stagingPath, stagedPkg.RootDirectory,
+                    "FinalizeExtraction must update the staged package's RootDirectory.");
+                Assert.IsTrue(Directory.Exists(stagedPkg.RootDirectory),
+                    "Final installed directory should exist after FinalizeExtraction.");
+                Assert.IsTrue(File.Exists(Path.Combine(stagedPkg.RootDirectory, "pkg.json")),
                     "FinalizeExtraction should copy pkg.json into the install directory.");
-                Assert.AreEqual(staged.InstalledPath, staged.Package.RootDirectory,
-                    "FinalizeExtraction should update the staged package's RootDirectory.");
             }
             finally
             {
-                PackageDownloadHandle.CleanupStaging(staged);
-                if (Directory.Exists(staged.InstalledPath))
+                handle.CleanupStaging();
+                if (Directory.Exists(stagedPkg.RootDirectory))
                 {
-                    Directory.Delete(staged.InstalledPath, true);
+                    Directory.Delete(stagedPkg.RootDirectory, true);
                 }
             }
         }
@@ -123,41 +120,53 @@ namespace Dynamo.PackageManager.Tests
         public void CleanupStagingDeletesTheStagingDirectory()
         {
             var sourceDir = Path.Combine(TestDirectory, "pkgs", "EvenOdd");
-            var zipPath = CreateTestPackageZip(sourceDir);
-
             var installDirectory = Path.Combine(scratchDirectory, "packages");
             Directory.CreateDirectory(installDirectory);
 
-            var handle = new PackageDownloadHandle
-            {
-                Name = "EvenOdd",
-                DownloadPath = zipPath,
-                VersionName = "1.0.0",
-            };
+            var handle = CreateHandleForPackage(sourceDir, "EvenOdd");
 
-            var staged = handle.BuildStagedPackage(CurrentDynamoModel, installDirectory);
-            Assert.IsNotNull(staged);
-            Assert.IsTrue(Directory.Exists(staged.StagingPath));
+            var stagedPkg = handle.BuildStagedPackage(CurrentDynamoModel, installDirectory);
+            Assert.IsNotNull(stagedPkg);
+            var stagingPath = stagedPkg.RootDirectory;
+            Assert.IsTrue(Directory.Exists(stagingPath));
 
-            PackageDownloadHandle.CleanupStaging(staged);
+            handle.CleanupStaging();
 
-            Assert.IsFalse(Directory.Exists(staged.StagingPath),
+            Assert.IsFalse(Directory.Exists(stagingPath),
                 "CleanupStaging should delete the temporary staging folder.");
-            Assert.IsFalse(Directory.Exists(staged.InstalledPath),
-                "CleanupStaging should not have created the final install directory.");
         }
 
         [Test]
         public void CleanupStagingTolerantOfMissingDirectory()
         {
-            // Calling CleanupStaging twice (or against a non-existent staging path) should not throw.
-            var staged = new StagedPackage(
-                package: null,
-                stagingPath: Path.Combine(scratchDirectory, "does", "not", "exist"),
-                installedPath: Path.Combine(scratchDirectory, "ignored"));
+            // CleanupStaging should be safe to call before BuildStagedPackage and idempotent
+            // when called a second time after the staging folder is already gone.
+            var handle = new PackageDownloadHandle();
+            Assert.DoesNotThrow(() => handle.CleanupStaging());
 
-            Assert.DoesNotThrow(() => PackageDownloadHandle.CleanupStaging(staged));
-            Assert.DoesNotThrow(() => PackageDownloadHandle.CleanupStaging(null));
+            var sourceDir = Path.Combine(TestDirectory, "pkgs", "EvenOdd");
+            var installDirectory = Path.Combine(scratchDirectory, "packages");
+            Directory.CreateDirectory(installDirectory);
+
+            var stagedHandle = CreateHandleForPackage(sourceDir, "EvenOdd");
+            var stagedPkg = stagedHandle.BuildStagedPackage(CurrentDynamoModel, installDirectory);
+            Assert.IsNotNull(stagedPkg);
+
+            stagedHandle.CleanupStaging();
+            Assert.DoesNotThrow(() => stagedHandle.CleanupStaging());
+        }
+
+        [Test]
+        public void FinalizeExtractionWithoutStageThrows()
+        {
+            var handle = new PackageDownloadHandle();
+            // No BuildStagedPackage call — staging state is unset, so FinalizeExtraction must fail
+            // loudly rather than silently doing nothing.
+            Assert.Throws<InvalidOperationException>(() => handle.FinalizeExtraction(new Package(
+                directory: Path.Combine(scratchDirectory, "ignored"),
+                name: "Ignored",
+                versionName: "1.0.0",
+                license: string.Empty)));
         }
     }
 }
