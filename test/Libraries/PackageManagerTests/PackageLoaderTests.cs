@@ -610,9 +610,9 @@ namespace Dynamo.PackageManager.Tests
         [Test]
         public void StagedCustomNodeConflict_UserDeclinesInstall_DoesNotCopyPackageAndRemovesStaging()
         {
+            // Load test packages (EvenOdd has a custom node that EvenOdd2 duplicates by GUID).
             var pathManager = new Mock<IPathManager>();
-            pathManager.SetupGet(x => x.PackagesDirectories).Returns(
-                () => new List<string> { PackagesDirectory });
+            pathManager.SetupGet(x => x.PackagesDirectories).Returns(() => new List<string> { PackagesDirectory });
 
             var loader = new PackageLoader(pathManager.Object);
             var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
@@ -630,11 +630,12 @@ namespace Dynamo.PackageManager.Tests
             });
 
             var evenOddInstalled = loader.LocalPackages.FirstOrDefault(p => p.Name == "EvenOdd");
-            Assert.IsNotNull(evenOddInstalled, "Test requires EvenOdd package in test/pkgs.");
+            Assert.IsNotNull(evenOddInstalled);
             var prefs = CurrentDynamoModel.PreferenceSettings;
             var evenOddRoot = evenOddInstalled.RootDirectory;
             var uninstallListedEvenOddBefore = prefs.PackageDirectoriesToUninstall.Contains(evenOddRoot);
 
+            // Simulate a downloaded package: zip EvenOdd2, then stage (unzip) like PackageDownloadHandle.
             var evenOdd2Source = Path.Combine(PackagesDirectory, "EvenOdd2");
             var compressor = new MutatingFileCompressor();
             var zipFile = compressor.Zip(new RealDirectoryInfo(new DirectoryInfo(evenOdd2Source)));
@@ -646,6 +647,7 @@ namespace Dynamo.PackageManager.Tests
             Assert.IsTrue(downloadHandle.TryPrepareInstallation(CurrentDynamoModel, out var stagedPkg, out var stagingDir));
             Assert.IsTrue(Directory.Exists(stagingDir));
 
+            // Precheck: same rule as PackageManagerClientViewModel before CompleteInstallation.
             var incomingInfo = new PackageInfo("EvenOdd2", new System.Version(1, 0, 0));
             Assert.IsTrue(CurrentDynamoModel.CustomNodeManager.TryGetConflictingPackageCustomNodeInfo(
                 stagedPkg.CustomNodeDirectory,
@@ -654,16 +656,13 @@ namespace Dynamo.PackageManager.Tests
                 out var conflicting));
             Assert.AreEqual("EvenOdd", conflicting.PackageInfo.Name);
 
-            // User chose No: do not commit; remove staging (mirrors PackageManagerClientViewModel finally).
+            // User chose No: do not commit, remove staging (matches production finally).
             PackageDownloadHandle.DiscardStagingDirectory(stagingDir, CurrentDynamoModel.Logger);
 
             var committedPath = Path.Combine(packagesInstallRoot, "EvenOdd2");
-            Assert.IsFalse(Directory.Exists(committedPath), "Package must not be copied when install is declined.");
-            Assert.IsFalse(Directory.Exists(stagingDir), "Staging directory should be deleted.");
-            Assert.AreEqual(
-                uninstallListedEvenOddBefore,
-                prefs.PackageDirectoriesToUninstall.Contains(evenOddRoot),
-                "Declining install must not mark the existing package for uninstall.");
+            Assert.IsFalse(Directory.Exists(committedPath));
+            Assert.IsFalse(Directory.Exists(stagingDir));
+            Assert.AreEqual(uninstallListedEvenOddBefore, prefs.PackageDirectoriesToUninstall.Contains(evenOddRoot));
 
             loader.PackagesLoaded -= libraryLoader.LoadPackages;
             loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
@@ -674,8 +673,7 @@ namespace Dynamo.PackageManager.Tests
         public void StagedCustomNodeConflict_UserAcceptsReplace_CopiesNewPackageAndMarksExistingForUninstallOnRestart()
         {
             var pathManager = new Mock<IPathManager>();
-            pathManager.SetupGet(x => x.PackagesDirectories).Returns(
-                () => new List<string> { PackagesDirectory });
+            pathManager.SetupGet(x => x.PackagesDirectories).Returns(() => new List<string> { PackagesDirectory });
 
             var loader = new PackageLoader(pathManager.Object);
             var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
@@ -693,9 +691,11 @@ namespace Dynamo.PackageManager.Tests
             });
 
             var evenOddInstalled = loader.LocalPackages.FirstOrDefault(p => p.Name == "EvenOdd");
-            Assert.IsNotNull(evenOddInstalled, "Test requires EvenOdd package in test/pkgs.");
+            Assert.IsNotNull(evenOddInstalled);
+
             var prefs = CurrentDynamoModel.PreferenceSettings;
             var evenOddRoot = evenOddInstalled.RootDirectory;
+            // Isolate uninstall-list assertion for this test.
             prefs.PackageDirectoriesToUninstall.RemoveAll(x => x.Equals(evenOddRoot));
 
             var evenOdd2Source = Path.Combine(PackagesDirectory, "EvenOdd2");
@@ -714,21 +714,19 @@ namespace Dynamo.PackageManager.Tests
                 incomingInfo,
                 out _));
 
-            // User chose Yes: same as ConflictingCustomNodePackageLoaded handler — mark existing for removal after restart.
+            // User chose Yes — same side effect as ConflictingCustomNodePackageLoaded (Yes): schedule old package removal.
             evenOddInstalled.MarkForUninstall(prefs);
+            // Commit to disk; production skips LoadPackages until restart.
             downloadHandle.CompleteInstallation(stagedPkg, stagingDir, packagesInstallRoot);
             PackageDownloadHandle.DiscardStagingDirectory(stagingDir, CurrentDynamoModel.Logger);
 
             var committedPath = Path.Combine(packagesInstallRoot, "EvenOdd2");
-            Assert.IsTrue(Directory.Exists(committedPath), "Staged package should be committed when user accepts replace.");
+            Assert.IsTrue(Directory.Exists(committedPath));
             Assert.IsTrue(File.Exists(Path.Combine(committedPath, "pkg.json")));
-            Assert.IsFalse(Directory.Exists(stagingDir), "Staging directory should be deleted after commit.");
-            Assert.IsTrue(
-                prefs.PackageDirectoriesToUninstall.Contains(evenOddRoot),
-                "Existing package root should be scheduled for uninstall on next startup.");
-            Assert.IsFalse(
-                loader.LocalPackages.Any(p => p.Name == "EvenOdd2"),
-                "New package must not be added to LocalPackages this session (loads after restart).");
+            Assert.IsFalse(Directory.Exists(stagingDir));
+            Assert.IsTrue(prefs.PackageDirectoriesToUninstall.Contains(evenOddRoot));
+            // New package is not registered in this session (SetPackageState does not call LoadPackages here).
+            Assert.IsFalse(loader.LocalPackages.Any(p => p.Name == "EvenOdd2"));
 
             loader.PackagesLoaded -= libraryLoader.LoadPackages;
             loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
@@ -738,9 +736,9 @@ namespace Dynamo.PackageManager.Tests
         [Test]
         public void TryGetConflictingPackageCustomNodeInfoReturnsFalseForSamePackageName()
         {
+            // Same package name re-scan should not count as a cross-package conflict.
             var pathManager = new Mock<IPathManager>();
-            pathManager.SetupGet(x => x.PackagesDirectories).Returns(
-                () => new List<string> { PackagesDirectory });
+            pathManager.SetupGet(x => x.PackagesDirectories).Returns(() => new List<string> { PackagesDirectory });
 
             var loader = new PackageLoader(pathManager.Object);
             var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
