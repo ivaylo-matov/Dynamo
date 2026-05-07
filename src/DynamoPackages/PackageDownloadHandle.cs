@@ -165,9 +165,11 @@ namespace Dynamo.PackageManager
             {
                 Directory.Delete(stagingDirectory, true);
             }
-            catch
+            catch (IOException)
             {
-                // Best-effort cleanup; avoid blocking package manager UX on locked files.
+            }
+            catch (UnauthorizedAccessException)
+            {
             }
         }
 
