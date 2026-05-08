@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using Dynamo.Core;
+using Dynamo.Logging;
 using Dynamo.Models;
 
 using Greg.Responses;
@@ -97,6 +97,98 @@ namespace Dynamo.PackageManager
         }
 
         /// <summary>
+        /// Unzips the downloaded package to a staging directory and parses <c>pkg.json</c>.
+        /// The caller must delete <paramref name="stagingDirectory"/> with
+        /// <see cref="DiscardStagingDirectory"/> (pass <paramref name="dynamoModel"/>.Logger) when installation is aborted or after
+        /// <see cref="CompleteInstallation"/> (which leaves the staging folder in place — discard afterward).
+        /// </summary>
+        public bool TryPrepareInstallation(DynamoModel dynamoModel, out Package pkg, out string stagingDirectory)
+        {
+            pkg = null;
+            stagingDirectory = null;
+            this.DownloadState = State.Installing;
+
+            var unzipPath = Greg.Utility.FileUtilities.UnZip(DownloadPath);
+            if (!Directory.Exists(unzipPath))
+            {
+                throw new Exception(Properties.Resources.PackageEmpty);
+            }
+
+            stagingDirectory = unzipPath;
+            pkg = Package.FromDirectory(unzipPath, dynamoModel.Logger);
+            return pkg != null;
+        }
+
+        /// <summary>
+        /// Copies a staged package into the Dynamo packages directory tree and sets <paramref name="pkg"/>.RootDirectory.
+        /// </summary>
+        /// <param name="pkg">Package metadata (initially rooted at the staging folder).</param>
+        /// <param name="stagingDirectory">Path returned from <see cref="TryPrepareInstallation"/>.</param>
+        /// <param name="packagesRootDirectory">Root packages folder (e.g. default or custom package path).</param>
+        public void CompleteInstallation(Package pkg, string stagingDirectory, string packagesRootDirectory)
+        {
+            if (pkg == null)
+            {
+                throw new ArgumentNullException(nameof(pkg));
+            }
+            if (string.IsNullOrEmpty(stagingDirectory))
+            {
+                throw new ArgumentException("Staging directory is required.", nameof(stagingDirectory));
+            }
+
+            var installedPath = BuildInstallDirectoryString(packagesRootDirectory, pkg.Name);
+            Directory.CreateDirectory(installedPath);
+
+            foreach (string dirPath in Directory.GetDirectories(stagingDirectory, "*", SearchOption.AllDirectories))
+            {
+                Directory.CreateDirectory(dirPath.Replace(stagingDirectory, installedPath));
+            }
+
+            foreach (string newPath in Directory.GetFiles(stagingDirectory, "*.*", SearchOption.AllDirectories))
+            {
+                File.Copy(newPath, newPath.Replace(stagingDirectory, installedPath));
+            }
+
+            pkg.RootDirectory = installedPath;
+        }
+
+        /// <summary>
+        /// Deletes a staging directory created by <see cref="TryPrepareInstallation"/>.
+        /// </summary>
+        /// <param name="stagingDirectory">Path to remove.</param>
+        /// <param name="logger">Optional logger for delete failures (same style as other package directory cleanup).</param>
+        public static void DiscardStagingDirectory(string stagingDirectory, ILogger logger)
+        {
+            if (string.IsNullOrEmpty(stagingDirectory) || !Directory.Exists(stagingDirectory))
+            {
+                return;
+            }
+
+            try
+            {
+                Directory.Delete(stagingDirectory, true);
+            }
+            catch (IOException ex)
+            {
+                logger?.LogWarning(
+                    string.Format(
+                        "Failed to delete package staging directory at \"{0}\". {1}",
+                        stagingDirectory,
+                        ex.Message),
+                    WarningLevel.Moderate);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                logger?.LogWarning(
+                    string.Format(
+                        "Failed to delete package staging directory at \"{0}\". {1}",
+                        stagingDirectory,
+                        ex.Message),
+                    WarningLevel.Moderate);
+            }
+        }
+
+        /// <summary>
         /// Extracts and parses the metadata of a downloaded package
         /// </summary>
         /// <param name="dynamoModel">Dynamo model</param>
@@ -105,41 +197,26 @@ namespace Dynamo.PackageManager
         /// <returns>Whether the operation succeeded or not</returns>
         public bool Extract(DynamoModel dynamoModel, string installDirectory, out Package pkg)
         {
-            this.DownloadState = State.Installing;
-
-            // unzip, place files
-            var unzipPath = Greg.Utility.FileUtilities.UnZip(DownloadPath);
-            if (!Directory.Exists(unzipPath))
+            string stagingDirectory = null;
+            try
             {
-                throw new Exception(Properties.Resources.PackageEmpty);
+                if (!TryPrepareInstallation(dynamoModel, out pkg, out stagingDirectory))
+                {
+                    return false;
+                }
+
+                if (String.IsNullOrEmpty(installDirectory))
+                {
+                    installDirectory = dynamoModel.PathManager.DefaultPackagesDirectory;
+                }
+
+                CompleteInstallation(pkg, stagingDirectory, installDirectory);
+                return true;
             }
-
-            // provide handle to installed package 
-            pkg = Package.FromDirectory(unzipPath, dynamoModel.Logger);
-
-            if (pkg == null)
+            finally
             {
-                return false;
+                DiscardStagingDirectory(stagingDirectory, dynamoModel.Logger);
             }
-
-            if (String.IsNullOrEmpty(installDirectory))
-                installDirectory = dynamoModel.PathManager.DefaultPackagesDirectory;
-
-            var installedPath = BuildInstallDirectoryString(installDirectory, pkg.Name);
-            Directory.CreateDirectory(installedPath);
-
-            // Now create all of the directories
-            foreach (string dirPath in Directory.GetDirectories(unzipPath, "*", SearchOption.AllDirectories))
-                Directory.CreateDirectory(dirPath.Replace(unzipPath, installedPath));
-
-            // Copy all the files
-            foreach (string newPath in Directory.GetFiles(unzipPath, "*.*", SearchOption.AllDirectories))
-                File.Copy(newPath, newPath.Replace(unzipPath, installedPath));
-
-            // Update root directory to final path
-            pkg.RootDirectory = installedPath;
-
-            return true;
         }
 
         // cancel, install, redownload

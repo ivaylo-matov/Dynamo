@@ -1268,8 +1268,13 @@ namespace Dynamo.PackageManager
             return String.Join("\r\n", packages.Select(x => x.Item1.name + " " + x.Item2.version));
         }
 
-        private void ConflictingCustomNodePackageLoaded(Package installed, Package conflicting)
+        private bool ConflictingCustomNodePackageLoaded(Package installed, Package conflicting)
         {
+            if (installed == null || conflicting == null)
+            {
+                return false;
+            }
+
             var message = string.Format(Resources.MessageUninstallCustomNodeToContinue,
                 installed.Name + " " + installed.VersionName, conflicting.Name + " " + conflicting.VersionName);
 
@@ -1282,7 +1287,10 @@ namespace Dynamo.PackageManager
                 // mark for uninstallation
                 var settings = PackageManagerClientViewModel.DynamoViewModel.Model.PreferenceSettings;
                 installed.MarkForUninstall(settings);
+                return true;
             }
+
+            return false;
         }
 
         private void DownloadsOnCollectionChanged(object sender, NotifyCollectionChangedEventArgs args)
@@ -1416,7 +1424,7 @@ namespace Dynamo.PackageManager
         {
             SearchResults.CollectionChanged += SearchResultsOnCollectionChanged;
             PackageManagerClientViewModel.Downloads.CollectionChanged += DownloadsOnCollectionChanged;
-            PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.ConflictingCustomNodePackageLoaded +=
+            PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.ConflictingCustomNodePackageResolutionCallback =
                 ConflictingCustomNodePackageLoaded;
         }
 
@@ -1424,8 +1432,7 @@ namespace Dynamo.PackageManager
         {
             SearchResults.CollectionChanged -= SearchResultsOnCollectionChanged;
             PackageManagerClientViewModel.Downloads.CollectionChanged -= DownloadsOnCollectionChanged;
-            PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.ConflictingCustomNodePackageLoaded -=
-                ConflictingCustomNodePackageLoaded;
+            PackageManagerClientViewModel.PackageManagerExtension.PackageLoader.ConflictingCustomNodePackageResolutionCallback = null;
         }
 
         /// <summary>

@@ -13,6 +13,7 @@ using Dynamo.Graph.Nodes.CustomNodes;
 using Dynamo.Graph.Workspaces;
 using Dynamo.Interfaces;
 using Dynamo.Search.SearchElements;
+using Dynamo.PackageManager;
 using Moq;
 using NUnit.Framework;
 
@@ -600,6 +601,181 @@ namespace Dynamo.PackageManager.Tests
             //the node should have the correct package info and should be marked a packageMember.
             Assert.AreEqual(1, matchingNodes.Count);
             Assert.IsTrue(matchingNodes.All(x=>x.Value.IsPackageMember == true));
+
+            loader.PackagesLoaded -= libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+            loader.RequestLoadCustomNodeDirectory -= reqLoadCNDelegate;
+        }
+
+        [Test]
+        public void DecliningStagedCustomNodeConflictPackageDoesNotCommitAndRemovesStaging()
+        {
+            // Load test packages (EvenOdd has a custom node that EvenOdd2 duplicates by GUID).
+            var pathManager = new Mock<IPathManager>();
+            pathManager.SetupGet(x => x.PackagesDirectories).Returns(() => new List<string> { PackagesDirectory });
+
+            var loader = new PackageLoader(pathManager.Object);
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            Func<string, PackageInfo, IEnumerable<CustomNodeInfo>> reqLoadCNDelegate = (dir, pkgInfo) =>
+                CurrentDynamoModel.CustomNodeManager.AddUninitializedCustomNodesInPath(dir, isTestMode: false, packageInfo: pkgInfo);
+            loader.RequestLoadCustomNodeDirectory += reqLoadCNDelegate;
+
+            loader.LoadAll(new LoadPackageParams
+            {
+                Preferences = CurrentDynamoModel.PreferenceSettings,
+            });
+
+            var evenOddInstalled = loader.LocalPackages.FirstOrDefault(p => p.Name == "EvenOdd");
+            Assert.IsNotNull(evenOddInstalled);
+            var prefs = CurrentDynamoModel.PreferenceSettings;
+            var evenOddRoot = evenOddInstalled.RootDirectory;
+            var uninstallListedEvenOddBefore = prefs.PackageDirectoriesToUninstall.Contains(evenOddRoot);
+
+            // Simulate a downloaded package: zip EvenOdd2, then stage (unzip) like PackageDownloadHandle.
+            var evenOdd2Source = Path.Combine(PackagesDirectory, "EvenOdd2");
+            var compressor = new MutatingFileCompressor();
+            var zipFile = compressor.Zip(new RealDirectoryInfo(new DirectoryInfo(evenOdd2Source)));
+            var downloadHandle = new PackageDownloadHandle { DownloadPath = zipFile.Name };
+
+            var packagesInstallRoot = Path.Combine(TempFolder, "decline_install_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(packagesInstallRoot);
+
+            Assert.IsTrue(downloadHandle.TryPrepareInstallation(CurrentDynamoModel, out var stagedPkg, out var stagingDir));
+            Assert.IsTrue(Directory.Exists(stagingDir));
+
+            // Precheck: same rule as PackageManagerClientViewModel before CompleteInstallation.
+            var incomingInfo = new PackageInfo("EvenOdd2", new System.Version(1, 0, 0));
+            Assert.IsTrue(CurrentDynamoModel.CustomNodeManager.TryGetConflictingPackageCustomNodeInfo(
+                stagedPkg.CustomNodeDirectory,
+                false,
+                incomingInfo,
+                out var conflicting));
+            Assert.AreEqual("EvenOdd", conflicting.PackageInfo.Name);
+
+            // User chose No: do not commit, remove staging (matches production finally).
+            PackageDownloadHandle.DiscardStagingDirectory(stagingDir, CurrentDynamoModel.Logger);
+
+            var committedPath = Path.Combine(packagesInstallRoot, "EvenOdd2");
+            Assert.IsFalse(Directory.Exists(stagingDir));
+            Assert.AreEqual(uninstallListedEvenOddBefore, prefs.PackageDirectoriesToUninstall.Contains(evenOddRoot));
+
+            // Without CompleteInstallation, EvenOdd2 would not appear under packagesInstallRoot anyway.
+            // Prove the install root is valid by committing the same package in a second pass: if this
+            // succeeds, the earlier absence of committedPath was due to skipping commit on decline, not a bad path.
+            Assert.IsFalse(Directory.Exists(committedPath));
+            var zipFileControl = compressor.Zip(new RealDirectoryInfo(new DirectoryInfo(evenOdd2Source)));
+            var downloadHandleControl = new PackageDownloadHandle { DownloadPath = zipFileControl.Name };
+            Assert.IsTrue(downloadHandleControl.TryPrepareInstallation(CurrentDynamoModel, out var stagedPkgControl, out var stagingDirControl));
+            downloadHandleControl.CompleteInstallation(stagedPkgControl, stagingDirControl, packagesInstallRoot);
+            PackageDownloadHandle.DiscardStagingDirectory(stagingDirControl, CurrentDynamoModel.Logger);
+            Assert.IsTrue(Directory.Exists(committedPath));
+            Assert.IsTrue(File.Exists(Path.Combine(committedPath, "pkg.json")));
+
+            loader.PackagesLoaded -= libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+            loader.RequestLoadCustomNodeDirectory -= reqLoadCNDelegate;
+        }
+
+        [Test]
+        public void AcceptingStagedCustomNodeConflictPackageCommitsAndMarksExistingForUninstall()
+        {
+            var pathManager = new Mock<IPathManager>();
+            pathManager.SetupGet(x => x.PackagesDirectories).Returns(() => new List<string> { PackagesDirectory });
+
+            var loader = new PackageLoader(pathManager.Object);
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            Func<string, PackageInfo, IEnumerable<CustomNodeInfo>> reqLoadCNDelegate = (dir, pkgInfo) =>
+                CurrentDynamoModel.CustomNodeManager.AddUninitializedCustomNodesInPath(dir, isTestMode: false, packageInfo: pkgInfo);
+            loader.RequestLoadCustomNodeDirectory += reqLoadCNDelegate;
+
+            loader.LoadAll(new LoadPackageParams
+            {
+                Preferences = CurrentDynamoModel.PreferenceSettings,
+            });
+
+            var evenOddInstalled = loader.LocalPackages.FirstOrDefault(p => p.Name == "EvenOdd");
+            Assert.IsNotNull(evenOddInstalled);
+
+            var prefs = CurrentDynamoModel.PreferenceSettings;
+            var evenOddRoot = evenOddInstalled.RootDirectory;
+            // Isolate uninstall-list assertion for this test.
+            prefs.PackageDirectoriesToUninstall.RemoveAll(x => x.Equals(evenOddRoot));
+
+            var evenOdd2Source = Path.Combine(PackagesDirectory, "EvenOdd2");
+            var compressor = new MutatingFileCompressor();
+            var zipFile = compressor.Zip(new RealDirectoryInfo(new DirectoryInfo(evenOdd2Source)));
+            var downloadHandle = new PackageDownloadHandle { DownloadPath = zipFile.Name };
+
+            var packagesInstallRoot = Path.Combine(TempFolder, "accept_install_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(packagesInstallRoot);
+
+            Assert.IsTrue(downloadHandle.TryPrepareInstallation(CurrentDynamoModel, out var stagedPkg, out var stagingDir));
+            var incomingInfo = new PackageInfo("EvenOdd2", new System.Version(1, 0, 0));
+            Assert.IsTrue(CurrentDynamoModel.CustomNodeManager.TryGetConflictingPackageCustomNodeInfo(
+                stagedPkg.CustomNodeDirectory,
+                false,
+                incomingInfo,
+                out _));
+
+            // User chose Yes — same side effect as ConflictingCustomNodePackageLoaded (Yes): schedule old package removal.
+            evenOddInstalled.MarkForUninstall(prefs);
+            // Commit to disk; production skips LoadPackages until restart.
+            downloadHandle.CompleteInstallation(stagedPkg, stagingDir, packagesInstallRoot);
+            PackageDownloadHandle.DiscardStagingDirectory(stagingDir, CurrentDynamoModel.Logger);
+
+            var committedPath = Path.Combine(packagesInstallRoot, "EvenOdd2");
+            Assert.IsTrue(Directory.Exists(committedPath));
+            Assert.IsTrue(File.Exists(Path.Combine(committedPath, "pkg.json")));
+            Assert.IsFalse(Directory.Exists(stagingDir));
+            Assert.IsTrue(prefs.PackageDirectoriesToUninstall.Contains(evenOddRoot));
+            // New package is not registered in this session (SetPackageState does not call LoadPackages here).
+            Assert.IsFalse(loader.LocalPackages.Any(p => p.Name == "EvenOdd2"));
+
+            loader.PackagesLoaded -= libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+            loader.RequestLoadCustomNodeDirectory -= reqLoadCNDelegate;
+        }
+
+        [Test]
+        public void TryGetConflictingPackageCustomNodeInfoReturnsFalseForSamePackageName()
+        {
+            // Same package name re-scan should not count as a cross-package conflict.
+            var pathManager = new Mock<IPathManager>();
+            pathManager.SetupGet(x => x.PackagesDirectories).Returns(() => new List<string> { PackagesDirectory });
+
+            var loader = new PackageLoader(pathManager.Object);
+            var libraryLoader = new ExtensionLibraryLoader(CurrentDynamoModel);
+
+            loader.PackagesLoaded += libraryLoader.LoadPackages;
+            loader.RequestLoadNodeLibrary += libraryLoader.LoadLibraryAndSuppressZTSearchImport;
+
+            Func<string, PackageInfo, IEnumerable<CustomNodeInfo>> reqLoadCNDelegate = (dir, pkgInfo) =>
+                CurrentDynamoModel.CustomNodeManager.AddUninitializedCustomNodesInPath(dir, isTestMode: false, packageInfo: pkgInfo);
+            loader.RequestLoadCustomNodeDirectory += reqLoadCNDelegate;
+
+            loader.LoadAll(new LoadPackageParams
+            {
+                Preferences = CurrentDynamoModel.PreferenceSettings,
+            });
+
+            var evenOddDyf = Path.Combine(TestDirectory, "pkgs", "EvenOdd", "dyf");
+            var incomingInfo = new PackageInfo("EvenOdd", new System.Version(1, 0, 0));
+            var hasConflict = CurrentDynamoModel.CustomNodeManager.TryGetConflictingPackageCustomNodeInfo(
+                evenOddDyf,
+                false,
+                incomingInfo,
+                out var conflicting);
+
+            Assert.IsFalse(hasConflict);
+            Assert.IsNull(conflicting);
 
             loader.PackagesLoaded -= libraryLoader.LoadPackages;
             loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;

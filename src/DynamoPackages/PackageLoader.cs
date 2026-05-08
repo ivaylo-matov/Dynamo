@@ -314,10 +314,28 @@ namespace Dynamo.PackageManager
         /// with an existing package is tried to load.
         /// </summary>
         public event Action<Package, Package> ConflictingCustomNodePackageLoaded;
-        private void OnConflictingPackageLoaded(Package installed, Package conflicting)
+
+        /// <summary>
+        /// Optional resolver (e.g. Package Manager UI). When set, it runs instead of only firing
+        /// <see cref="ConflictingCustomNodePackageLoaded"/> and supplies whether the user accepts
+        /// replacing the installed package after restart (true = Yes). When null, subscribers are
+        /// notified via the event and the conflict handler returns false.
+        /// </summary>
+        public Func<Package, Package, bool> ConflictingCustomNodePackageResolutionCallback { get; set; }
+
+        /// <summary>
+        /// Invokes conflict resolution / notification. Does not change package load state.
+        /// </summary>
+        /// <returns>True if the user accepts replacing the installed package after restart (Yes).</returns>
+        internal bool OnConflictingPackageLoaded(Package installed, Package conflicting)
         {
-            var handler = ConflictingCustomNodePackageLoaded;
-            handler?.Invoke(installed, conflicting);
+            if (ConflictingCustomNodePackageResolutionCallback != null)
+            {
+                return ConflictingCustomNodePackageResolutionCallback(installed, conflicting);
+            }
+
+            ConflictingCustomNodePackageLoaded?.Invoke(installed, conflicting);
+            return false;
         }
 
         /// <summary>

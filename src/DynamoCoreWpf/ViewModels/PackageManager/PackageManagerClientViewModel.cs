@@ -1114,19 +1114,64 @@ namespace Dynamo.ViewModels
         /// Check Dynamo package install state
         /// </summary>
         /// <param name="packageDownloadHandle">package download handle</param>
-        /// <param name="downloadPath">package download path</param>
-        internal void SetPackageState(PackageDownloadHandle packageDownloadHandle, string downloadPath)
+        /// <param name="packagesRootDirectory">Root folder for package installation (custom path or empty for default)</param>
+        internal void SetPackageState(PackageDownloadHandle packageDownloadHandle, string packagesRootDirectory)
         {
-            Package dynPkg;
-            if (packageDownloadHandle.Extract(DynamoViewModel.Model, downloadPath, out dynPkg))
+            string stagingDirectory = null;
+            try
             {
+                if (!packageDownloadHandle.TryPrepareInstallation(DynamoViewModel.Model, out var dynPkg, out stagingDirectory))
+                {
+                    packageDownloadHandle.Error(Resources.MessageInvalidPackage);
+                    return;
+                }
+
+                var packagesRoot = string.IsNullOrEmpty(packagesRootDirectory)
+                    ? DynamoViewModel.Model.PathManager.DefaultPackagesDirectory
+                    : packagesRootDirectory;
+
+                if (Directory.Exists(dynPkg.CustomNodeDirectory))
+                {
+                    var incomingInfo = new PackageInfo(dynPkg.Name, new Version(dynPkg.VersionName));
+                    if (DynamoViewModel.Model.CustomNodeManager.TryGetConflictingPackageCustomNodeInfo(
+                            dynPkg.CustomNodeDirectory,
+                            DynamoModel.IsTestMode,
+                            incomingInfo,
+                            out var conflictingExisting))
+                    {
+                        var existingDyfDir = Path.GetDirectoryName(conflictingExisting.Path);
+                        var installedPkg = PackageManagerExtension.PackageLoader.LocalPackages.FirstOrDefault(
+                            p => string.Equals(p.CustomNodeDirectory, existingDyfDir, StringComparison.OrdinalIgnoreCase));
+
+                        if (installedPkg == null)
+                        {
+                            packageDownloadHandle.Error(Resources.MessagePackageInstallCancelledDueToCustomNodeConflict);
+                            return;
+                        }
+
+                        var userChoseReplace =
+                            PackageManagerExtension.PackageLoader.OnConflictingPackageLoaded(installedPkg, dynPkg);
+
+                        if (!userChoseReplace)
+                        {
+                            packageDownloadHandle.Error(Resources.MessagePackageInstallCancelledDueToCustomNodeConflict);
+                            return;
+                        }
+
+                        packageDownloadHandle.CompleteInstallation(dynPkg, stagingDirectory, packagesRoot);
+                        packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
+                        packageDownloadHandle.ErrorString = Resources.MessagePackageInstallRestartToCompleteCustomNodeReplace;
+                        return;
+                    }
+                }
+
+                packageDownloadHandle.CompleteInstallation(dynPkg, stagingDirectory, packagesRoot);
                 PackageManagerExtension.PackageLoader.LoadPackages(new List<Package> { dynPkg });
                 packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Installed;
             }
-            else
+            finally
             {
-                packageDownloadHandle.DownloadState = PackageDownloadHandle.State.Error;
-                packageDownloadHandle.Error(Resources.MessageInvalidPackage);
+                PackageDownloadHandle.DiscardStagingDirectory(stagingDirectory, DynamoViewModel.Model.Logger);
             }
         }
 
