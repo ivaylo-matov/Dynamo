@@ -312,25 +312,30 @@ namespace Dynamo.PackageManager
         /// <summary>
         /// Event raised when a custom node package containing conflicting node definition
         /// with an existing package is tried to load.
-        /// Handlers return true if the user accepts replacing the installed package after restart (Yes).
         /// </summary>
-        public event Func<Package, Package, bool> ConflictingCustomNodePackageLoaded;
+        public event Action<Package, Package> ConflictingCustomNodePackageLoaded;
 
         /// <summary>
-        /// Invokes <see cref="ConflictingCustomNodePackageLoaded"/> (e.g. conflict dialog). Does not change package load state.
+        /// Optional resolver (e.g. Package Manager UI). When set, it runs instead of only firing
+        /// <see cref="ConflictingCustomNodePackageLoaded"/> and supplies whether the user accepts
+        /// replacing the installed package after restart (true = Yes). When null, subscribers are
+        /// notified via the event and the conflict handler returns false.
+        /// </summary>
+        public Func<Package, Package, bool> ConflictingCustomNodePackageResolutionCallback { get; set; }
+
+        /// <summary>
+        /// Invokes conflict resolution / notification. Does not change package load state.
         /// </summary>
         /// <returns>True if the user accepts replacing the installed package after restart (Yes).</returns>
         internal bool OnConflictingPackageLoaded(Package installed, Package conflicting)
         {
-            var handler = ConflictingCustomNodePackageLoaded;
-            if (handler == null)
+            if (ConflictingCustomNodePackageResolutionCallback != null)
             {
-                return false;
+                return ConflictingCustomNodePackageResolutionCallback(installed, conflicting);
             }
 
-            return handler.GetInvocationList()
-                .OfType<Func<Package, Package, bool>>()
-                .Any(func => func(installed, conflicting));
+            ConflictingCustomNodePackageLoaded?.Invoke(installed, conflicting);
+            return false;
         }
 
         /// <summary>
