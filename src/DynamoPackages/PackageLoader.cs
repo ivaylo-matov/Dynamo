@@ -328,16 +328,9 @@ namespace Dynamo.PackageManager
                 return false;
             }
 
-            var acceptReplace = false;
-            foreach (Delegate del in handler.GetInvocationList())
-            {
-                if (del is Func<Package, Package, bool> callback && callback(installed, conflicting))
-                {
-                    acceptReplace = true;
-                }
-            }
-
-            return acceptReplace;
+            return handler.GetInvocationList()
+                .OfType<Func<Package, Package, bool>>()
+                .Any(func => func(installed, conflicting));
         }
 
         /// <summary>
