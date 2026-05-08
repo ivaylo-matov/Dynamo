@@ -660,9 +660,20 @@ namespace Dynamo.PackageManager.Tests
             PackageDownloadHandle.DiscardStagingDirectory(stagingDir, CurrentDynamoModel.Logger);
 
             var committedPath = Path.Combine(packagesInstallRoot, "EvenOdd2");
-            Assert.IsFalse(Directory.Exists(committedPath));
             Assert.IsFalse(Directory.Exists(stagingDir));
             Assert.AreEqual(uninstallListedEvenOddBefore, prefs.PackageDirectoriesToUninstall.Contains(evenOddRoot));
+
+            // Without CompleteInstallation, EvenOdd2 would not appear under packagesInstallRoot anyway.
+            // Prove the install root is valid by committing the same package in a second pass: if this
+            // succeeds, the earlier absence of committedPath was due to skipping commit on decline, not a bad path.
+            Assert.IsFalse(Directory.Exists(committedPath));
+            var zipFileControl = compressor.Zip(new RealDirectoryInfo(new DirectoryInfo(evenOdd2Source)));
+            var downloadHandleControl = new PackageDownloadHandle { DownloadPath = zipFileControl.Name };
+            Assert.IsTrue(downloadHandleControl.TryPrepareInstallation(CurrentDynamoModel, out var stagedPkgControl, out var stagingDirControl));
+            downloadHandleControl.CompleteInstallation(stagedPkgControl, stagingDirControl, packagesInstallRoot);
+            PackageDownloadHandle.DiscardStagingDirectory(stagingDirControl, CurrentDynamoModel.Logger);
+            Assert.IsTrue(Directory.Exists(committedPath));
+            Assert.IsTrue(File.Exists(Path.Combine(committedPath, "pkg.json")));
 
             loader.PackagesLoaded -= libraryLoader.LoadPackages;
             loader.RequestLoadNodeLibrary -= libraryLoader.LoadLibraryAndSuppressZTSearchImport;
