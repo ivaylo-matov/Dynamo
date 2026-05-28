@@ -14,6 +14,8 @@ using Dynamo.Graph.Nodes;
 using Dynamo.Graph.Nodes.ZeroTouch;
 using Dynamo.Graph.Notes;
 using Dynamo.Graph.Workspaces;
+using Dynamo.Exceptions;
+using Dynamo.Utilities;
 
 namespace Dynamo.Models
 {
@@ -47,7 +49,29 @@ namespace Dynamo.Models
             string filePath = command.FilePath;
             bool forceManualMode = command.ForceManualExecutionMode;
             bool isTemplate = command.IsTemplate;
-            OpenFileFromPath(filePath, forceManualMode);
+
+            if (!isTemplate)
+            {
+                if (DynamoGraphFileSessionTracker.IsOpenInAnotherSession(filePath)
+                    || !DynamoGraphFileSessionTracker.TryRegisterOpenFile(filePath))
+                {
+                    throw new GraphFileOpenInAnotherSessionException(filePath);
+                }
+            }
+
+            try
+            {
+                OpenFileFromPath(filePath, forceManualMode);
+            }
+            catch
+            {
+                if (!isTemplate)
+                {
+                    DynamoGraphFileSessionTracker.UnregisterOpenFile(filePath);
+                }
+
+                throw;
+            }
 
             //clear the clipboard to avoid copying between dyns
             //ClipBoard.Clear();

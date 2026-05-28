@@ -3387,7 +3387,12 @@ namespace Dynamo.Models
             }
 
             //don't save the file path
+            var previousFileName = CurrentWorkspace.FileName;
             CurrentWorkspace.FileName = "";
+            if (!string.IsNullOrEmpty(previousFileName))
+            {
+                DynamoGraphFileSessionTracker.UnregisterOpenFile(previousFileName);
+            }
             CurrentWorkspace.HasUnsavedChanges = false;
             EngineController.CurrentWorkspaceVersion = AssemblyHelper.GetDynamoVersion();
 
