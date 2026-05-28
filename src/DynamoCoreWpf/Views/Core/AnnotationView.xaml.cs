@@ -1989,6 +1989,20 @@ namespace Dynamo.Nodes
             return border;
         }
 
+        private static void ApplySubmenuHighlight(Border border, TextBlock label, TextBlock arrow)
+        {
+            border.Background = _nodeContextMenuBackgroundHighlight;
+            label.Foreground = Brushes.White;
+            arrow.Foreground = Brushes.White;
+        }
+
+        private static void ResetSubmenuHighlight(Border border, TextBlock label, TextBlock arrow)
+        {
+            border.Background = Brushes.Transparent;
+            label.Foreground = _nodeContextMenuForeground;
+            arrow.Foreground = _blue300Brush;
+        }
+
         private Grid CreateSubmenuItem(string label, Func<UIElement> submenuContentFactory, bool isEnabled = true)
         {
             var popup = new Popup
@@ -2005,6 +2019,7 @@ namespace Dynamo.Nodes
                 FontSize = 13,
                 FontFamily = _artifaktElementRegular,
                 Foreground = _blue300Brush,
+                Margin = new Thickness(0, 0, 8, 7),
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 RenderTransform = new ScaleTransform(1, 1.5)
@@ -2034,55 +2049,27 @@ namespace Dynamo.Nodes
 
             var border = WrapWithMenuBorder(layoutGrid, isEnabled: isEnabled);
 
-            void SetSubmenuHighlight()
-            {
-                border.Background = _nodeContextMenuBackgroundHighlight;
-                text.Foreground = Brushes.White;
-                arrow.Foreground = Brushes.White;
-            }
-
-            void ResetSubmenuHighlight()
-            {
-                border.Background = Brushes.Transparent;
-                text.Foreground = _nodeContextMenuForeground;
-                arrow.Foreground = _blue300Brush;
-            }
-
             border.MouseEnter += (s, e) =>
             {
                 if (!isEnabled) return;
                 popup.Child = submenuContentFactory.Invoke();
                 popup.PlacementTarget = border;
                 popup.IsOpen = true;
-                SetSubmenuHighlight();
+                ApplySubmenuHighlight(border, text, arrow);
             };
 
             border.MouseLeave += (s, e) =>
             {
                 if (!isEnabled) return;
-                if (!popup.IsMouseOver)
+                // Defer so moving from the row into the flyout is not treated as a leave.
+                border.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    popup.IsOpen = false;
-                    ResetSubmenuHighlight();
-                }
-            };
-
-            popup.MouseLeave += (s, e) =>
-            {
-                if (!isEnabled) return;
-                if (!border.IsMouseOver)
-                {
-                    popup.IsOpen = false;
-                    ResetSubmenuHighlight();
-                }
-            };
-
-            popup.Closed += (s, e) =>
-            {
-                if (!border.IsMouseOver)
-                {
-                    ResetSubmenuHighlight();
-                }
+                    if (!border.IsMouseOver && !popup.IsMouseOver)
+                    {
+                        popup.IsOpen = false;
+                        ResetSubmenuHighlight(border, text, arrow);
+                    }
+                }), DispatcherPriority.Input);
             };
 
             return new Grid { Children = { border, popup } };
