@@ -4282,4 +4282,31 @@ To open this graph in Dynamo 3.3–3.6.x: Install the PythonNet package from the
   <data name="DocumentationBrowserAutoSyncLabel" xml:space="preserve">
     <value>Auto‑sync with node selection.</value>
   </data>
+  <data name="GraphLockTitle" xml:space="preserve">
+    <value>Graph already open</value>
+  </data>
+  <data name="GraphLockBodyLiveFormat" xml:space="preserve">
+    <value>{0} is open in Dynamo {1} by {2} on {3}. Last activity {4}.</value>
+  </data>
+  <data name="GraphLockBodyStaleFormat" xml:space="preserve">
+    <value>{0} appears to have been left locked by a previous Dynamo session that did not exit cleanly. Last activity {4}.</value>
+  </data>
+  <data name="GraphLockBodyCorrupt" xml:space="preserve">
+    <value>{0} has a graph lock file that could not be read. It may have been left by a previous session.</value>
+  </data>
+  <data name="GraphLockButtonReadOnly" xml:space="preserve">
+    <value>Open read-only</value>
+  </data>
+  <data name="GraphLockButtonOpenAnyway" xml:space="preserve">
+    <value>Open anyway</value>
+  </data>
+  <data name="GraphLockButtonCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="GraphLockReadOnlyBanner" xml:space="preserve">
+    <value>Read-only</value>
+  </data>
+  <data name="GraphLockOpenAnywayConfirmation" xml:space="preserve">
+    <value>Opening anyway can overwrite changes from another Dynamo session. Continue?</value>
+  </data>
 </root>

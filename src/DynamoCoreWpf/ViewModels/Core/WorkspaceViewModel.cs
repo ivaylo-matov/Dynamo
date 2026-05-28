@@ -466,6 +466,23 @@ namespace Dynamo.ViewModels
             set { Model.HasUnsavedChanges = value; }
         }
 
+        [JsonIgnore]
+        public bool IsOpenedInReadOnlyMode
+        {
+            get { return Model.OpenedInReadOnlyMode; }
+        }
+
+        [JsonIgnore]
+        public string GraphLockReadOnlyBanner
+        {
+            get
+            {
+                return Dynamo.Wpf.Properties.Resources.ResourceManager.GetString(
+                    "GraphLockReadOnlyBanner",
+                    Dynamo.Wpf.Properties.Resources.Culture) ?? "Read-only";
+            }
+        }
+
         private ObservableCollection<Watch3DFullscreenViewModel> _watches = new ObservableCollection<Watch3DFullscreenViewModel>();
         [JsonIgnore]
         public ObservableCollection<Watch3DFullscreenViewModel> Watch3DViewModels
@@ -1182,6 +1199,9 @@ namespace Dynamo.ViewModels
                     break;
                 case "FileName":
                     RaisePropertyChanged("FileName");
+                    break;
+                case "OpenedInReadOnlyMode":
+                    RaisePropertyChanged(nameof(IsOpenedInReadOnlyMode));
                     break;
             }
         }
