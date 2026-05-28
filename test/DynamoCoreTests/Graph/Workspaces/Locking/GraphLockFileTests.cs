@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Dynamo;
 using Dynamo.Graph.Workspaces.Locking;
 using NUnit.Framework;
 
