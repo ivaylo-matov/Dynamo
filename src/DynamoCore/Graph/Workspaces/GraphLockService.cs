@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using Newtonsoft.Json;
 
@@ -49,38 +48,38 @@ namespace Dynamo.Graph.Workspaces
 
     internal sealed class GraphLockData
     {
-        [JsonProperty("schemaVersion")]
+        [JsonProperty("schemaVersion", Order = 1)]
         internal int SchemaVersion { get; set; }
 
-        [JsonProperty("graphPath")]
+        [JsonProperty("sessionId", Order = 2)]
+        internal Guid SessionId { get; set; }
+
+        [JsonProperty("graphPath", Order = 3)]
         internal string GraphPath { get; set; }
 
-        [JsonProperty("userName")]
+        [JsonProperty("userName", Order = 4)]
         internal string UserName { get; set; }
 
-        [JsonProperty("hostName")]
-        internal string HostName { get; set; }
+        [JsonProperty("machineName", Order = 5)]
+        internal string MachineName { get; set; }
 
-        [JsonProperty("processId")]
+        [JsonProperty("processId", Order = 6)]
         internal int ProcessId { get; set; }
 
-        [JsonProperty("processStartTimeUtc")]
-        internal DateTime ProcessStartTimeUtc { get; set; }
+        [JsonProperty("processStartUtc", Order = 7)]
+        internal DateTime ProcessStartUtc { get; set; }
 
-        [JsonProperty("dynamoVersion")]
+        [JsonProperty("dynamoVersion", Order = 8)]
         internal string DynamoVersion { get; set; }
 
-        [JsonProperty("dynamoMajorMinorVersion")]
-        internal string DynamoMajorMinorVersion { get; set; }
+        [JsonProperty("dynamoMajorMinor", Order = 9)]
+        internal string DynamoMajorMinor { get; set; }
 
-        [JsonProperty("dynamoBuild")]
-        internal string DynamoBuild { get; set; }
+        [JsonProperty("acquiredUtc", Order = 10)]
+        internal DateTime AcquiredUtc { get; set; }
 
-        [JsonProperty("lastHeartbeatUtc")]
+        [JsonProperty("lastHeartbeatUtc", Order = 11)]
         internal DateTime LastHeartbeatUtc { get; set; }
-
-        [JsonProperty("sessionId")]
-        internal Guid SessionId { get; set; }
     }
 
     internal sealed class GraphLockService : IDisposable
@@ -95,10 +94,9 @@ namespace Dynamo.Graph.Workspaces
         private readonly int processId;
         private readonly DateTime processStartTimeUtc;
         private readonly string userName;
-        private readonly string hostName;
+        private readonly string machineName;
         private readonly string dynamoVersion;
-        private readonly string dynamoMajorMinorVersion;
-        private readonly string dynamoBuild;
+        private readonly string dynamoMajorMinor;
         private readonly TimeSpan heartbeatInterval;
         private readonly TimeSpan staleHeartbeatThreshold;
         private readonly bool unregisterProcessExit;
@@ -107,7 +105,6 @@ namespace Dynamo.Graph.Workspaces
 
         internal GraphLockService(
             string dynamoVersion = null,
-            string dynamoBuild = null,
             TimeSpan? heartbeatInterval = null,
             int staleHeartbeatMultiplier = 5,
             bool registerProcessExit = true)
@@ -118,10 +115,9 @@ namespace Dynamo.Graph.Workspaces
             ownedLocks = new Dictionary<string, GraphLockData>(pathComparer);
             sessionId = Guid.NewGuid();
             userName = Environment.UserName;
-            hostName = Environment.MachineName;
+            machineName = Environment.MachineName;
             this.dynamoVersion = string.IsNullOrWhiteSpace(dynamoVersion) ? GetAssemblyVersion() : dynamoVersion;
-            this.dynamoMajorMinorVersion = GetMajorMinorVersion(this.dynamoVersion);
-            this.dynamoBuild = string.IsNullOrWhiteSpace(dynamoBuild) ? GetAssemblyInformationalVersion() : dynamoBuild;
+            dynamoMajorMinor = GetMajorMinorVersion(this.dynamoVersion);
 
             using (var process = Process.GetCurrentProcess())
             {
@@ -299,19 +295,20 @@ namespace Dynamo.Graph.Workspaces
 
         private GraphLockData CreateLockData(string canonicalGraphPath)
         {
+            var acquiredUtc = DateTime.UtcNow;
             return new GraphLockData
             {
                 SchemaVersion = CurrentSchemaVersion,
+                SessionId = sessionId,
                 GraphPath = canonicalGraphPath,
                 UserName = userName,
-                HostName = hostName,
+                MachineName = machineName,
                 ProcessId = processId,
-                ProcessStartTimeUtc = processStartTimeUtc,
+                ProcessStartUtc = processStartTimeUtc,
                 DynamoVersion = dynamoVersion,
-                DynamoMajorMinorVersion = dynamoMajorMinorVersion,
-                DynamoBuild = dynamoBuild,
-                LastHeartbeatUtc = DateTime.UtcNow,
-                SessionId = sessionId
+                DynamoMajorMinor = dynamoMajorMinor,
+                AcquiredUtc = acquiredUtc,
+                LastHeartbeatUtc = acquiredUtc
             };
         }
 
@@ -415,7 +412,7 @@ namespace Dynamo.Graph.Workspaces
 
         private bool IsDeadLocalProcess(GraphLockData lockData)
         {
-            if (!string.Equals(lockData.HostName, hostName, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(lockData.MachineName, machineName, StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
@@ -425,7 +422,7 @@ namespace Dynamo.Graph.Workspaces
                 using (var process = Process.GetProcessById(lockData.ProcessId))
                 {
                     var startTimeUtc = GetProcessStartTimeUtc(process);
-                    return startTimeUtc != lockData.ProcessStartTimeUtc;
+                    return startTimeUtc != lockData.ProcessStartUtc;
                 }
             }
             catch (ArgumentException)
@@ -523,12 +520,6 @@ namespace Dynamo.Graph.Workspaces
         private static string GetAssemblyVersion()
         {
             return typeof(GraphLockService).Assembly.GetName().Version?.ToString() ?? string.Empty;
-        }
-
-        private static string GetAssemblyInformationalVersion()
-        {
-            var attribute = typeof(GraphLockService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-            return attribute?.InformationalVersion ?? GetAssemblyVersion();
         }
 
         private static bool IsWindows()

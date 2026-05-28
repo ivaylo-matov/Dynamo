@@ -845,7 +845,7 @@ namespace Dynamo.ViewModels
 
             // initialize core data structures
             this.model = startConfiguration.DynamoModel;
-            graphLockService = new GraphLockService(DynamoModel.Version, GetDynamoBuildVersion());
+            graphLockService = new GraphLockService(DynamoModel.Version);
             this.model.CommandStarting += OnModelCommandStarting;
             this.model.CommandCompleted += OnModelCommandCompleted;
             this.model.RequestsCrashPrompt += CrashReportTool.ShowCrashWindow;
@@ -2460,7 +2460,7 @@ namespace Dynamo.ViewModels
         private static bool IsLocalUserLock(GraphLockData lockData)
         {
             return lockData != null
-                && string.Equals(lockData.HostName, Environment.MachineName, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(lockData.MachineName, Environment.MachineName, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(lockData.UserName, Environment.UserName, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -2471,14 +2471,14 @@ namespace Dynamo.ViewModels
                 return Resources.GraphLockUnknownOwner;
             }
 
-            return string.Format(Resources.GraphLockOwnerFormat, lockData.UserName, lockData.HostName);
+            return string.Format(Resources.GraphLockOwnerFormat, lockData.UserName, lockData.MachineName);
         }
 
         private static string GetLockDynamoVersion(GraphLockData lockData)
         {
-            if (!string.IsNullOrWhiteSpace(lockData?.DynamoMajorMinorVersion))
+            if (!string.IsNullOrWhiteSpace(lockData?.DynamoMajorMinor))
             {
-                return lockData.DynamoMajorMinorVersion;
+                return lockData.DynamoMajorMinor;
             }
 
             return string.IsNullOrWhiteSpace(lockData?.DynamoVersion)
@@ -2510,13 +2510,6 @@ namespace Dynamo.ViewModels
             }
 
             return string.Format(Resources.GraphLockHoursAgo, Math.Max(1, (int)Math.Round(elapsed.TotalHours)));
-        }
-
-        private static string GetDynamoBuildVersion()
-        {
-            var assembly = typeof(DynamoModel).Assembly;
-            var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-            return attribute?.InformationalVersion ?? assembly.GetName().Version?.ToString();
         }
 
         private void TrackGraphLock(WorkspaceModel workspace, string graphPath)

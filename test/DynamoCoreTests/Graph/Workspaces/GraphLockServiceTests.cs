@@ -1,7 +1,9 @@
 using System;
 using System.IO;
+using System.Linq;
 using Dynamo.Graph.Workspaces;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace Dynamo.Tests.Graph.Workspaces
@@ -25,11 +27,17 @@ namespace Dynamo.Tests.Graph.Workspaces
 
                 var lockData = ReadLockData(result.GraphPath);
                 Assert.AreEqual(GraphLockService.CurrentSchemaVersion, lockData.SchemaVersion);
-                Assert.AreEqual(GraphLockService.GetCanonicalGraphPath(graphPath), lockData.GraphPath);
-                Assert.AreEqual("3.6.1", lockData.DynamoVersion);
-                Assert.AreEqual("3.6", lockData.DynamoMajorMinorVersion);
-                Assert.AreEqual("build-123", lockData.DynamoBuild);
                 Assert.AreNotEqual(Guid.Empty, lockData.SessionId);
+                Assert.AreEqual(GraphLockService.GetCanonicalGraphPath(graphPath), lockData.GraphPath);
+                Assert.AreEqual(Environment.UserName, lockData.UserName);
+                Assert.AreEqual(Environment.MachineName, lockData.MachineName);
+                Assert.Greater(lockData.ProcessId, 0);
+                Assert.AreNotEqual(DateTime.MinValue, lockData.ProcessStartUtc);
+                Assert.AreEqual("3.6.1", lockData.DynamoVersion);
+                Assert.AreEqual("3.6", lockData.DynamoMajorMinor);
+                Assert.AreNotEqual(DateTime.MinValue, lockData.AcquiredUtc);
+                Assert.AreEqual(lockData.AcquiredUtc, lockData.LastHeartbeatUtc);
+                CollectionAssert.AreEqual(GetExpectedLockPropertyNames(), ReadLockPropertyNames(result.GraphPath));
             }
         }
 
@@ -50,7 +58,7 @@ namespace Dynamo.Tests.Graph.Workspaces
                 Assert.AreEqual(GraphLockAcquisitionStatus.LockedByLiveSession, result.Status);
                 Assert.IsNotNull(result.ExistingLock);
                 Assert.AreEqual(Environment.UserName, result.ExistingLock.UserName);
-                Assert.AreEqual(Environment.MachineName, result.ExistingLock.HostName);
+                Assert.AreEqual(Environment.MachineName, result.ExistingLock.MachineName);
             }
         }
 
@@ -87,7 +95,7 @@ namespace Dynamo.Tests.Graph.Workspaces
 
                 var lockData = ReadLockData(result.GraphPath);
                 Assert.AreEqual(Environment.UserName, lockData.UserName);
-                Assert.AreEqual(Environment.MachineName, lockData.HostName);
+                Assert.AreEqual(Environment.MachineName, lockData.MachineName);
                 Assert.AreEqual("3.6.1", lockData.DynamoVersion);
             }
         }
@@ -114,8 +122,7 @@ namespace Dynamo.Tests.Graph.Workspaces
         {
             return new GraphLockService(
                 "3.6.1",
-                "build-123",
-                TimeSpan.FromMilliseconds(100),
+                heartbeatInterval: TimeSpan.FromMilliseconds(100),
                 registerProcessExit: false);
         }
 
@@ -131,21 +138,47 @@ namespace Dynamo.Tests.Graph.Workspaces
             var lockData = new GraphLockData
             {
                 SchemaVersion = GraphLockService.CurrentSchemaVersion,
+                SessionId = Guid.NewGuid(),
                 GraphPath = canonicalGraphPath,
                 UserName = "stale-user",
-                HostName = "stale-host",
+                MachineName = "stale-host",
                 ProcessId = 123,
-                ProcessStartTimeUtc = DateTime.UtcNow.AddHours(-2),
+                ProcessStartUtc = DateTime.UtcNow.AddHours(-2),
                 DynamoVersion = "3.5.0",
-                DynamoMajorMinorVersion = "3.5",
-                DynamoBuild = "stale-build",
-                LastHeartbeatUtc = DateTime.UtcNow.AddHours(-1),
-                SessionId = Guid.NewGuid()
+                DynamoMajorMinor = "3.5",
+                AcquiredUtc = DateTime.UtcNow.AddHours(-2),
+                LastHeartbeatUtc = DateTime.UtcNow.AddHours(-1)
             };
 
             File.WriteAllText(
                 GraphLockService.GetLockFilePath(canonicalGraphPath),
                 JsonConvert.SerializeObject(lockData));
+        }
+
+        private static string[] ReadLockPropertyNames(string graphPath)
+        {
+            return JObject.Parse(File.ReadAllText(GraphLockService.GetLockFilePath(graphPath)))
+                .Properties()
+                .Select(property => property.Name)
+                .ToArray();
+        }
+
+        private static string[] GetExpectedLockPropertyNames()
+        {
+            return new[]
+            {
+                "schemaVersion",
+                "sessionId",
+                "graphPath",
+                "userName",
+                "machineName",
+                "processId",
+                "processStartUtc",
+                "dynamoVersion",
+                "dynamoMajorMinor",
+                "acquiredUtc",
+                "lastHeartbeatUtc"
+            };
         }
     }
 }
