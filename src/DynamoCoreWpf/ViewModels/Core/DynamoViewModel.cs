@@ -70,6 +70,7 @@ namespace Dynamo.ViewModels
         public Window Owner { get; set; }
         private readonly DynamoModel model;
         private readonly GraphLockService graphLockService;
+        private readonly Dictionary<Guid, string> graphLockPathsByWorkspace = new Dictionary<Guid, string>();
         private Point transformOrigin;
         private bool showStartPage = false;
         private PreferencesViewModel preferencesViewModel;
@@ -1917,7 +1918,7 @@ namespace Dynamo.ViewModels
 
         private void WorkspaceRemoved(WorkspaceModel item)
         {
-            graphLockService.ReleaseLock(item.FileName);
+            ReleaseTrackedGraphLock(item);
             var viewModel = workspaces.First(x => x.Model == item);
             if (currentWorkspaceViewModel == viewModel)
                 if(currentWorkspaceViewModel != null)
@@ -2259,6 +2260,10 @@ namespace Dynamo.ViewModels
                 {
                     CurrentSpace.IsReadOnly = true;
                 }
+                else if (ownsGraphLock && CurrentSpace != null)
+                {
+                    TrackGraphLock(CurrentSpace, filePath);
+                }
 
                 // Apply annotation updates based on the preference setting
                 RefreshAnnotationDescriptions();
@@ -2512,6 +2517,61 @@ namespace Dynamo.ViewModels
             var assembly = typeof(DynamoModel).Assembly;
             var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             return attribute?.InformationalVersion ?? assembly.GetName().Version?.ToString();
+        }
+
+        private void TrackGraphLock(WorkspaceModel workspace, string graphPath)
+        {
+            graphLockPathsByWorkspace[workspace.Guid] = GraphLockService.GetCanonicalGraphPath(graphPath);
+            workspace.PropertyChanged -= WorkspaceGraphLockPropertyChanged;
+            workspace.PropertyChanged += WorkspaceGraphLockPropertyChanged;
+        }
+
+        private void ReleaseTrackedGraphLock(WorkspaceModel workspace)
+        {
+            string graphPath;
+            if (graphLockPathsByWorkspace.TryGetValue(workspace.Guid, out graphPath))
+            {
+                graphLockService.ReleaseLock(graphPath);
+                graphLockPathsByWorkspace.Remove(workspace.Guid);
+            }
+            else
+            {
+                graphLockService.ReleaseLock(workspace.FileName);
+            }
+
+            workspace.PropertyChanged -= WorkspaceGraphLockPropertyChanged;
+        }
+
+        private void WorkspaceGraphLockPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(WorkspaceModel.FileName))
+            {
+                return;
+            }
+
+            var workspace = sender as WorkspaceModel;
+            if (workspace == null)
+            {
+                return;
+            }
+
+            string graphPath;
+            if (!graphLockPathsByWorkspace.TryGetValue(workspace.Guid, out graphPath))
+            {
+                return;
+            }
+
+            var newGraphPath = string.IsNullOrWhiteSpace(workspace.FileName)
+                ? string.Empty
+                : GraphLockService.GetCanonicalGraphPath(workspace.FileName);
+            if (string.Equals(graphPath, newGraphPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            graphLockService.ReleaseLock(graphPath);
+            graphLockPathsByWorkspace.Remove(workspace.Guid);
+            workspace.PropertyChanged -= WorkspaceGraphLockPropertyChanged;
         }
 
         /// <summary>
@@ -4893,6 +4953,7 @@ namespace Dynamo.ViewModels
             ToastManager?.CloseRealTimeInfoWindow();
 
             graphLockService.Dispose();
+            graphLockPathsByWorkspace.Clear();
             model.ShutDown(shutdownParams.ShutdownHost);
             UsageReportingManager.DestroyInstance();
 
