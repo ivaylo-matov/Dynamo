@@ -2019,9 +2019,10 @@ namespace Dynamo.Nodes
                 FontSize = 13,
                 FontFamily = _artifaktElementRegular,
                 Foreground = _blue300Brush,
-                Margin = new Thickness(0, 0, 8, 7),
+                Margin = new Thickness(0, 0, 8, 0),
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Right,
+                RenderTransformOrigin = new Point(0.5, 0.5),
                 RenderTransform = new ScaleTransform(1, 1.5)
             };
 
