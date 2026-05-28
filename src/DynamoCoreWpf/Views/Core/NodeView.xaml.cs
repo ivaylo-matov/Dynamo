@@ -2377,22 +2377,15 @@ namespace Dynamo.Controls
             };
             isEnabledTrigger.Setters.Add(new Setter(TextBlock.OpacityProperty, 0.5, "ContentPresenter"));
 
-            // Trigger for IsMouseOver property (true)
-            var isMouseOverTrueTrigger = new Trigger
+            // IsHighlighted tracks hover and open-submenu parent row without outliving mouse leave.
+            var isHighlightedTrigger = new Trigger
             {
-                Property = UIElement.IsMouseOverProperty,
+                Property = MenuItem.IsHighlightedProperty,
                 Value = true
             };
-            isMouseOverTrueTrigger.Setters.Add(new Setter(TextBlock.ForegroundProperty, Brushes.White, "ContentPresenter"));
-            isMouseOverTrueTrigger.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White, "subMenuArrow"));
-            isMouseOverTrueTrigger.Setters.Add(new Setter(DockPanel.BackgroundProperty, nodeContextMenuBackgroundHighlight, "dockPanel"));
-
-            var isSubmenuOpenTrigger = new Trigger
-            {
-                Property = MenuItem.IsSubmenuOpenProperty,
-                Value = true
-            };
-            isSubmenuOpenTrigger.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White, "subMenuArrow"));
+            isHighlightedTrigger.Setters.Add(new Setter(TextBlock.ForegroundProperty, Brushes.White, "ContentPresenter"));
+            isHighlightedTrigger.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White, "subMenuArrow"));
+            isHighlightedTrigger.Setters.Add(new Setter(DockPanel.BackgroundProperty, nodeContextMenuBackgroundHighlight, "dockPanel"));
 
             // Trigger for IsMouseOver property (false)
             var isMouseOverFalseTrigger = new Trigger
@@ -2422,8 +2415,7 @@ namespace Dynamo.Controls
 
             // Add the triggers to the ControlTemplate
             menuItemTemplate.Triggers.Add(isEnabledTrigger);
-            menuItemTemplate.Triggers.Add(isMouseOverTrueTrigger);
-            menuItemTemplate.Triggers.Add(isSubmenuOpenTrigger);
+            menuItemTemplate.Triggers.Add(isHighlightedTrigger);
             menuItemTemplate.Triggers.Add(isMouseOverFalseTrigger);
             menuItemTemplate.Triggers.Add(dataTrigger);
             menuItemTemplate.Triggers.Add(isCheckedTrigger);
