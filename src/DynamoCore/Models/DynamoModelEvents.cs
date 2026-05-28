@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using Dynamo.Graph;
 using Dynamo.Extensions;
 using Dynamo.Logging;
+using Dynamo.Utilities;
 
 namespace Dynamo.Models
 {
@@ -185,6 +186,11 @@ namespace Dynamo.Models
         public event Action<WorkspaceModel> WorkspaceRemoved;
         protected virtual void OnWorkspaceRemoved(WorkspaceModel obj)
         {
+            if (!string.IsNullOrEmpty(obj.FileName))
+            {
+                DynamoGraphFileSessionTracker.UnregisterOpenFile(obj.FileName);
+            }
+
             var handler = WorkspaceRemoved;
             if (handler != null) handler(obj);
 

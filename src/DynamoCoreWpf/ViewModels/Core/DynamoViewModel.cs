@@ -1989,8 +1989,22 @@ namespace Dynamo.ViewModels
                 if (AskUserToSaveWorkspaceOrCancel(HomeSpace))
                 {
                     filePath = command.FilePath;
-                    ExecuteCommand(command);
-                    ShowStartPage = false;
+                    try
+                    {
+                        ExecuteCommand(command);
+                        ShowStartPage = false;
+                    }
+                    catch (GraphFileOpenInAnotherSessionException)
+                    {
+                        if (!DynamoModel.IsTestMode)
+                        {
+                            ShowGraphAlreadyOpenInAnotherSessionMessage();
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
                 }
             }
             else
@@ -2128,6 +2142,19 @@ namespace Dynamo.ViewModels
                     FileTrustViewModel.AllowOneTimeTrust = false;
                 }
             }
+            catch (GraphFileOpenInAnotherSessionException)
+            {
+                if (!DynamoModel.IsTestMode)
+                {
+                    ShowGraphAlreadyOpenInAnotherSessionMessage();
+                    this.ShowStartPage = true;
+                }
+                else
+                {
+                    throw;
+                }
+                return;
+            }
             catch (Exception e)
             {
                 if (!DynamoModel.IsTestMode)
@@ -2256,6 +2283,16 @@ namespace Dynamo.ViewModels
         {
             var jsonDynFile = ResourceUtilities.LoadContentFromResources(GuidesManager.OnboardingGuideWorkspaceEmbeededResource, Assembly.GetExecutingAssembly(), false, false);
             OpenFromJson(new Tuple<string, bool>(jsonDynFile, true));
+        }
+
+        private void ShowGraphAlreadyOpenInAnotherSessionMessage()
+        {
+            DynamoMessageBox.Show(
+                Owner,
+                "Already opened",
+                "Error!!!",
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Error);
         }
 
         private bool CanOpen(object parameters)
