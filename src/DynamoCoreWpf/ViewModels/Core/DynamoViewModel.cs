@@ -2808,6 +2808,11 @@ namespace Dynamo.ViewModels
                         preparedGraphLock = false;
                     }
 
+                    if (saveContext == SaveContext.SaveAs)
+                    {
+                        workspace.OpenedInReadOnlyMode = false;
+                    }
+
                     AddToRecentFiles(path);
 
                     // Track save and save-as operations on workspace, excluding the backup files.
