@@ -2508,6 +2508,57 @@ Next assemblies were loaded several times:
     <value>Error Opening File</value>
     <comment>Notification Center Title</comment>
   </data>
+  <data name="GraphLockMessageBoxTitle" xml:space="preserve">
+    <value>Graph already open</value>
+  </data>
+  <data name="GraphLockLocalMessage" xml:space="preserve">
+    <value>This graph is already open in Dynamo {0} on this machine. You can open a read-only copy or cancel.</value>
+  </data>
+  <data name="GraphLockRemoteMessage" xml:space="preserve">
+    <value>This graph is currently open by {0} in Dynamo {1} (last activity {2}). You can open a read-only copy, cancel, or force open the graph.</value>
+  </data>
+  <data name="GraphLockStaleMessage" xml:space="preserve">
+    <value>This graph appears to have been left locked by a previous Dynamo session from {0} in Dynamo {1} (last activity {2}). You can take over the lock, open a read-only copy, or cancel.</value>
+  </data>
+  <data name="GraphLockUnreadableStaleMessage" xml:space="preserve">
+    <value>This graph appears to have been left locked by a previous Dynamo session, but the lock details could not be read. You can take over the lock, open a read-only copy, or cancel.</value>
+  </data>
+  <data name="GraphLockOpenReadOnlyButton" xml:space="preserve">
+    <value>Open read-only</value>
+  </data>
+  <data name="GraphLockForceOpenButton" xml:space="preserve">
+    <value>Force open</value>
+  </data>
+  <data name="GraphLockTakeOverButton" xml:space="preserve">
+    <value>Take over lock</value>
+  </data>
+  <data name="GraphLockForceOpenFailureMessage" xml:space="preserve">
+    <value>Dynamo could not force open this graph because the lock file could not be updated. {0}</value>
+  </data>
+  <data name="GraphLockTakeOverFailureMessage" xml:space="preserve">
+    <value>Dynamo could not take over this graph because the lock file could not be updated. {0}</value>
+  </data>
+  <data name="GraphLockOwnerFormat" xml:space="preserve">
+    <value>{0}@{1}</value>
+  </data>
+  <data name="GraphLockUnknownOwner" xml:space="preserve">
+    <value>another user</value>
+  </data>
+  <data name="GraphLockUnknownVersion" xml:space="preserve">
+    <value>an unknown version</value>
+  </data>
+  <data name="GraphLockUnknownLastActivity" xml:space="preserve">
+    <value>unknown</value>
+  </data>
+  <data name="GraphLockSecondsAgo" xml:space="preserve">
+    <value>{0} seconds ago</value>
+  </data>
+  <data name="GraphLockMinutesAgo" xml:space="preserve">
+    <value>{0} minutes ago</value>
+  </data>
+  <data name="GraphLockHoursAgo" xml:space="preserve">
+    <value>{0} hours ago</value>
+  </data>
   <data name="DynamoViewSettingsMenuChangeScaleFactor" xml:space="preserve">
     <value>Geometry Scaling...</value>
     <comment>Settings menu | Geometry Scaling</comment>

@@ -4654,6 +4654,159 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Graph already open.
+        /// </summary>
+        public static string GraphLockMessageBoxTitle {
+            get {
+                return ResourceManager.GetString("GraphLockMessageBoxTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This graph is already open in Dynamo {0} on this machine. You can open a read-only copy or cancel..
+        /// </summary>
+        public static string GraphLockLocalMessage {
+            get {
+                return ResourceManager.GetString("GraphLockLocalMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This graph is currently open by {0} in Dynamo {1} (last activity {2}). You can open a read-only copy, cancel, or force open the graph..
+        /// </summary>
+        public static string GraphLockRemoteMessage {
+            get {
+                return ResourceManager.GetString("GraphLockRemoteMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This graph appears to have been left locked by a previous Dynamo session from {0} in Dynamo {1} (last activity {2}). You can take over the lock, open a read-only copy, or cancel..
+        /// </summary>
+        public static string GraphLockStaleMessage {
+            get {
+                return ResourceManager.GetString("GraphLockStaleMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This graph appears to have been left locked by a previous Dynamo session, but the lock details could not be read. You can take over the lock, open a read-only copy, or cancel..
+        /// </summary>
+        public static string GraphLockUnreadableStaleMessage {
+            get {
+                return ResourceManager.GetString("GraphLockUnreadableStaleMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open read-only.
+        /// </summary>
+        public static string GraphLockOpenReadOnlyButton {
+            get {
+                return ResourceManager.GetString("GraphLockOpenReadOnlyButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Force open.
+        /// </summary>
+        public static string GraphLockForceOpenButton {
+            get {
+                return ResourceManager.GetString("GraphLockForceOpenButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Take over lock.
+        /// </summary>
+        public static string GraphLockTakeOverButton {
+            get {
+                return ResourceManager.GetString("GraphLockTakeOverButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dynamo could not force open this graph because the lock file could not be updated. {0}.
+        /// </summary>
+        public static string GraphLockForceOpenFailureMessage {
+            get {
+                return ResourceManager.GetString("GraphLockForceOpenFailureMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dynamo could not take over this graph because the lock file could not be updated. {0}.
+        /// </summary>
+        public static string GraphLockTakeOverFailureMessage {
+            get {
+                return ResourceManager.GetString("GraphLockTakeOverFailureMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0}@{1}.
+        /// </summary>
+        public static string GraphLockOwnerFormat {
+            get {
+                return ResourceManager.GetString("GraphLockOwnerFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to another user.
+        /// </summary>
+        public static string GraphLockUnknownOwner {
+            get {
+                return ResourceManager.GetString("GraphLockUnknownOwner", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to an unknown version.
+        /// </summary>
+        public static string GraphLockUnknownVersion {
+            get {
+                return ResourceManager.GetString("GraphLockUnknownVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to unknown.
+        /// </summary>
+        public static string GraphLockUnknownLastActivity {
+            get {
+                return ResourceManager.GetString("GraphLockUnknownLastActivity", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} seconds ago.
+        /// </summary>
+        public static string GraphLockSecondsAgo {
+            get {
+                return ResourceManager.GetString("GraphLockSecondsAgo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} minutes ago.
+        /// </summary>
+        public static string GraphLockMinutesAgo {
+            get {
+                return ResourceManager.GetString("GraphLockMinutesAgo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} hours ago.
+        /// </summary>
+        public static string GraphLockHoursAgo {
+            get {
+                return ResourceManager.GetString("GraphLockHoursAgo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Invalid file path provided. In case the file is archived, please make sure to extract it before opening.\n{0}.
         /// </summary>
         public static string MessageErrorOpeningInvalidPath {

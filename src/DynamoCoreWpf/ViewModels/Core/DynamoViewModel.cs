@@ -69,6 +69,7 @@ namespace Dynamo.ViewModels
         #region properties
         public Window Owner { get; set; }
         private readonly DynamoModel model;
+        private readonly GraphLockService graphLockService;
         private Point transformOrigin;
         private bool showStartPage = false;
         private PreferencesViewModel preferencesViewModel;
@@ -843,6 +844,7 @@ namespace Dynamo.ViewModels
 
             // initialize core data structures
             this.model = startConfiguration.DynamoModel;
+            graphLockService = new GraphLockService(DynamoModel.Version, GetDynamoBuildVersion());
             this.model.CommandStarting += OnModelCommandStarting;
             this.model.CommandCompleted += OnModelCommandCompleted;
             this.model.RequestsCrashPrompt += CrashReportTool.ShowCrashWindow;
@@ -1915,6 +1917,7 @@ namespace Dynamo.ViewModels
 
         private void WorkspaceRemoved(WorkspaceModel item)
         {
+            graphLockService.ReleaseLock(item.FileName);
             var viewModel = workspaces.First(x => x.Model == item);
             if (currentWorkspaceViewModel == viewModel)
                 if(currentWorkspaceViewModel != null)
@@ -2203,6 +2206,8 @@ namespace Dynamo.ViewModels
             fileContents = string.Empty;
             bool forceManualMode = false;
             bool isTemplate = false;
+            bool openReadOnly = false;
+            bool ownsGraphLock = false;
             try
             {
                 if (parameters is Tuple<string, bool> packedParams)
@@ -2223,6 +2228,24 @@ namespace Dynamo.ViewModels
 
                 var directoryName = Path.GetDirectoryName(filePath);
 
+                if (ShouldUseGraphLock(filePath, isTemplate))
+                {
+                    var lockAction = ResolveGraphLockAction(filePath);
+                    if (lockAction == GraphLockOpenAction.Cancel)
+                    {
+                        return;
+                    }
+
+                    if (lockAction == GraphLockOpenAction.OpenReadOnly)
+                    {
+                        openReadOnly = true;
+                    }
+                    else
+                    {
+                        ownsGraphLock = lockAction == GraphLockOpenAction.OpenWithLock;
+                    }
+                }
+
                 // Display trust warning when file is not among trust location and warning feature is on
                 bool displayTrustWarning = !PreferenceSettings.IsTrustedLocation(directoryName)
                     && !filePath.EndsWith("dyf")
@@ -2232,6 +2255,10 @@ namespace Dynamo.ViewModels
                 RunSettings.ForceBlockRun = displayTrustWarning;
                 // Execute graph open command
                 ExecuteCommand(new DynamoModel.OpenFileCommand(filePath, forceManualMode, isTemplate));
+                if (openReadOnly && CurrentSpace != null)
+                {
+                    CurrentSpace.IsReadOnly = true;
+                }
 
                 // Apply annotation updates based on the preference setting
                 RefreshAnnotationDescriptions();
@@ -2248,6 +2275,11 @@ namespace Dynamo.ViewModels
             }
             catch (Exception e)
             {
+                if (ownsGraphLock)
+                {
+                    graphLockService.ReleaseLock(filePath);
+                }
+
                 if (!DynamoModel.IsTestMode)
                 {
                     string commandString = String.Format(Resources.MessageErrorOpeningFileGeneral);
@@ -2284,6 +2316,202 @@ namespace Dynamo.ViewModels
                 return;
             }
             this.ShowStartPage = false; // Hide start page if there's one.
+        }
+
+        private enum GraphLockOpenAction
+        {
+            OpenWithLock,
+            OpenReadOnly,
+            Cancel
+        }
+
+        private bool ShouldUseGraphLock(string graphPath, bool isTemplate)
+        {
+            return !isTemplate
+                && !string.IsNullOrWhiteSpace(graphPath)
+                && string.Equals(Path.GetExtension(graphPath), ".dyn", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private GraphLockOpenAction ResolveGraphLockAction(string graphPath)
+        {
+            var acquisitionResult = graphLockService.TryAcquireLock(graphPath);
+            switch (acquisitionResult.Status)
+            {
+                case GraphLockAcquisitionStatus.Acquired:
+                    return GraphLockOpenAction.OpenWithLock;
+                case GraphLockAcquisitionStatus.LockUnavailable:
+                    model.Logger.Log(string.Format(
+                        "Graph lock file could not be created for {0}: {1}",
+                        graphPath,
+                        acquisitionResult.Exception?.Message));
+                    return GraphLockOpenAction.OpenReadOnly;
+                case GraphLockAcquisitionStatus.StaleLock:
+                    return ResolveStaleGraphLock(graphPath, acquisitionResult);
+                case GraphLockAcquisitionStatus.LockedByLiveSession:
+                    return ResolveLiveGraphLock(graphPath, acquisitionResult);
+                default:
+                    return GraphLockOpenAction.Cancel;
+            }
+        }
+
+        private GraphLockOpenAction ResolveLiveGraphLock(string graphPath, GraphLockAcquisitionResult acquisitionResult)
+        {
+            var existingLock = acquisitionResult.ExistingLock;
+            var isLocalUserLock = IsLocalUserLock(existingLock);
+            var message = isLocalUserLock
+                ? string.Format(Resources.GraphLockLocalMessage, GetLockDynamoVersion(existingLock))
+                : string.Format(
+                    Resources.GraphLockRemoteMessage,
+                    GetLockOwner(existingLock),
+                    GetLockDynamoVersion(existingLock),
+                    GetLastHeartbeatDescription(existingLock));
+
+            if (isLocalUserLock)
+            {
+                var localResult = MessageBoxService.Show(
+                    Owner,
+                    message,
+                    Resources.GraphLockMessageBoxTitle,
+                    MessageBoxButton.OKCancel,
+                    new[] { Resources.GraphLockOpenReadOnlyButton, Resources.CancelButton },
+                    MessageBoxImage.Warning);
+
+                return localResult == MessageBoxResult.OK
+                    ? GraphLockOpenAction.OpenReadOnly
+                    : GraphLockOpenAction.Cancel;
+            }
+
+            var result = MessageBoxService.Show(
+                Owner,
+                message,
+                Resources.GraphLockMessageBoxTitle,
+                MessageBoxButton.YesNoCancel,
+                new[] { Resources.GraphLockOpenReadOnlyButton, Resources.CancelButton, Resources.GraphLockForceOpenButton },
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                return GraphLockOpenAction.OpenReadOnly;
+            }
+
+            if (result == MessageBoxResult.Cancel)
+            {
+                return ForceAcquireGraphLock(graphPath, Resources.GraphLockForceOpenFailureMessage);
+            }
+
+            return GraphLockOpenAction.Cancel;
+        }
+
+        private GraphLockOpenAction ResolveStaleGraphLock(string graphPath, GraphLockAcquisitionResult acquisitionResult)
+        {
+            var existingLock = acquisitionResult.ExistingLock;
+            var message = existingLock == null
+                ? Resources.GraphLockUnreadableStaleMessage
+                : string.Format(
+                    Resources.GraphLockStaleMessage,
+                    GetLockOwner(existingLock),
+                    GetLockDynamoVersion(existingLock),
+                    GetLastHeartbeatDescription(existingLock));
+
+            var result = MessageBoxService.Show(
+                Owner,
+                message,
+                Resources.GraphLockMessageBoxTitle,
+                MessageBoxButton.YesNoCancel,
+                new[] { Resources.GraphLockTakeOverButton, Resources.GraphLockOpenReadOnlyButton, Resources.CancelButton },
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                return ForceAcquireGraphLock(graphPath, Resources.GraphLockTakeOverFailureMessage);
+            }
+
+            if (result == MessageBoxResult.No)
+            {
+                return GraphLockOpenAction.OpenReadOnly;
+            }
+
+            return GraphLockOpenAction.Cancel;
+        }
+
+        private GraphLockOpenAction ForceAcquireGraphLock(string graphPath, string failureMessage)
+        {
+            var forcedResult = graphLockService.TryAcquireLock(graphPath, true);
+            if (forcedResult.LockAcquired)
+            {
+                return GraphLockOpenAction.OpenWithLock;
+            }
+
+            MessageBoxService.Show(
+                Owner,
+                string.Format(failureMessage, forcedResult.Exception?.Message ?? graphPath),
+                Resources.GraphLockMessageBoxTitle,
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+
+            return GraphLockOpenAction.Cancel;
+        }
+
+        private static bool IsLocalUserLock(GraphLockData lockData)
+        {
+            return lockData != null
+                && string.Equals(lockData.HostName, Environment.MachineName, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(lockData.UserName, Environment.UserName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string GetLockOwner(GraphLockData lockData)
+        {
+            if (lockData == null)
+            {
+                return Resources.GraphLockUnknownOwner;
+            }
+
+            return string.Format(Resources.GraphLockOwnerFormat, lockData.UserName, lockData.HostName);
+        }
+
+        private static string GetLockDynamoVersion(GraphLockData lockData)
+        {
+            if (!string.IsNullOrWhiteSpace(lockData?.DynamoMajorMinorVersion))
+            {
+                return lockData.DynamoMajorMinorVersion;
+            }
+
+            return string.IsNullOrWhiteSpace(lockData?.DynamoVersion)
+                ? Resources.GraphLockUnknownVersion
+                : lockData.DynamoVersion;
+        }
+
+        private static string GetLastHeartbeatDescription(GraphLockData lockData)
+        {
+            if (lockData == null || lockData.LastHeartbeatUtc == DateTime.MinValue)
+            {
+                return Resources.GraphLockUnknownLastActivity;
+            }
+
+            var elapsed = DateTime.UtcNow - lockData.LastHeartbeatUtc;
+            if (elapsed < TimeSpan.Zero)
+            {
+                elapsed = TimeSpan.Zero;
+            }
+
+            if (elapsed.TotalSeconds < 60)
+            {
+                return string.Format(Resources.GraphLockSecondsAgo, Math.Max(0, (int)Math.Round(elapsed.TotalSeconds)));
+            }
+
+            if (elapsed.TotalMinutes < 60)
+            {
+                return string.Format(Resources.GraphLockMinutesAgo, Math.Max(1, (int)Math.Round(elapsed.TotalMinutes)));
+            }
+
+            return string.Format(Resources.GraphLockHoursAgo, Math.Max(1, (int)Math.Round(elapsed.TotalHours)));
+        }
+
+        private static string GetDynamoBuildVersion()
+        {
+            var assembly = typeof(DynamoModel).Assembly;
+            var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            return attribute?.InformationalVersion ?? assembly.GetName().Version?.ToString();
         }
 
         /// <summary>
@@ -4664,6 +4892,7 @@ namespace Dynamo.ViewModels
             }
             ToastManager?.CloseRealTimeInfoWindow();
 
+            graphLockService.Dispose();
             model.ShutDown(shutdownParams.ShutdownHost);
             UsageReportingManager.DestroyInstance();
 
