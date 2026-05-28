@@ -1,10 +1,8 @@
 using System;
 using System.Globalization;
-using System.IO;
 using System.Windows;
 using Dynamo.Graph.Workspaces.Locking;
 using Dynamo.Wpf.Properties;
-using Dynamo.Wpf.Utilities;
 
 namespace Dynamo.UI.Prompts
 {
@@ -19,43 +17,45 @@ namespace Dynamo.UI.Prompts
 
         public GraphLockUserDecision AskUser(string graphPath, GraphLockInfo existingLock, bool isStale)
         {
-            var dialog = new GraphLockConflictDialog(
-                GetResource("GraphLockTitle", "Graph already open"),
-                BuildBody(graphPath, existingLock, isStale),
-                GetResource("GraphLockButtonReadOnly", "Open read-only"),
-                GetResource("GraphLockButtonOpenAnyway", "Open anyway"),
-                GetResource("GraphLockButtonCancel", "Cancel"));
-
             var owner = ownerProvider?.Invoke();
-            if (owner != null)
-            {
-                dialog.Owner = owner;
-            }
-
-            var result = dialog.ShowDialog();
-            if (result != true)
-            {
-                return GraphLockUserDecision.Cancel;
-            }
-
-            if (dialog.Decision == GraphLockUserDecision.Takeover)
-            {
-                var confirm = MessageBoxService.Show(
-                    owner,
-                    GetResource(
-                        "GraphLockOpenAnywayConfirmation",
-                        "Opening anyway can overwrite changes from another Dynamo session. Continue?"),
-                    GetResource("GraphLockTitle", "Graph already open"),
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
-
-                if (confirm != MessageBoxResult.Yes)
+            var result = DynamoMessageBox.Show(
+                owner,
+                BuildBody(graphPath, existingLock, isStale),
+                GetResource("GraphLockTitle", "Graph already open"),
+                MessageBoxButton.YesNoCancel,
+                new[]
                 {
-                    return GraphLockUserDecision.Cancel;
-                }
-            }
+                    GetResource("GraphLockButtonReadOnly", "Open read-only"),
+                    GetResource("GraphLockButtonOpenAnyway", "Open anyway"),
+                    GetResource("GraphLockButtonCancel", "Cancel")
+                },
+                MessageBoxImage.Warning);
 
-            return dialog.Decision;
+            switch (result)
+            {
+                case MessageBoxResult.Yes:
+                    return GraphLockUserDecision.ReadOnly;
+                case MessageBoxResult.No:
+                    return ConfirmOpenAnyway(owner);
+                default:
+                    return GraphLockUserDecision.Cancel;
+            }
+        }
+
+        private static GraphLockUserDecision ConfirmOpenAnyway(Window owner)
+        {
+            var confirm = DynamoMessageBox.Show(
+                owner,
+                GetResource(
+                    "GraphLockOpenAnywayConfirmation",
+                    "Opening anyway can overwrite changes from another Dynamo session. Continue?"),
+                GetResource("GraphLockTitle", "Graph already open"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            return confirm == MessageBoxResult.Yes
+                ? GraphLockUserDecision.Takeover
+                : GraphLockUserDecision.Cancel;
         }
 
         private static string BuildBody(string graphPath, GraphLockInfo existingLock, bool isStale)

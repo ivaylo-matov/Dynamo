@@ -591,9 +591,6 @@
     <Compile Include="UI\Prompts\DynamoMessageBox.xaml.cs">
       <DependentUpon>DynamoMessageBox.xaml</DependentUpon>
     </Compile>
-    <Compile Include="UI\Prompts\GraphLockConflictDialog.xaml.cs">
-      <DependentUpon>GraphLockConflictDialog.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Controls\InPortContextMenu.xaml.cs">
       <DependentUpon>InPortContextMenu.xaml</DependentUpon>
     </Compile>
@@ -948,10 +945,6 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\Prompts\DynamoMessageBox.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="UI\Prompts\GraphLockConflictDialog.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
