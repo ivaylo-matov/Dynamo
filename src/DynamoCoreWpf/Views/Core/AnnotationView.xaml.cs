@@ -2034,13 +2034,27 @@ namespace Dynamo.Nodes
 
             var border = WrapWithMenuBorder(layoutGrid, isEnabled: isEnabled);
 
+            void SetSubmenuHighlight()
+            {
+                border.Background = _nodeContextMenuBackgroundHighlight;
+                text.Foreground = Brushes.White;
+                arrow.Foreground = Brushes.White;
+            }
+
+            void ResetSubmenuHighlight()
+            {
+                border.Background = Brushes.Transparent;
+                text.Foreground = _nodeContextMenuForeground;
+                arrow.Foreground = _blue300Brush;
+            }
+
             border.MouseEnter += (s, e) =>
             {
                 if (!isEnabled) return;
                 popup.Child = submenuContentFactory.Invoke();
                 popup.PlacementTarget = border;
                 popup.IsOpen = true;
-                border.Background = _nodeContextMenuBackgroundHighlight;
+                SetSubmenuHighlight();
             };
 
             border.MouseLeave += (s, e) =>
@@ -2049,7 +2063,25 @@ namespace Dynamo.Nodes
                 if (!popup.IsMouseOver)
                 {
                     popup.IsOpen = false;
-                    border.Background = Brushes.Transparent;
+                    ResetSubmenuHighlight();
+                }
+            };
+
+            popup.MouseLeave += (s, e) =>
+            {
+                if (!isEnabled) return;
+                if (!border.IsMouseOver)
+                {
+                    popup.IsOpen = false;
+                    ResetSubmenuHighlight();
+                }
+            };
+
+            popup.Closed += (s, e) =>
+            {
+                if (!border.IsMouseOver)
+                {
+                    ResetSubmenuHighlight();
                 }
             };
 
