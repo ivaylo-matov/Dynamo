@@ -2222,36 +2222,24 @@ namespace Dynamo.ViewModels
                     filePath = parameters as string;
                 }
 
-                var directoryName = Path.GetDirectoryName(filePath);
-
-                // Display trust warning when file is not among trust location and warning feature is on
-                bool displayTrustWarning = !PreferenceSettings.IsTrustedLocation(directoryName)
-                    && !filePath.EndsWith("dyf")
-                    && !DynamoModel.IsTestMode
-                    && !PreferenceSettings.DisableTrustWarnings
-                    && FileTrustViewModel != null;
-                var previousForceBlockRun = RunSettings.ForceBlockRun;
-                RunSettings.ForceBlockRun = displayTrustWarning;
                 // Execute graph open command
                 ExecuteCommand(new DynamoModel.OpenFileCommand(filePath, forceManualMode, isTemplate));
 
                 if (Model.LastOpenFileOperationWasCancelled)
                 {
-                    RunSettings.ForceBlockRun = previousForceBlockRun;
                     return;
                 }
 
-                var openedFilePath = Model.CurrentWorkspace?.FileName;
-                if (!string.IsNullOrEmpty(openedFilePath))
-                {
-                    directoryName = Path.GetDirectoryName(openedFilePath);
-                    displayTrustWarning = !PreferenceSettings.IsTrustedLocation(directoryName)
-                        && !openedFilePath.EndsWith("dyf")
-                        && !DynamoModel.IsTestMode
-                        && !PreferenceSettings.DisableTrustWarnings
-                        && FileTrustViewModel != null;
-                    RunSettings.ForceBlockRun = displayTrustWarning;
-                }
+                var openedFilePath = Model.CurrentWorkspace?.FileName ?? filePath;
+                var directoryName = Path.GetDirectoryName(openedFilePath);
+
+                // Display trust warning when file is not among trust location and warning feature is on
+                bool displayTrustWarning = !PreferenceSettings.IsTrustedLocation(directoryName)
+                    && !openedFilePath.EndsWith("dyf")
+                    && !DynamoModel.IsTestMode
+                    && !PreferenceSettings.DisableTrustWarnings
+                    && FileTrustViewModel != null;
+                RunSettings.ForceBlockRun = displayTrustWarning;
 
                 // Apply annotation updates based on the preference setting
                 RefreshAnnotationDescriptions();
