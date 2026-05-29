@@ -25,6 +25,7 @@ using Dynamo.Graph.Nodes.NodeLoaders;
 using Dynamo.Graph.Nodes.ZeroTouch;
 using Dynamo.Graph.Notes;
 using Dynamo.Graph.Workspaces;
+using Dynamo.Graph.Workspaces.Locking;
 using Dynamo.Interfaces;
 using Dynamo.Linting;
 using Dynamo.Logging;
@@ -158,6 +159,10 @@ namespace Dynamo.Models
         /// Key will be the workspace guid and its value will be a list of saved checksums(sha256 hash) for that workspace.
         /// </summary>
         internal Dictionary<string, List<string>> GraphChecksumDictionary { get; set; }
+
+        internal GraphLockManager GraphLockManager { get; private set; }
+
+        internal bool LastOpenFileOperationWasCancelled { get; private set; }
 
         // Get ProgramData folder path (usually C:\ProgramData)
         static readonly string programDataPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
@@ -758,6 +763,8 @@ namespace Dynamo.Models
                 PreferenceSettings.PropertyChanged += PreferenceSettings_PropertyChanged;
                 PreferenceSettings.MessageLogged += LogMessage;
             }
+
+            GraphLockManager = new GraphLockManager(this);
 
             HostName = HostAnalyticsInfo.HostName;
             HostVersion = HostAnalyticsInfo.HostVersion?.ToString();
@@ -1533,6 +1540,9 @@ namespace Dynamo.Models
             EngineController.VMLibrariesReset -= ReloadDummyNodes;
             DynamoFeatureFlagsManager.FlagsRetrieved -= HandleFeatureFlags;
 
+            GraphLockManager?.Dispose();
+            GraphLockManager = null;
+
             Logger.Dispose();
 
             EngineController.Dispose();
@@ -2174,34 +2184,52 @@ namespace Dynamo.Models
         /// execution mode specified in the file and set manual mode</param>
         public void OpenFileFromPath(string filePath, bool forceManualExecutionMode = false)
         {
+            LastOpenFileOperationWasCancelled = false;
 
-            Exception ex;
-            string fileContents;
-            if (DynamoUtilities.PathHelper.isValidJson(filePath, out fileContents, out ex))
+            var graphLockResult = GraphLockManager?.TryAcquire(filePath, true) ?? GraphLockAcquireResult.Acquired();
+            if (!graphLockResult.ShouldOpen)
             {
-                OpenJsonFileFromPath(fileContents, filePath, forceManualExecutionMode);
+                LastOpenFileOperationWasCancelled = true;
+                GraphLockManager?.CompleteOpen(filePath, false);
                 return;
             }
-            else
+
+            var filePathToOpen = string.IsNullOrEmpty(graphLockResult.GraphPath) ? filePath : graphLockResult.GraphPath;
+            var openedSuccessfully = false;
+            Exception ex;
+            string fileContents;
+            try
             {
-                // These kind of exceptions indicate that file is not accessible
-                if (ex is IOException || ex is UnauthorizedAccessException)
+                if (DynamoUtilities.PathHelper.isValidJson(filePathToOpen, out fileContents, out ex))
                 {
-                    throw ex;
-                }
-
-                XmlDocument xmlDoc;
-
-                // When Json opening failed, either this file is corrupted or file might be XML
-                if (ex is JsonReaderException && DynamoUtilities.PathHelper.isValidXML(filePath, out xmlDoc, out ex))
-                {
-                    OpenXmlFileFromPath(xmlDoc, filePath, forceManualExecutionMode);
+                    openedSuccessfully = OpenJsonFileFromPath(fileContents, filePathToOpen, forceManualExecutionMode);
                     return;
                 }
                 else
                 {
-                    throw ex;
+                    // These kind of exceptions indicate that file is not accessible
+                    if (ex is IOException || ex is UnauthorizedAccessException)
+                    {
+                        throw ex;
+                    }
+
+                    XmlDocument xmlDoc;
+
+                    // When Json opening failed, either this file is corrupted or file might be XML
+                    if (ex is JsonReaderException && DynamoUtilities.PathHelper.isValidXML(filePathToOpen, out xmlDoc, out ex))
+                    {
+                        openedSuccessfully = OpenXmlFileFromPath(xmlDoc, filePathToOpen, forceManualExecutionMode);
+                        return;
+                    }
+                    else
+                    {
+                        throw ex;
+                    }
                 }
+            }
+            finally
+            {
+                GraphLockManager?.CompleteOpen(filePathToOpen, openedSuccessfully);
             }
         }
 
@@ -2213,6 +2241,7 @@ namespace Dynamo.Models
         /// execution mode specified in the file and set manual mode</param>
         public void OpenTemplateFromPath(string filePath, bool forceManualExecutionMode = false)
         {
+            LastOpenFileOperationWasCancelled = false;
 
             if (DynamoUtilities.PathHelper.isValidJson(filePath, out string fileContents, out Exception ex))
             {
@@ -2301,7 +2330,11 @@ namespace Dynamo.Models
         /// execution mode specified in the file and set manual mode</param>
         /// <param name="isTemplate">Set this to true to indicate that the file is a template</param>
         /// <returns>True if workspace was opened successfully</returns>
-        internal bool OpenJsonFileFromPath(string fileContents, string filePath, bool forceManualExecutionMode, bool isTemplate = false)
+        internal bool OpenJsonFileFromPath(
+            string fileContents,
+            string filePath,
+            bool forceManualExecutionMode,
+            bool isTemplate = false)
         {
             try
             {

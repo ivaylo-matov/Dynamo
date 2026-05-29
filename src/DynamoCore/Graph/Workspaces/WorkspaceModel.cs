@@ -1121,6 +1121,7 @@ namespace Dynamo.Graph.Workspaces
             set
             {
                 isReadOnly = value;
+                RaisePropertyChanged(nameof(IsReadOnly));
             }
         }
 

@@ -843,6 +843,7 @@ namespace Dynamo.ViewModels
 
             // initialize core data structures
             this.model = startConfiguration.DynamoModel;
+            this.model.GraphLockManager?.SetPrompt(new WpfGraphLockUserPrompt(() => Owner));
             this.model.CommandStarting += OnModelCommandStarting;
             this.model.CommandCompleted += OnModelCommandCompleted;
             this.model.RequestsCrashPrompt += CrashReportTool.ShowCrashWindow;
@@ -2221,17 +2222,29 @@ namespace Dynamo.ViewModels
                     filePath = parameters as string;
                 }
 
-                var directoryName = Path.GetDirectoryName(filePath);
+                // Execute graph open command
+                ExecuteCommand(new DynamoModel.OpenFileCommand(filePath, forceManualMode, isTemplate));
+
+                if (Model.LastOpenFileOperationWasCancelled)
+                {
+                    if (ShowStartPage)
+                    {
+                        RaisePropertyChanged(nameof(ShowStartPage));
+                    }
+
+                    return;
+                }
+
+                var openedFilePath = Model.CurrentWorkspace?.FileName ?? filePath;
+                var directoryName = Path.GetDirectoryName(openedFilePath);
 
                 // Display trust warning when file is not among trust location and warning feature is on
                 bool displayTrustWarning = !PreferenceSettings.IsTrustedLocation(directoryName)
-                    && !filePath.EndsWith("dyf")
+                    && !openedFilePath.EndsWith("dyf")
                     && !DynamoModel.IsTestMode
                     && !PreferenceSettings.DisableTrustWarnings
                     && FileTrustViewModel != null;
                 RunSettings.ForceBlockRun = displayTrustWarning;
-                // Execute graph open command
-                ExecuteCommand(new DynamoModel.OpenFileCommand(filePath, forceManualMode, isTemplate));
 
                 // Apply annotation updates based on the preference setting
                 RefreshAnnotationDescriptions();
@@ -2768,10 +2781,10 @@ namespace Dynamo.ViewModels
 
         private void InternalSaveAs(string path, SaveContext saveContext, bool isBackup = false)
         {
+            var hasSaved = false;
             try
             {
                 Model.Logger.Log(string.Format(Properties.Resources.SavingInProgress, path));
-                var hasSaved = false;
                 if (path.Contains(Model.PathManager.TemplatesDirectory))
                 {
                     // Give user notifications
