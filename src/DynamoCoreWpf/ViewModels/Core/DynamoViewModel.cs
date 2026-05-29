@@ -2227,6 +2227,11 @@ namespace Dynamo.ViewModels
 
                 if (Model.LastOpenFileOperationWasCancelled)
                 {
+                    if (ShowStartPage)
+                    {
+                        RaisePropertyChanged(nameof(ShowStartPage));
+                    }
+
                     return;
                 }
 
