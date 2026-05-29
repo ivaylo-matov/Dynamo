@@ -162,6 +162,8 @@ namespace Dynamo.Models
 
         internal GraphLockManager GraphLockManager { get; private set; }
 
+        internal bool LastOpenFileOperationWasCancelled { get; private set; }
+
         // Get ProgramData folder path (usually C:\ProgramData)
         static readonly string programDataPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
 
@@ -2182,9 +2184,12 @@ namespace Dynamo.Models
         /// execution mode specified in the file and set manual mode</param>
         public void OpenFileFromPath(string filePath, bool forceManualExecutionMode = false)
         {
+            LastOpenFileOperationWasCancelled = false;
+
             var graphLockResult = GraphLockManager?.TryAcquire(filePath, true) ?? GraphLockAcquireResult.Acquired();
             if (!graphLockResult.ShouldOpen)
             {
+                LastOpenFileOperationWasCancelled = true;
                 GraphLockManager?.CompleteOpen(filePath, false);
                 return;
             }
@@ -2236,6 +2241,7 @@ namespace Dynamo.Models
         /// execution mode specified in the file and set manual mode</param>
         public void OpenTemplateFromPath(string filePath, bool forceManualExecutionMode = false)
         {
+            LastOpenFileOperationWasCancelled = false;
 
             if (DynamoUtilities.PathHelper.isValidJson(filePath, out string fileContents, out Exception ex))
             {
