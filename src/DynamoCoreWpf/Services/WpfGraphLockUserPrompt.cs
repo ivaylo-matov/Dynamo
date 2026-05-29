@@ -16,6 +16,13 @@ namespace Dynamo.Wpf.Services
             this.ownerProvider = ownerProvider;
         }
 
+        /// <summary>
+        /// Shows a Dynamo message box for a graph-lock conflict and optionally collects a copy destination.
+        /// </summary>
+        /// <param name="graphPath">The locked graph path.</param>
+        /// <param name="existingLock">The existing lock metadata, or null if unavailable.</param>
+        /// <param name="isStale">Whether the existing lock appears stale.</param>
+        /// <returns>The user's graph-lock decision.</returns>
         public GraphLockUserResponse AskUser(string graphPath, GraphLockInfo existingLock, bool isStale)
         {
             var result = DynamoMessageBox.Show(
