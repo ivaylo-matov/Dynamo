@@ -17,9 +17,17 @@ namespace Dynamo.Graph.Workspaces.Locking
         private const int StaleFactor = 5;
 
         private readonly DynamoModel dynamoModel;
+        private readonly StringComparer pathComparer;
         private readonly ConcurrentDictionary<string, OwnedLock> locks;
         private readonly ConcurrentDictionary<string, byte> openingPaths;
         private readonly ConcurrentDictionary<string, OwnedLock> pendingSaveAsLocks;
+        private readonly Guid sessionId;
+        private readonly int processId;
+        private readonly DateTime processStartTimeUtc;
+        private readonly string userName;
+        private readonly string machineName;
+        private readonly string dynamoVersion;
+        private readonly string dynamoMajorMinor;
         private readonly int heartbeatMilliseconds;
         private readonly bool enabled;
         private Timer heartbeatTimer;
@@ -42,9 +50,21 @@ namespace Dynamo.Graph.Workspaces.Locking
             this.dynamoModel = dynamoModel ?? throw new ArgumentNullException(nameof(dynamoModel));
             this.prompt = prompt;
             this.heartbeatMilliseconds = heartbeatMilliseconds;
-            locks = new ConcurrentDictionary<string, OwnedLock>(StringComparer.OrdinalIgnoreCase);
-            openingPaths = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
-            pendingSaveAsLocks = new ConcurrentDictionary<string, OwnedLock>(StringComparer.OrdinalIgnoreCase);
+            pathComparer = IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+            locks = new ConcurrentDictionary<string, OwnedLock>(pathComparer);
+            openingPaths = new ConcurrentDictionary<string, byte>(pathComparer);
+            pendingSaveAsLocks = new ConcurrentDictionary<string, OwnedLock>(pathComparer);
+            sessionId = Guid.NewGuid();
+            userName = Environment.UserName;
+            machineName = Environment.MachineName;
+            dynamoVersion = DynamoModel.Version;
+            dynamoMajorMinor = ExtractMajorMinor(dynamoVersion);
+
+            using (var process = Process.GetCurrentProcess())
+            {
+                processId = process.Id;
+                processStartTimeUtc = GetProcessStartTimeUtc(process);
+            }
 
             enabled = forceEnable || (!DynamoModel.IsTestMode && !DynamoModel.IsHeadless && !dynamoModel.IsServiceMode);
             if (!enabled)
@@ -219,7 +239,7 @@ namespace Dynamo.Graph.Workspaces.Locking
 
                     GraphLockInfo existingLock;
                     var readable = GraphLockFile.TryRead(sidecarPath, out existingLock);
-                    var isStale = !readable || IsStale(existingLock);
+                    var isStale = !readable || IsStale(existingLock) || IsDeadLocalProcess(existingLock);
 
                     if (readable && IsSelf(existingLock))
                     {
@@ -275,7 +295,7 @@ namespace Dynamo.Graph.Workspaces.Locking
                 try
                 {
                     GraphLockInfo current;
-                    if (GraphLockFile.TryRead(owned.SidecarPath, out current) &&
+                    if (!GraphLockFile.TryRead(owned.SidecarPath, out current) ||
                         current.SessionId != owned.Info.SessionId)
                     {
                         locks.TryRemove(pair.Key, out _);
@@ -410,32 +430,63 @@ namespace Dynamo.Graph.Workspaces.Locking
             return ageSeconds > (heartbeatMilliseconds / 1000.0) * StaleFactor;
         }
 
-        private static bool IsSelf(GraphLockInfo existingLock)
+        private bool IsSelf(GraphLockInfo existingLock)
         {
             return existingLock != null &&
-                   string.Equals(existingLock.MachineName, Environment.MachineName, StringComparison.OrdinalIgnoreCase) &&
-                   existingLock.ProcessId == Environment.ProcessId;
+                   (existingLock.SessionId == sessionId ||
+                    (string.Equals(existingLock.MachineName, machineName, StringComparison.OrdinalIgnoreCase) &&
+                     existingLock.ProcessId == processId &&
+                     existingLock.ProcessStartUtc == processStartTimeUtc));
         }
 
         private GraphLockInfo BuildSelfInfo(string normalizedPath)
         {
-            var process = Process.GetCurrentProcess();
             var now = DateTime.UtcNow;
 
             return new GraphLockInfo
             {
                 SchemaVersion = 1,
-                SessionId = Guid.NewGuid(),
+                SessionId = sessionId,
                 GraphPath = normalizedPath,
-                UserName = Environment.UserName,
-                MachineName = Environment.MachineName,
-                ProcessId = Environment.ProcessId,
-                ProcessStartUtc = process.StartTime.ToUniversalTime(),
-                DynamoVersion = DynamoModel.Version,
-                DynamoMajorMinor = ExtractMajorMinor(DynamoModel.Version),
+                UserName = userName,
+                MachineName = machineName,
+                ProcessId = processId,
+                ProcessStartUtc = processStartTimeUtc,
+                DynamoVersion = dynamoVersion,
+                DynamoMajorMinor = dynamoMajorMinor,
                 AcquiredUtc = now,
                 LastHeartbeatUtc = now
             };
+        }
+
+        private bool IsDeadLocalProcess(GraphLockInfo existingLock)
+        {
+            if (existingLock == null ||
+                !string.Equals(existingLock.MachineName, machineName, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            try
+            {
+                using (var process = Process.GetProcessById(existingLock.ProcessId))
+                {
+                    return GetProcessStartTimeUtc(process) != existingLock.ProcessStartUtc;
+                }
+            }
+            catch (ArgumentException)
+            {
+                return true;
+            }
+            catch (InvalidOperationException)
+            {
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log("GraphLock process liveness check failed: " + ex.Message);
+                return false;
+            }
         }
 
         private static string ExtractMajorMinor(string version)
@@ -453,14 +504,35 @@ namespace Dynamo.Graph.Workspaces.Locking
             return Path.GetFullPath(path);
         }
 
-        private static bool IsSamePath(string firstPath, string secondPath)
+        private bool IsSamePath(string firstPath, string secondPath)
         {
             if (string.IsNullOrEmpty(firstPath) || string.IsNullOrEmpty(secondPath))
             {
                 return false;
             }
 
-            return string.Equals(NormalizePath(firstPath), NormalizePath(secondPath), StringComparison.OrdinalIgnoreCase);
+            return pathComparer.Equals(NormalizePath(firstPath), NormalizePath(secondPath));
+        }
+
+        private static DateTime GetProcessStartTimeUtc(Process process)
+        {
+            try
+            {
+                return process.StartTime.ToUniversalTime();
+            }
+            catch (Exception)
+            {
+                return DateTime.MinValue;
+            }
+        }
+
+        private static bool IsWindows()
+        {
+            var platform = Environment.OSVersion.Platform;
+            return platform == PlatformID.Win32NT ||
+                   platform == PlatformID.Win32S ||
+                   platform == PlatformID.Win32Windows ||
+                   platform == PlatformID.WinCE;
         }
 
         private static string PendingSaveAsKey(WorkspaceModel workspace, string normalizedPath)

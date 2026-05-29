@@ -475,12 +475,7 @@ namespace Dynamo.ViewModels
         [JsonIgnore]
         public string GraphLockReadOnlyBanner
         {
-            get
-            {
-                return Dynamo.Wpf.Properties.Resources.ResourceManager.GetString(
-                    "GraphLockReadOnlyBanner",
-                    Dynamo.Wpf.Properties.Resources.Culture) ?? "Read-only";
-            }
+            get { return "Read-only"; }
         }
 
         private ObservableCollection<Watch3DFullscreenViewModel> _watches = new ObservableCollection<Watch3DFullscreenViewModel>();

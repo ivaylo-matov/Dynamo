@@ -3,8 +3,6 @@ namespace Dynamo.Graph.Workspaces.Locking
     internal enum GraphLockConflict
     {
         Acquired,
-        LiveConflict,
-        StaleConflict,
         ReadOnly,
         Cancelled,
         Unavailable

@@ -2,7 +2,6 @@ using System;
 using System.Globalization;
 using System.Windows;
 using Dynamo.Graph.Workspaces.Locking;
-using Dynamo.Wpf.Properties;
 
 namespace Dynamo.UI.Prompts
 {
@@ -21,13 +20,13 @@ namespace Dynamo.UI.Prompts
             var result = DynamoMessageBox.Show(
                 owner,
                 BuildBody(graphPath, existingLock, isStale),
-                GetResource("GraphLockTitle", "Graph already open"),
+                "Graph already open",
                 MessageBoxButton.YesNoCancel,
                 new[]
                 {
-                    GetResource("GraphLockButtonReadOnly", "Open read-only"),
-                    GetResource("GraphLockButtonOpenAnyway", "Open anyway"),
-                    GetResource("GraphLockButtonCancel", "Cancel")
+                    "Open read-only",
+                    "Open anyway",
+                    "Cancel"
                 },
                 MessageBoxImage.Warning);
 
@@ -46,10 +45,8 @@ namespace Dynamo.UI.Prompts
         {
             var confirm = DynamoMessageBox.Show(
                 owner,
-                GetResource(
-                    "GraphLockOpenAnywayConfirmation",
-                    "Opening anyway can overwrite changes from another Dynamo session. Continue?"),
-                GetResource("GraphLockTitle", "Graph already open"),
+                "Opening anyway can overwrite changes from another Dynamo session. Continue?",
+                "Graph already open",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
 
@@ -64,20 +61,14 @@ namespace Dynamo.UI.Prompts
             {
                 return string.Format(
                     CultureInfo.CurrentCulture,
-                    GetResource(
-                        "GraphLockBodyCorrupt",
-                        "{0} has a graph lock file that could not be read. It may have been left by a previous session."),
+                    "{0} appears to already be open in another Dynamo session.",
                     graphPath);
             }
 
             var lastActivity = FormatAge(DateTime.UtcNow - existingLock.LastHeartbeatUtc);
             var format = isStale
-                ? GetResource(
-                    "GraphLockBodyStaleFormat",
-                    "{0} appears to have been left locked by a previous Dynamo session that did not exit cleanly. Last activity {4}.")
-                : GetResource(
-                    "GraphLockBodyLiveFormat",
-                    "{0} is open in Dynamo {1} by {2} on {3}. Last activity {4}.");
+                ? "{0} appears to already be open, but the lock may be stale. Last activity {4}."
+                : "{0} is already open in Dynamo {1} by {2} on {3}. Last activity {4}.";
 
             return string.Format(
                 CultureInfo.CurrentCulture,
@@ -104,9 +95,5 @@ namespace Dynamo.UI.Prompts
             return string.Format(CultureInfo.CurrentCulture, "{0} hours ago", (int)age.TotalHours);
         }
 
-        internal static string GetResource(string key, string fallback)
-        {
-            return Resources.ResourceManager.GetString(key, Resources.Culture) ?? fallback;
-        }
     }
 }

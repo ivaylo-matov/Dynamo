@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Security;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 
 namespace Dynamo.Graph.Workspaces.Locking
@@ -10,7 +11,12 @@ namespace Dynamo.Graph.Workspaces.Locking
     {
         private static readonly JsonSerializer Serializer = JsonSerializer.Create(new JsonSerializerSettings
         {
+            Culture = System.Globalization.CultureInfo.InvariantCulture,
+            DateTimeZoneHandling = DateTimeZoneHandling.Utc,
             Formatting = Formatting.Indented,
+            MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+            MissingMemberHandling = MissingMemberHandling.Ignore,
+            NullValueHandling = NullValueHandling.Ignore,
             TypeNameHandling = TypeNameHandling.None
         });
 
@@ -57,29 +63,40 @@ namespace Dynamo.Graph.Workspaces.Locking
         {
             info = null;
 
-            try
+            const int maxAttempts = 2;
+            for (var attempt = 0; attempt < maxAttempts; attempt++)
             {
-                using (var stream = File.Open(sidecarPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
-                using (var reader = new StreamReader(stream, Encoding.UTF8))
-                using (var jsonReader = new JsonTextReader(reader))
+                try
                 {
-                    info = Serializer.Deserialize<GraphLockInfo>(jsonReader);
-                }
+                    using (var stream = File.Open(sidecarPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                    using (var reader = new StreamReader(stream, Encoding.UTF8))
+                    using (var jsonReader = new JsonTextReader(reader))
+                    {
+                        info = Serializer.Deserialize<GraphLockInfo>(jsonReader);
+                    }
 
-                return info != null;
+                    return info != null;
+                }
+                catch (Exception ex) when (ex is IOException || ex is JsonException)
+                {
+                    if (attempt == maxAttempts - 1)
+                    {
+                        return false;
+                    }
+
+                    Thread.Sleep(50);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    return false;
+                }
+                catch (SecurityException)
+                {
+                    return false;
+                }
             }
-            catch (FileNotFoundException)
-            {
-                return false;
-            }
-            catch (DirectoryNotFoundException)
-            {
-                return false;
-            }
-            catch (JsonException)
-            {
-                return false;
-            }
+
+            return false;
         }
 
         internal static void WriteHeartbeat(string sidecarPath, GraphLockInfo info)
