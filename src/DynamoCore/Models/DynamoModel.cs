@@ -160,8 +160,14 @@ namespace Dynamo.Models
         /// </summary>
         internal Dictionary<string, List<string>> GraphChecksumDictionary { get; set; }
 
+        /// <summary>
+        /// Coordinates advisory graph locks for graph files opened by this Dynamo model.
+        /// </summary>
         internal GraphLockManager GraphLockManager { get; private set; }
 
+        /// <summary>
+        /// Indicates whether the last file open request was cancelled before a workspace was loaded.
+        /// </summary>
         internal bool LastOpenFileOperationWasCancelled { get; private set; }
 
         // Get ProgramData folder path (usually C:\ProgramData)

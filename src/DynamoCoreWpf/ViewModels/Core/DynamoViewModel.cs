@@ -47,6 +47,7 @@ using Dynamo.Wpf.ViewModels.Core;
 using Dynamo.Wpf.ViewModels.Core.Converters;
 using Dynamo.Wpf.ViewModels.FileTrust;
 using Dynamo.Wpf.ViewModels.Watch3D;
+using Dynamo.Wpf.Services;
 using DynamoMLDataPipeline;
 using DynamoServices;
 using DynamoUtilities;

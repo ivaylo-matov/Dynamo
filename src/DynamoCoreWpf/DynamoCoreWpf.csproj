@@ -595,7 +595,7 @@
       <DependentUpon>InPortContextMenu.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\Prompts\PortPropertiesEditPrompt.xaml.cs" />
-    <Compile Include="UI\Prompts\WpfGraphLockUserPrompt.cs" />
+    <Compile Include="Services\WpfGraphLockUserPrompt.cs" />
     <Compile Include="Utilities\CerDLL.cs" />
     <Compile Include="Utilities\CompactBubbleHandler.cs" />
     <Compile Include="Interfaces\IShellCom.cs" />
