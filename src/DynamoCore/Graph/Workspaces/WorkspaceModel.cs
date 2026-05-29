@@ -287,7 +287,6 @@ namespace Dynamo.Graph.Workspaces
         private string description;
         private bool hasUnsavedChanges;
         private bool isReadOnly;
-        private bool openedInReadOnlyMode;
         private readonly List<NodeModel> nodes;
         private readonly List<NoteModel> notes;
         private readonly List<AnnotationModel> annotations;
@@ -1118,25 +1117,10 @@ namespace Dynamo.Graph.Workspaces
         public bool IsReadOnly
         {
             //if the workspace contains xmlDummyNodes it's effectively a readonly graph.
-            get { return isReadOnly || openedInReadOnlyMode || this.containsXmlDummyNodes() || this.containsInvalidInputSymbols(); }
+            get { return isReadOnly || this.containsXmlDummyNodes() || this.containsInvalidInputSymbols(); }
             set
             {
                 isReadOnly = value;
-                RaisePropertyChanged(nameof(IsReadOnly));
-            }
-        }
-
-        /// <summary>
-        /// Returns whether this workspace was opened read-only because another Dynamo instance owns the graph lock.
-        /// </summary>
-        [JsonIgnore]
-        internal bool OpenedInReadOnlyMode
-        {
-            get { return openedInReadOnlyMode; }
-            set
-            {
-                openedInReadOnlyMode = value;
-                RaisePropertyChanged(nameof(OpenedInReadOnlyMode));
                 RaisePropertyChanged(nameof(IsReadOnly));
             }
         }

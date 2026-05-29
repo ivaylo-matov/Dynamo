@@ -20,7 +20,6 @@ namespace Dynamo.Graph.Workspaces.Locking
         private readonly StringComparer pathComparer;
         private readonly ConcurrentDictionary<string, OwnedLock> locks;
         private readonly ConcurrentDictionary<string, byte> openingPaths;
-        private readonly ConcurrentDictionary<string, OwnedLock> pendingSaveAsLocks;
         private readonly Guid sessionId;
         private readonly int processId;
         private readonly DateTime processStartTimeUtc;
@@ -53,7 +52,6 @@ namespace Dynamo.Graph.Workspaces.Locking
             pathComparer = IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
             locks = new ConcurrentDictionary<string, OwnedLock>(pathComparer);
             openingPaths = new ConcurrentDictionary<string, byte>(pathComparer);
-            pendingSaveAsLocks = new ConcurrentDictionary<string, OwnedLock>(pathComparer);
             sessionId = Guid.NewGuid();
             userName = Environment.UserName;
             machineName = Environment.MachineName;
@@ -93,13 +91,19 @@ namespace Dynamo.Graph.Workspaces.Locking
         {
             if (!enabled || string.IsNullOrEmpty(graphPath))
             {
-                return GraphLockAcquireResult.Acquired();
+                return GraphLockAcquireResult.Acquired(graphPath);
             }
 
             var normalizedPath = NormalizePath(graphPath);
             openingPaths[normalizedPath] = 0;
 
-            return TryAcquireCore(normalizedPath, allowPromptUI, null);
+            var result = TryAcquireCore(normalizedPath, allowPromptUI, null);
+            if (!IsSamePath(normalizedPath, result.GraphPath))
+            {
+                openingPaths.TryRemove(normalizedPath, out _);
+            }
+
+            return result;
         }
 
         internal void CompleteOpen(string graphPath, bool succeeded)
@@ -115,70 +119,6 @@ namespace Dynamo.Graph.Workspaces.Locking
             if (!succeeded)
             {
                 Release(normalizedPath);
-            }
-        }
-
-        internal GraphLockAcquireResult PrepareSaveAs(WorkspaceModel workspace, string newPath, bool allowPromptUI)
-        {
-            if (!enabled || workspace == null || string.IsNullOrEmpty(newPath))
-            {
-                return GraphLockAcquireResult.Acquired();
-            }
-
-            var normalizedNewPath = NormalizePath(newPath);
-            if (IsSamePath(workspace.FileName, normalizedNewPath))
-            {
-                return GraphLockAcquireResult.Acquired();
-            }
-
-            var result = TryAcquireCore(normalizedNewPath, allowPromptUI, workspace);
-            if (result.Conflict == GraphLockConflict.Acquired &&
-                locks.TryRemove(normalizedNewPath, out var owned))
-            {
-                pendingSaveAsLocks[PendingSaveAsKey(workspace, normalizedNewPath)] = owned;
-            }
-
-            return result;
-        }
-
-        internal void CommitSaveAs(WorkspaceModel workspace, string newPath)
-        {
-            if (!enabled || workspace == null || string.IsNullOrEmpty(newPath))
-            {
-                return;
-            }
-
-            var normalizedNewPath = NormalizePath(newPath);
-            var pendingKey = PendingSaveAsKey(workspace, normalizedNewPath);
-            pendingSaveAsLocks.TryRemove(pendingKey, out var pendingLock);
-
-            var oldPaths = locks
-                .Where(pair => pair.Value.Workspace == workspace && !IsSamePath(pair.Key, normalizedNewPath))
-                .Select(pair => pair.Key)
-                .ToList();
-            foreach (var oldPath in oldPaths)
-            {
-                Release(oldPath);
-            }
-
-            if (pendingLock != null)
-            {
-                pendingLock.Workspace = workspace;
-                locks[normalizedNewPath] = pendingLock;
-            }
-        }
-
-        internal void CancelSaveAs(WorkspaceModel workspace, string newPath)
-        {
-            if (!enabled || workspace == null || string.IsNullOrEmpty(newPath))
-            {
-                return;
-            }
-
-            var normalizedNewPath = NormalizePath(newPath);
-            if (pendingSaveAsLocks.TryRemove(PendingSaveAsKey(workspace, normalizedNewPath), out var pendingLock))
-            {
-                ReleaseOwnedLock(normalizedNewPath, pendingLock);
             }
         }
 
@@ -208,14 +148,6 @@ namespace Dynamo.Graph.Workspaces.Locking
                 Release(path);
             }
 
-            foreach (var pair in pendingSaveAsLocks.ToList())
-            {
-                if (pendingSaveAsLocks.TryRemove(pair.Key, out var owned))
-                {
-                    ReleaseOwnedLock(owned.Info.GraphPath, owned);
-                }
-            }
-
             heartbeatTimer?.Dispose();
             heartbeatTimer = null;
         }
@@ -234,7 +166,7 @@ namespace Dynamo.Graph.Workspaces.Locking
                     if (GraphLockFile.TryCreateExclusive(sidecarPath, info))
                     {
                         RegisterOwnedLock(normalizedPath, sidecarPath, info, workspace);
-                        return GraphLockAcquireResult.Acquired();
+                        return GraphLockAcquireResult.Acquired(normalizedPath);
                     }
 
                     GraphLockInfo existingLock;
@@ -244,20 +176,16 @@ namespace Dynamo.Graph.Workspaces.Locking
                     if (readable && IsSelf(existingLock))
                     {
                         RegisterOwnedLock(normalizedPath, sidecarPath, existingLock, workspace);
-                        return GraphLockAcquireResult.Acquired();
+                        return GraphLockAcquireResult.Acquired(normalizedPath);
                     }
 
-                    var decision = PromptIfAllowed(normalizedPath, readable ? existingLock : null, isStale, allowPromptUI);
-                    switch (decision)
+                    var response = PromptIfAllowed(normalizedPath, readable ? existingLock : null, isStale, allowPromptUI);
+                    switch (response.Decision)
                     {
                         case GraphLockUserDecision.Cancel:
                             return GraphLockAcquireResult.Cancelled(existingLock);
-                        case GraphLockUserDecision.ReadOnly:
-                            return GraphLockAcquireResult.ReadOnly(existingLock);
-                        case GraphLockUserDecision.Takeover:
-                            GraphLockFile.WriteHeartbeat(sidecarPath, info);
-                            RegisterOwnedLock(normalizedPath, sidecarPath, info, workspace);
-                            return GraphLockAcquireResult.Acquired();
+                        case GraphLockUserDecision.SaveAs:
+                            return TryCopyToSaveAsPath(normalizedPath, response.SaveAsPath, workspace, existingLock);
                     }
                 }
                 catch (UnauthorizedAccessException ex)
@@ -274,7 +202,71 @@ namespace Dynamo.Graph.Workspaces.Locking
                 }
             }
 
-            return GraphLockAcquireResult.Unavailable();
+            return GraphLockAcquireResult.Unavailable(normalizedPath);
+        }
+
+        private GraphLockAcquireResult TryCopyToSaveAsPath(
+            string sourcePath,
+            string saveAsPath,
+            WorkspaceModel workspace,
+            GraphLockInfo existingLock)
+        {
+            if (string.IsNullOrWhiteSpace(saveAsPath))
+            {
+                return GraphLockAcquireResult.Cancelled(existingLock);
+            }
+
+            var normalizedSaveAsPath = NormalizePath(saveAsPath);
+            if (IsSamePath(sourcePath, normalizedSaveAsPath))
+            {
+                return GraphLockAcquireResult.Cancelled(existingLock);
+            }
+
+            var sidecarPath = GraphLockFile.PathFor(normalizedSaveAsPath);
+            var info = BuildSelfInfo(normalizedSaveAsPath);
+            var ownsSaveAsLock = false;
+
+            try
+            {
+                if (GraphLockFile.TryCreateExclusive(sidecarPath, info))
+                {
+                    ownsSaveAsLock = true;
+                }
+                else
+                {
+                    GraphLockInfo saveAsLock;
+                    var readable = GraphLockFile.TryRead(sidecarPath, out saveAsLock);
+                    if (readable && IsSelf(saveAsLock))
+                    {
+                        info = saveAsLock;
+                        ownsSaveAsLock = true;
+                    }
+                    else if (!readable || IsStale(saveAsLock) || IsDeadLocalProcess(saveAsLock))
+                    {
+                        GraphLockFile.WriteHeartbeat(sidecarPath, info);
+                        ownsSaveAsLock = true;
+                    }
+                    else
+                    {
+                        return GraphLockAcquireResult.Cancelled(saveAsLock);
+                    }
+                }
+
+                File.Copy(sourcePath, normalizedSaveAsPath, true);
+                openingPaths[normalizedSaveAsPath] = 0;
+                RegisterOwnedLock(normalizedSaveAsPath, sidecarPath, info, workspace);
+                return GraphLockAcquireResult.Acquired(normalizedSaveAsPath);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is SecurityException)
+            {
+                Log("GraphLock save-as copy failed: " + ex.Message);
+                if (ownsSaveAsLock)
+                {
+                    ReleaseOwnedLock(normalizedSaveAsPath, new OwnedLock { SidecarPath = sidecarPath, Info = info });
+                }
+
+                return GraphLockAcquireResult.Cancelled(existingLock);
+            }
         }
 
         private void RegisterOwnedLock(string normalizedPath, string sidecarPath, GraphLockInfo info, WorkspaceModel workspace)
@@ -376,9 +368,18 @@ namespace Dynamo.Graph.Workspaces.Locking
             }
 
             var normalizedPath = NormalizePath(workspace.FileName);
+            var oldPaths = locks
+                .Where(pair => pair.Value.Workspace == workspace && !IsSamePath(pair.Key, normalizedPath))
+                .Select(pair => pair.Key)
+                .ToList();
+            foreach (var oldPath in oldPaths)
+            {
+                Release(oldPath);
+            }
+
             if (!locks.ContainsKey(normalizedPath))
             {
-                TryAcquireCore(normalizedPath, true, workspace);
+                TryAcquireCore(normalizedPath, false, workspace);
             }
         }
 
@@ -405,7 +406,7 @@ namespace Dynamo.Graph.Workspaces.Locking
             }
         }
 
-        private GraphLockUserDecision PromptIfAllowed(
+        private GraphLockUserResponse PromptIfAllowed(
             string graphPath,
             GraphLockInfo existingLock,
             bool isStale,
@@ -413,7 +414,7 @@ namespace Dynamo.Graph.Workspaces.Locking
         {
             if (!allowPromptUI || prompt == null)
             {
-                return GraphLockUserDecision.ReadOnly;
+                return GraphLockUserResponse.Cancel();
             }
 
             return prompt.AskUser(graphPath, existingLock, isStale);
@@ -533,11 +534,6 @@ namespace Dynamo.Graph.Workspaces.Locking
                    platform == PlatformID.Win32S ||
                    platform == PlatformID.Win32Windows ||
                    platform == PlatformID.WinCE;
-        }
-
-        private static string PendingSaveAsKey(WorkspaceModel workspace, string normalizedPath)
-        {
-            return workspace.Guid + "|" + normalizedPath;
         }
 
         private void Log(string message)

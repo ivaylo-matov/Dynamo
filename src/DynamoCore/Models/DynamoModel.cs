@@ -2189,15 +2189,15 @@ namespace Dynamo.Models
                 return;
             }
 
-            var openedReadOnly = graphLockResult.ShouldOpenReadOnly;
+            var filePathToOpen = string.IsNullOrEmpty(graphLockResult.GraphPath) ? filePath : graphLockResult.GraphPath;
             var openedSuccessfully = false;
             Exception ex;
             string fileContents;
             try
             {
-                if (DynamoUtilities.PathHelper.isValidJson(filePath, out fileContents, out ex))
+                if (DynamoUtilities.PathHelper.isValidJson(filePathToOpen, out fileContents, out ex))
                 {
-                    openedSuccessfully = OpenJsonFileFromPath(fileContents, filePath, forceManualExecutionMode, false, openedReadOnly);
+                    openedSuccessfully = OpenJsonFileFromPath(fileContents, filePathToOpen, forceManualExecutionMode);
                     return;
                 }
                 else
@@ -2211,9 +2211,9 @@ namespace Dynamo.Models
                     XmlDocument xmlDoc;
 
                     // When Json opening failed, either this file is corrupted or file might be XML
-                    if (ex is JsonReaderException && DynamoUtilities.PathHelper.isValidXML(filePath, out xmlDoc, out ex))
+                    if (ex is JsonReaderException && DynamoUtilities.PathHelper.isValidXML(filePathToOpen, out xmlDoc, out ex))
                     {
-                        openedSuccessfully = OpenXmlFileFromPath(xmlDoc, filePath, forceManualExecutionMode, openedReadOnly);
+                        openedSuccessfully = OpenXmlFileFromPath(xmlDoc, filePathToOpen, forceManualExecutionMode);
                         return;
                     }
                     else
@@ -2224,7 +2224,7 @@ namespace Dynamo.Models
             }
             finally
             {
-                GraphLockManager?.CompleteOpen(filePath, openedSuccessfully);
+                GraphLockManager?.CompleteOpen(filePathToOpen, openedSuccessfully);
             }
         }
 
@@ -2328,8 +2328,7 @@ namespace Dynamo.Models
             string fileContents,
             string filePath,
             bool forceManualExecutionMode,
-            bool isTemplate = false,
-            bool openedReadOnly = false)
+            bool isTemplate = false)
         {
             try
             {
@@ -2342,7 +2341,6 @@ namespace Dynamo.Models
                         WorkspaceModel ws;
                         if (OpenJsonFile(filePath, fileContents, dynamoPreferences, forceManualExecutionMode, isTemplate, out ws))
                         {
-                            ws.OpenedInReadOnlyMode = openedReadOnly;
                             OpenWorkspace(ws);
                             //Raise an event to deserialize the view parameters before
                             //setting the graph to run
@@ -2404,7 +2402,7 @@ namespace Dynamo.Models
         /// <param name="forceManualExecutionMode">Set this to true to discard
         /// execution mode specified in the file and set manual mode</param>
         /// <returns>True if workspace was opened successfully</returns>
-        private bool OpenXmlFileFromPath(XmlDocument xmlDoc, string filePath, bool forceManualExecutionMode, bool openedReadOnly = false)
+        private bool OpenXmlFileFromPath(XmlDocument xmlDoc, string filePath, bool forceManualExecutionMode)
         {
             try
             {
@@ -2426,7 +2424,6 @@ namespace Dynamo.Models
                         WorkspaceModel ws;
                         if (OpenXmlFile(workspaceInfo, xmlDoc, out ws))
                         {
-                            ws.OpenedInReadOnlyMode = openedReadOnly;
                             OpenWorkspace(ws);
 
                             // Set up workspace cameras here

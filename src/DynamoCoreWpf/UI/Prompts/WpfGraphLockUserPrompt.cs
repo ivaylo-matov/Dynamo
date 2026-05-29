@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using Dynamo.Graph.Workspaces.Locking;
 
@@ -14,45 +15,51 @@ namespace Dynamo.UI.Prompts
             this.ownerProvider = ownerProvider;
         }
 
-        public GraphLockUserDecision AskUser(string graphPath, GraphLockInfo existingLock, bool isStale)
+        public GraphLockUserResponse AskUser(string graphPath, GraphLockInfo existingLock, bool isStale)
         {
             var owner = ownerProvider?.Invoke();
             var result = DynamoMessageBox.Show(
                 owner,
                 BuildBody(graphPath, existingLock, isStale),
                 "Graph already open",
-                MessageBoxButton.YesNoCancel,
+                MessageBoxButton.OKCancel,
                 new[]
                 {
-                    "Open read-only",
-                    "Open anyway",
+                    "Save as",
                     "Cancel"
                 },
                 MessageBoxImage.Warning);
 
-            switch (result)
+            if (result != MessageBoxResult.OK)
             {
-                case MessageBoxResult.Yes:
-                    return GraphLockUserDecision.ReadOnly;
-                case MessageBoxResult.No:
-                    return ConfirmOpenAnyway(owner);
-                default:
-                    return GraphLockUserDecision.Cancel;
+                return GraphLockUserResponse.Cancel();
             }
+
+            var saveAsPath = ShowSaveAsDialog(graphPath);
+            return string.IsNullOrEmpty(saveAsPath)
+                ? GraphLockUserResponse.Cancel()
+                : GraphLockUserResponse.SaveAs(saveAsPath);
         }
 
-        private static GraphLockUserDecision ConfirmOpenAnyway(Window owner)
+        private static string ShowSaveAsDialog(string graphPath)
         {
-            var confirm = DynamoMessageBox.Show(
-                owner,
-                "Opening anyway can overwrite changes from another Dynamo session. Continue?",
-                "Graph already open",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+            using (var dialog = new System.Windows.Forms.SaveFileDialog())
+            {
+                var extension = Path.GetExtension(graphPath);
+                dialog.DefaultExt = string.IsNullOrEmpty(extension) ? "dyn" : extension.TrimStart('.');
+                dialog.Filter = "Dynamo graphs (*.dyn;*.dyf)|*.dyn;*.dyf|All files (*.*)|*.*";
+                dialog.FileName = Path.GetFileName(graphPath);
 
-            return confirm == MessageBoxResult.Yes
-                ? GraphLockUserDecision.Takeover
-                : GraphLockUserDecision.Cancel;
+                var directory = Path.GetDirectoryName(graphPath);
+                if (Directory.Exists(directory))
+                {
+                    dialog.InitialDirectory = directory;
+                }
+
+                return dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK
+                    ? dialog.FileName
+                    : null;
+            }
         }
 
         private static string BuildBody(string graphPath, GraphLockInfo existingLock, bool isStale)
@@ -61,14 +68,13 @@ namespace Dynamo.UI.Prompts
             {
                 return string.Format(
                     CultureInfo.CurrentCulture,
-                    "{0} appears to already be open in another Dynamo session.",
+                    "{0} is already open in another Dynamo session. Cancel or save a copy.",
                     graphPath);
             }
 
-            var lastActivity = FormatAge(DateTime.UtcNow - existingLock.LastHeartbeatUtc);
             var format = isStale
-                ? "{0} appears to already be open, but the lock may be stale. Last activity {4}."
-                : "{0} is already open in Dynamo {1} by {2} on {3}. Last activity {4}.";
+                ? "{0} appears to already be open, but the lock may be stale. Cancel or save a copy."
+                : "{0} is already open in Dynamo {1} by {2} on {3}. Cancel or save a copy.";
 
             return string.Format(
                 CultureInfo.CurrentCulture,
@@ -76,23 +82,7 @@ namespace Dynamo.UI.Prompts
                 graphPath,
                 existingLock.DynamoMajorMinor,
                 existingLock.UserName,
-                existingLock.MachineName,
-                lastActivity);
-        }
-
-        private static string FormatAge(TimeSpan age)
-        {
-            if (age.TotalSeconds < 60)
-            {
-                return string.Format(CultureInfo.CurrentCulture, "{0} seconds ago", Math.Max(0, (int)age.TotalSeconds));
-            }
-
-            if (age.TotalMinutes < 60)
-            {
-                return string.Format(CultureInfo.CurrentCulture, "{0} minutes ago", (int)age.TotalMinutes);
-            }
-
-            return string.Format(CultureInfo.CurrentCulture, "{0} hours ago", (int)age.TotalHours);
+                existingLock.MachineName);
         }
 
     }

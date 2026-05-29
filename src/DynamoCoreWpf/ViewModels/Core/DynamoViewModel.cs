@@ -24,7 +24,6 @@ using Dynamo.Graph.Connectors;
 using Dynamo.Graph.Nodes;
 using Dynamo.Graph.Nodes.CustomNodes;
 using Dynamo.Graph.Workspaces;
-using Dynamo.Graph.Workspaces.Locking;
 using Dynamo.Interfaces;
 using Dynamo.Logging;
 using Dynamo.Models;
@@ -2770,21 +2769,6 @@ namespace Dynamo.ViewModels
 
         private void InternalSaveAs(string path, SaveContext saveContext, bool isBackup = false)
         {
-            var workspace = Model.CurrentWorkspace;
-            var preparedGraphLock = false;
-            if (!isBackup && saveContext == SaveContext.SaveAs)
-            {
-                var graphLockResult = Model.GraphLockManager?.PrepareSaveAs(workspace, path, true);
-                if (graphLockResult != null &&
-                    graphLockResult.Conflict != GraphLockConflict.Acquired &&
-                    graphLockResult.Conflict != GraphLockConflict.Unavailable)
-                {
-                    return;
-                }
-
-                preparedGraphLock = graphLockResult?.Conflict == GraphLockConflict.Acquired;
-            }
-
             var hasSaved = false;
             try
             {
@@ -2802,17 +2786,6 @@ namespace Dynamo.ViewModels
 
                 if (!isBackup && hasSaved)
                 {
-                    if (preparedGraphLock)
-                    {
-                        Model.GraphLockManager?.CommitSaveAs(workspace, path);
-                        preparedGraphLock = false;
-                    }
-
-                    if (saveContext == SaveContext.SaveAs)
-                    {
-                        workspace.OpenedInReadOnlyMode = false;
-                    }
-
                     AddToRecentFiles(path);
 
                     // Track save and save-as operations on workspace, excluding the backup files.
@@ -2844,13 +2817,6 @@ namespace Dynamo.ViewModels
                         Resources.UnsavedChangesMessageBoxTitle,
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);
-            }
-            finally
-            {
-                if (preparedGraphLock && !hasSaved)
-                {
-                    Model.GraphLockManager?.CancelSaveAs(workspace, path);
-                }
             }
         }
 

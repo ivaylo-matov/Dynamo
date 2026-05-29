@@ -10,36 +10,37 @@ namespace Dynamo.Tests.Graph.Workspaces.Locking
     internal class GraphLockManagerTests : DynamoModelTestBase
     {
         [Test]
-        public void TryAcquireReturnsReadOnlyWhenPromptChoosesReadOnly()
+        public void TryAcquireReturnsCancelledWhenPromptCancels()
         {
             var graphPath = CreateGraphWithForeignLock(DateTime.UtcNow);
-            var prompt = new FakePrompt(GraphLockUserDecision.ReadOnly);
+            var prompt = new FakePrompt(GraphLockUserResponse.Cancel());
             using (var manager = new GraphLockManager(CurrentDynamoModel, prompt, forceEnable: true))
             {
                 var result = manager.TryAcquire(graphPath, true);
 
-                Assert.AreEqual(GraphLockConflict.ReadOnly, result.Conflict);
-                Assert.IsTrue(result.ShouldOpenReadOnly);
+                Assert.AreEqual(GraphLockConflict.Cancelled, result.Conflict);
                 Assert.IsNotNull(prompt.LastExistingLock);
                 Assert.IsFalse(prompt.LastWasStale);
             }
         }
 
         [Test]
-        public void TryAcquireOverwritesStaleLockWhenPromptChoosesTakeover()
+        public void TryAcquireCopiesGraphWhenPromptChoosesSaveAs()
         {
-            var graphPath = CreateGraphWithForeignLock(DateTime.UtcNow.AddMinutes(-10));
-            var prompt = new FakePrompt(GraphLockUserDecision.Takeover);
+            var graphPath = CreateGraphWithForeignLock(DateTime.UtcNow);
+            File.WriteAllText(graphPath, "{\"hello\":\"world\"}");
+            var saveAsPath = Path.Combine(TempFolder, "copy.dyn");
+            var prompt = new FakePrompt(GraphLockUserResponse.SaveAs(saveAsPath));
             using (var manager = new GraphLockManager(CurrentDynamoModel, prompt, heartbeatMilliseconds: 1000, forceEnable: true))
             {
                 var result = manager.TryAcquire(graphPath, true);
-                GraphLockFile.TryRead(GraphLockFile.PathFor(graphPath), out var info);
 
                 Assert.AreEqual(GraphLockConflict.Acquired, result.Conflict);
-                Assert.IsTrue(prompt.LastWasStale);
-                Assert.AreEqual(Environment.ProcessId, info.ProcessId);
+                Assert.AreEqual(saveAsPath, result.GraphPath);
+                Assert.AreEqual(File.ReadAllText(graphPath), File.ReadAllText(saveAsPath));
+                Assert.IsTrue(File.Exists(GraphLockFile.PathFor(saveAsPath)));
 
-                manager.CompleteOpen(graphPath, false);
+                manager.CompleteOpen(saveAsPath, false);
             }
         }
 
@@ -84,22 +85,22 @@ namespace Dynamo.Tests.Graph.Workspaces.Locking
 
         private sealed class FakePrompt : IGraphLockUserPrompt
         {
-            private readonly GraphLockUserDecision decision;
+            private readonly GraphLockUserResponse response;
 
-            internal FakePrompt(GraphLockUserDecision decision)
+            internal FakePrompt(GraphLockUserResponse response)
             {
-                this.decision = decision;
+                this.response = response;
             }
 
             internal GraphLockInfo LastExistingLock { get; private set; }
 
             internal bool LastWasStale { get; private set; }
 
-            public GraphLockUserDecision AskUser(string graphPath, GraphLockInfo existingLock, bool isStale)
+            public GraphLockUserResponse AskUser(string graphPath, GraphLockInfo existingLock, bool isStale)
             {
                 LastExistingLock = existingLock;
                 LastWasStale = isStale;
-                return decision;
+                return response;
             }
         }
     }
