@@ -844,7 +844,9 @@ namespace Dynamo.ViewModels
 
             // initialize core data structures
             this.model = startConfiguration.DynamoModel;
-            this.model.GraphLockManager?.SetPrompt(new WpfGraphLockUserPrompt(() => Owner));
+            this.model.GraphLockManager?.SetPrompt(new WpfGraphLockUserPrompt(
+                () => Owner,
+                () => BrandingResourceProvider.ProductName));
             this.model.CommandStarting += OnModelCommandStarting;
             this.model.CommandCompleted += OnModelCommandCompleted;
             this.model.RequestsCrashPrompt += CrashReportTool.ShowCrashWindow;

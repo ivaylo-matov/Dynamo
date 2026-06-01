@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using Dynamo.Graph.Workspaces.Locking;
 using Dynamo.UI.Prompts;
+using Dynamo.Wpf.Properties;
 using Dynamo.Wpf.UI;
 
 namespace Dynamo.Wpf.Services
@@ -10,10 +11,12 @@ namespace Dynamo.Wpf.Services
     internal sealed class WpfGraphLockUserPrompt : IGraphLockUserPrompt
     {
         private readonly Func<Window> ownerProvider;
+        private readonly Func<string> productNameProvider;
 
-        internal WpfGraphLockUserPrompt(Func<Window> ownerProvider)
+        internal WpfGraphLockUserPrompt(Func<Window> ownerProvider, Func<string> productNameProvider)
         {
             this.ownerProvider = ownerProvider;
+            this.productNameProvider = productNameProvider;
         }
 
         /// <summary>
@@ -50,9 +53,11 @@ namespace Dynamo.Wpf.Services
             var directory = Path.GetDirectoryName(graphPath);
             var isCustomNode = extension.Equals(".dyf", StringComparison.OrdinalIgnoreCase);
             var defaultExtension = isCustomNode ? ".dyf" : ".dyn";
+            var productName = productNameProvider?.Invoke() ?? "Dynamo";
             var filter = isCustomNode
-                ? "Dynamo Custom Node (*.dyf)|*.dyf|All files (*.*)|*.*"
-                : "Dynamo Workspace (*.dyn)|*.dyn|All files (*.*)|*.*";
+                ? string.Format(Resources.FileDialogDynamoCustomNode, productName, "*.dyf")
+                : string.Format(Resources.FileDialogDynamoWorkspace, productName, "*.dyn");
+            filter += "|" + string.Format(Resources.FileDialogAllFiles, "*.*");
             var dialog = new CustomSaveFileDialog
             {
                 AddExtension = true,
