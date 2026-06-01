@@ -176,7 +176,6 @@ namespace Dynamo.Graph.Workspaces.Locking
             heartbeatTimer = null;
         }
 
-        // Performs the actual sidecar creation/read conflict flow for a normalized graph path
         private GraphLockAcquireResult TryAcquireCore(string normalizedPath, bool allowPromptUI, WorkspaceModel workspace)
         {
             var sidecarPath = GraphLockFile.PathFor(normalizedPath);
@@ -188,23 +187,36 @@ namespace Dynamo.Graph.Workspaces.Locking
                 attempt++;
                 try
                 {
+                    // No lock yet: create one and we are done.
                     if (GraphLockFile.TryCreateExclusive(sidecarPath, info))
                     {
                         RegisterOwnedLock(normalizedPath, sidecarPath, info, workspace);
                         return GraphLockAcquireResult.Acquired(normalizedPath);
                     }
 
+                    // A lock file already exists: read it to find out who owns it.
                     GraphLockInfo existingLock;
                     var readable = GraphLockFile.TryRead(sidecarPath, out existingLock);
-                    var isStale = !readable || IsStale(existingLock) || IsDeadLocalProcess(existingLock);
 
+                    // It is our own lock (same machine + process): reuse it.
                     if (readable && IsSelf(existingLock))
                     {
                         RegisterOwnedLock(normalizedPath, sidecarPath, existingLock, workspace);
                         return GraphLockAcquireResult.Acquired(normalizedPath);
                     }
 
-                    var response = PromptIfAllowed(normalizedPath, readable ? existingLock : null, isStale, allowPromptUI);
+                    // The lock is unreadable, expired (no recent heartbeat), or owned by a process on
+                    // this machine that is no longer running. In all of these cases the previous owner
+                    // is gone, so we silently take the lock over instead of warning the user.
+                    if (!readable || IsStale(existingLock) || IsDeadLocalProcess(existingLock))
+                    {
+                        GraphLockFile.WriteHeartbeat(sidecarPath, info);
+                        RegisterOwnedLock(normalizedPath, sidecarPath, info, workspace);
+                        return GraphLockAcquireResult.Acquired(normalizedPath);
+                    }
+
+                    // A live instance owns the lock: ask the user what to do.
+                    var response = PromptIfAllowed(normalizedPath, existingLock, allowPromptUI);
                     if (response.ShouldSaveAs)
                     {
                         return TryCopyToSaveAsPath(normalizedPath, response.SaveAsPath, workspace, existingLock);
@@ -436,14 +448,14 @@ namespace Dynamo.Graph.Workspaces.Locking
         }
 
         // Asks the WPF layer for a user decision only when UI prompts are allowed
-        private GraphLockUserResponse PromptIfAllowed(string graphPath, GraphLockInfo existingLock, bool isStale, bool allowPromptUI)
+        private GraphLockUserResponse PromptIfAllowed(string graphPath, GraphLockInfo existingLock, bool allowPromptUI)
         {
             if (!allowPromptUI || prompt == null)
             {
                 return GraphLockUserResponse.Cancel();
             }
 
-            return prompt.AskUser(graphPath, existingLock, isStale);
+            return prompt.AskUser(graphPath, existingLock);
         }
 
         private bool IsStale(GraphLockInfo existingLock)
@@ -473,7 +485,6 @@ namespace Dynamo.Graph.Workspaces.Locking
 
             return new GraphLockInfo
             {
-                SchemaVersion = 1,
                 SessionId = sessionId,
                 GraphPath = normalizedPath,
                 MachineName = machineName,
