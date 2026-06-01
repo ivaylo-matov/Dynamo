@@ -56,7 +56,7 @@ namespace Dynamo.Tests.Graph.Workspaces.Locking
             var result = GraphLockFile.TryRead(sidecarPath, out var info);
 
             Assert.IsTrue(result);
-            Assert.AreEqual("4.1", info.DynamoMajorMinor);
+            Assert.AreEqual("machine", info.MachineName);
         }
 
         [Test]
@@ -83,13 +83,9 @@ namespace Dynamo.Tests.Graph.Workspaces.Locking
                 SchemaVersion = 1,
                 SessionId = Guid.NewGuid(),
                 GraphPath = graphPath,
-                UserName = "user",
                 MachineName = "machine",
                 ProcessId = 123,
                 ProcessStartUtc = now,
-                DynamoVersion = "4.1.0.1234",
-                DynamoMajorMinor = "4.1",
-                AcquiredUtc = now,
                 LastHeartbeatUtc = now
             };
         }

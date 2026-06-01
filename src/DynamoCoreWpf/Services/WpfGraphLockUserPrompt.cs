@@ -8,11 +8,19 @@ using Dynamo.Wpf.UI;
 
 namespace Dynamo.Wpf.Services
 {
+    /// <summary>
+    /// Shows WPF UI for graph-lock conflicts.
+    /// </summary>
     internal sealed class WpfGraphLockUserPrompt : IGraphLockUserPrompt
     {
         private readonly Func<Window> ownerProvider;
         private readonly Func<string> productNameProvider;
 
+        /// <summary>
+        /// Initializes a WPF graph-lock prompt.
+        /// </summary>
+        /// <param name="ownerProvider">Provides the owner window when a prompt is shown.</param>
+        /// <param name="productNameProvider">Provides the product name for save-dialog filters.</param>
         internal WpfGraphLockUserPrompt(Func<Window> ownerProvider, Func<string> productNameProvider)
         {
             this.ownerProvider = ownerProvider;
@@ -47,7 +55,8 @@ namespace Dynamo.Wpf.Services
                 : GraphLockUserResponse.SaveAs(saveAsPath);
         }
 
-        private static string ShowSaveAsDialog(string graphPath)
+        // Shows a Save As dialog for the copy path, matching the graph file extension.
+        private string ShowSaveAsDialog(string graphPath)
         {
             var extension = Path.GetExtension(graphPath);
             var directory = Path.GetDirectoryName(graphPath);

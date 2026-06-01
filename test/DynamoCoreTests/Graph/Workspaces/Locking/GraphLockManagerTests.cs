@@ -70,13 +70,9 @@ namespace Dynamo.Tests.Graph.Workspaces.Locking
                 SchemaVersion = 1,
                 SessionId = Guid.NewGuid(),
                 GraphPath = graphPath,
-                UserName = "other-user",
                 MachineName = "other-machine",
                 ProcessId = 123456,
                 ProcessStartUtc = DateTime.UtcNow.AddHours(-1),
-                DynamoVersion = "4.1.0.1234",
-                DynamoMajorMinor = "4.1",
-                AcquiredUtc = DateTime.UtcNow.AddHours(-1),
                 LastHeartbeatUtc = lastHeartbeatUtc
             });
 

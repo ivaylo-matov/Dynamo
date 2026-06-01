@@ -3,6 +3,9 @@ using Newtonsoft.Json;
 
 namespace Dynamo.Graph.Workspaces.Locking
 {
+    /// <summary>
+    /// Serializable metadata stored in a graph lock sidecar file.
+    /// </summary>
     internal sealed class GraphLockInfo
     {
         [JsonProperty("schemaVersion")]
@@ -14,9 +17,6 @@ namespace Dynamo.Graph.Workspaces.Locking
         [JsonProperty("graphPath")]
         internal string GraphPath { get; set; }
 
-        [JsonProperty("userName")]
-        internal string UserName { get; set; }
-
         [JsonProperty("machineName")]
         internal string MachineName { get; set; }
 
@@ -25,15 +25,6 @@ namespace Dynamo.Graph.Workspaces.Locking
 
         [JsonProperty("processStartUtc")]
         internal DateTime ProcessStartUtc { get; set; }
-
-        [JsonProperty("dynamoVersion")]
-        internal string DynamoVersion { get; set; }
-
-        [JsonProperty("dynamoMajorMinor")]
-        internal string DynamoMajorMinor { get; set; }
-
-        [JsonProperty("acquiredUtc")]
-        internal DateTime AcquiredUtc { get; set; }
 
         [JsonProperty("lastHeartbeatUtc")]
         internal DateTime LastHeartbeatUtc { get; set; }
