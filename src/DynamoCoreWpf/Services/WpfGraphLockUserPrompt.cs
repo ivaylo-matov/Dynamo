@@ -48,11 +48,16 @@ namespace Dynamo.Wpf.Services
         {
             var extension = Path.GetExtension(graphPath);
             var directory = Path.GetDirectoryName(graphPath);
+            var isCustomNode = extension.Equals(".dyf", StringComparison.OrdinalIgnoreCase);
+            var defaultExtension = isCustomNode ? ".dyf" : ".dyn";
+            var filter = isCustomNode
+                ? "Dynamo Custom Node (*.dyf)|*.dyf|All files (*.*)|*.*"
+                : "Dynamo Workspace (*.dyn)|*.dyn|All files (*.*)|*.*";
             var dialog = new CustomSaveFileDialog
             {
                 AddExtension = true,
-                DefaultExt = string.IsNullOrEmpty(extension) ? ".dyn" : extension,
-                Filter = "Dynamo graphs (*.dyn;*.dyf)|*.dyn;*.dyf|All files (*.*)|*.*",
+                DefaultExt = defaultExtension,
+                Filter = filter,
                 FileName = Path.GetFileName(graphPath)
             };
 
