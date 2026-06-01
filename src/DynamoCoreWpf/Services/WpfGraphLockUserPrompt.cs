@@ -38,10 +38,10 @@ namespace Dynamo.Wpf.Services
         {
             var result = DynamoMessageBox.Show(
                 ownerProvider?.Invoke(),
-                "This graph is already open in another Dynamo session. Save a copy or cancel.",
-                "Graph already open",
+                Resources.GraphLockFileAlreadyOpenMessage,
+                Resources.GraphLockFileAlreadyOpenTitle,
                 MessageBoxButton.OKCancel,
-                new[] { "Save as", "Cancel" },
+                new[] { Resources.GraphLockSaveAsButton, Resources.CancelButton },
                 MessageBoxImage.Warning);
 
             if (result != MessageBoxResult.OK)

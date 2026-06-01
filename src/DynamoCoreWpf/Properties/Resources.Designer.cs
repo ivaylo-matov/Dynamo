@@ -3668,6 +3668,36 @@ namespace Dynamo.Wpf.Properties {
                 return ResourceManager.GetString("GetStartedLinkText", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to This file is currently open in another instance of Dynamo.
+        ///To avoid data loss or corruption, please choose one of the following actions:
+        /// • Save the graph with a different name to create a new version of the file.
+        /// • Cancel to return to the workspace and close the other instance of Dynamo..
+        /// </summary>
+        public static string GraphLockFileAlreadyOpenMessage {
+            get {
+                return ResourceManager.GetString("GraphLockFileAlreadyOpenMessage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to File already open in another Dynamo instance.
+        /// </summary>
+        public static string GraphLockFileAlreadyOpenTitle {
+            get {
+                return ResourceManager.GetString("GraphLockFileAlreadyOpenTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Save as.
+        /// </summary>
+        public static string GraphLockSaveAsButton {
+            get {
+                return ResourceManager.GetString("GraphLockSaveAsButton", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Cancel and Show Issues.
