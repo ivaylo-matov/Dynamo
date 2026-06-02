@@ -11,9 +11,6 @@ namespace Dynamo.Graph.Workspaces.Locking
         [JsonProperty("sessionId")]
         internal Guid SessionId { get; set; }
 
-        [JsonProperty("graphPath")]
-        internal string GraphPath { get; set; }
-
         [JsonProperty("machineName")]
         internal string MachineName { get; set; }
 
