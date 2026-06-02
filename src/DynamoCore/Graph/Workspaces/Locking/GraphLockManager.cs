@@ -205,23 +205,41 @@ namespace Dynamo.Graph.Workspaces.Locking
                         return GraphLockAcquireResult.Acquired(normalizedPath);
                     }
 
-                    // The lock is unreadable, expired (no recent heartbeat), or owned by a process on
-                    // this machine that is no longer running. In all of these cases the previous owner
-                    // is gone, so we silently take the lock over instead of warning the user.
-                    if (!readable || IsStale(existingLock) || IsDeadLocalProcess(existingLock))
+                    // The lock is expired (no recent heartbeat) or owned by a process on this machine
+                    // that is no longer running. In these cases the previous owner is gone, so we
+                    // silently take the lock over. A present-but-unreadable lock is NOT reclaimed here;
+                    // it is treated as a real conflict below, so that a transient read failure cannot
+                    // make us steal a lock that a live instance still owns.
+                    if (readable && (IsStale(existingLock) || IsDeadLocalProcess(existingLock)))
                     {
                         GraphLockFile.WriteHeartbeat(sidecarPath, info);
                         RegisterOwnedLock(normalizedPath, sidecarPath, info, workspace);
                         return GraphLockAcquireResult.Acquired(normalizedPath);
                     }
 
-                    // A live instance owns the lock: ask the user what to do.
-                    var response = PromptIfAllowed(normalizedPath, existingLock, allowPromptUI);
-                    if (response.ShouldSaveAs)
+                    // A live (or currently unreadable) lock owns the path.
+                    if (allowPromptUI && prompt != null)
                     {
-                        return TryCopyToSaveAsPath(normalizedPath, response.SaveAsPath, workspace, existingLock);
+                        // Ask the user whether to cancel or save a copy to open instead.
+                        var response = prompt.AskUser(normalizedPath, existingLock);
+                        if (response.ShouldSaveAs)
+                        {
+                            return TryCopyToSaveAsPath(normalizedPath, response.SaveAsPath, workspace, existingLock);
+                        }
+
+                        return GraphLockAcquireResult.Cancelled(existingLock);
                     }
 
+                    if (allowPromptUI)
+                    {
+                        // UI prompts are allowed but no prompt is wired yet (for example, a file opened
+                        // before the view model attached its prompt). Do not block the open: proceed
+                        // without a lock rather than silently aborting the open.
+                        return GraphLockAcquireResult.Unavailable(normalizedPath);
+                    }
+
+                    // No UI is allowed (for example, a programmatic rename/save): do not acquire the
+                    // lock and let the caller decide how to proceed.
                     return GraphLockAcquireResult.Cancelled(existingLock);
                 }
                 catch (UnauthorizedAccessException ex)
@@ -445,17 +463,6 @@ namespace Dynamo.Graph.Workspaces.Locking
             {
                 Release(path);
             }
-        }
-
-        // Asks the WPF layer for a user decision only when UI prompts are allowed
-        private GraphLockUserResponse PromptIfAllowed(string graphPath, GraphLockInfo existingLock, bool allowPromptUI)
-        {
-            if (!allowPromptUI || prompt == null)
-            {
-                return GraphLockUserResponse.Cancel();
-            }
-
-            return prompt.AskUser(graphPath, existingLock);
         }
 
         private bool IsStale(GraphLockInfo existingLock)

@@ -2255,12 +2255,24 @@ namespace Dynamo.ViewModels
                     return;
                 }
 
-                // The open was redirected to a Save As copy because of a graph-lock conflict:
-                // don't show the trust warning and don't leave the run blocked.
+                // If the open was redirected to a Save As copy (because the original was locked by
+                // another instance), re-evaluate the trust warning against the copy's actual location
+                // rather than the originally requested path, so a copy saved to an untrusted folder is
+                // still gated by the trust warning.
                 if (Model.LastOpenFileWasGraphLockRedirect)
                 {
-                    RunSettings.ForceBlockRun = false;
-                    displayTrustWarning = false;
+                    var openedPath = Model.CurrentWorkspace?.FileName;
+                    if (!string.IsNullOrEmpty(openedPath))
+                    {
+                        directoryName = Path.GetDirectoryName(openedPath);
+                        displayTrustWarning = !PreferenceSettings.IsTrustedLocation(directoryName)
+                            && !openedPath.EndsWith("dyf")
+                            && !DynamoModel.IsTestMode
+                            && !PreferenceSettings.DisableTrustWarnings
+                            && FileTrustViewModel != null;
+                    }
+
+                    RunSettings.ForceBlockRun = displayTrustWarning;
                 }
 
                 // Apply annotation updates based on the preference setting
