@@ -4296,10 +4296,10 @@ To open this graph in Dynamo 3.3–3.6.x: Install the PythonNet package from the
     <value>Auto‑sync with node selection.</value>
   </data>
   <data name="GraphLockFileAlreadyOpenMessage" xml:space="preserve">
-    <value>This file is currently open in another instance of Dynamo.
-To avoid data loss or corruption, please choose one of the following actions:
- • Save the graph with a different name to create a new version of the file.
- • Cancel to return to the workspace and close the other instance of Dynamo.</value>
+    <value>This file is already open in another instance of Dynamo.
+To avoid overwriting or corrupting work in the other instance, choose one of the following:
+• Save As — opens an independent copy you can edit safely.
+• Cancel — does not open the file.</value>
   </data>
   <data name="GraphLockFileAlreadyOpenTitle" xml:space="preserve">
     <value>File already open in another Dynamo instance</value>
