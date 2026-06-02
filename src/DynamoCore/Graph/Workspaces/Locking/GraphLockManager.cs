@@ -376,7 +376,9 @@ namespace Dynamo.Graph.Workspaces.Locking
 
         private void OnWorkspaceAdded(WorkspaceModel workspace)
         {
-            if (workspace == null || string.IsNullOrEmpty(workspace.FileName))
+            // Templates are opened as throwaway copies and may legitimately be open in several
+            // instances at once, so they are never locked.
+            if (workspace == null || workspace.IsTemplate || string.IsNullOrEmpty(workspace.FileName))
             {
                 return;
             }
@@ -385,17 +387,18 @@ namespace Dynamo.Graph.Workspaces.Locking
 
             if (locks.TryGetValue(normalizedPath, out var owned))
             {
+                // The lock was already acquired by the open flow; just associate the workspace.
                 owned.Workspace = workspace;
-                workspace.PropertyChanged += OnWorkspacePropertyChanged;
             }
             else if (!openingPaths.ContainsKey(normalizedPath))
             {
                 // The workspace was added with Save As: acquire and register a lock so the saved
-                // file is protected against being opened by another Dynamo instance
+                // file is protected against being opened by another Dynamo instance.
                 TryAcquireCore(normalizedPath, false, workspace);
             }
 
-            // Track future renames/saves for this workspace. Unsubscribe first to stay idempotent.
+            // Track future renames/saves for this workspace. Unsubscribe before subscribing so the
+            // handler is never attached twice if WorkspaceAdded is raised more than once for it.
             workspace.PropertyChanged -= OnWorkspacePropertyChanged;
             workspace.PropertyChanged += OnWorkspacePropertyChanged;
         }
@@ -410,6 +413,11 @@ namespace Dynamo.Graph.Workspaces.Locking
             if (workspace != null)
             {
                 workspace.PropertyChanged -= OnWorkspacePropertyChanged;
+
+                // Defensive: WorkspaceRemoveStarted normally releases the lock first, but release
+                // again here in case a future or test code path raises WorkspaceRemoved on its own.
+                // Release is idempotent when the lock has already been removed.
+                ReleaseWorkspace(workspace);
             }
         }
 
@@ -426,7 +434,7 @@ namespace Dynamo.Graph.Workspaces.Locking
             }
 
             var workspace = sender as WorkspaceModel;
-            if (workspace == null || string.IsNullOrEmpty(workspace.FileName))
+            if (workspace == null || workspace.IsTemplate || string.IsNullOrEmpty(workspace.FileName))
             {
                 return;
             }
@@ -498,7 +506,6 @@ namespace Dynamo.Graph.Workspaces.Locking
             return new GraphLockInfo
             {
                 SessionId = sessionId,
-                GraphPath = normalizedPath,
                 MachineName = machineName,
                 ProcessId = processId,
                 ProcessStartUtc = processStartTimeUtc,
