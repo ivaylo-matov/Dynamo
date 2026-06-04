@@ -3,7 +3,7 @@ using System.IO;
 using Dynamo.Graph.Workspaces.Locking;
 using NUnit.Framework;
 
-namespace Dynamo.Tests.Graph.Workspaces.Locking
+namespace Dynamo.Tests
 {
     [TestFixture]
     class GraphLockManagerTests : DynamoModelTestBase
