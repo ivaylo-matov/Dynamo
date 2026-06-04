@@ -8,31 +8,6 @@ namespace Dynamo.Tests
     [TestFixture]
     class GraphLockManagerTests : DynamoModelTestBase
     {
-        private string tempDirectory;
-
-        [SetUp]
-        public override void Setup()
-        {
-            base.Setup();
-            tempDirectory = Path.Combine(Path.GetTempPath(), "GraphLockManagerTests", Guid.NewGuid().ToString());
-            Directory.CreateDirectory(tempDirectory);
-        }
-
-        public override void Cleanup()
-        {
-            try
-            {
-                if (!string.IsNullOrEmpty(tempDirectory) && Directory.Exists(tempDirectory))
-                {
-                    Directory.Delete(tempDirectory, true);
-                }
-            }
-            finally
-            {
-                base.Cleanup();
-            }
-        }
-
         [Test]
         [Category("UnitTests")]
         public void WhenNoLockExistsThenAcquireCreatesOwnedLockAndReleaseDeletesIt()
@@ -102,7 +77,7 @@ namespace Dynamo.Tests
         {
             //Arrange
             var graphPath = CreateGraphFile("locked-copy-source.dyn", "source graph");
-            var copyPath = Path.Combine(tempDirectory, "locked-copy-target.dyn");
+            var copyPath = Path.Combine(TempFolder, "locked-copy-target.dyn");
             var sourceLockPath = GraphLockFile.GetLockFilePath(graphPath);
             var copyLockPath = GraphLockFile.GetLockFilePath(copyPath);
             var existingLock = CreateForeignLockInfo(graphPath, DateTime.UtcNow);
@@ -178,7 +153,7 @@ namespace Dynamo.Tests
 
         private string CreateGraphFile(string fileName, string contents = "graph")
         {
-            var graphPath = Path.Combine(tempDirectory, fileName);
+            var graphPath = Path.Combine(TempFolder, fileName);
             File.WriteAllText(graphPath, contents);
             return graphPath;
         }
