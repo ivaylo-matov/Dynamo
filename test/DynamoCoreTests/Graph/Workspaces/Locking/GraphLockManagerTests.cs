@@ -13,6 +13,8 @@ namespace Dynamo.Tests
         public void WhenNoLockExistsThenAcquireCreatesOwnedLockAndReleaseDeletesIt()
         {
             //Arrange
+            // Creates a graph in the test temp folder so the lock sidecar is not written
+            // next to a checked-in graph under test/core.
             var graphPath = CreateGraphFile("unlocked.dyn");
             var lockPath = GraphLockFile.GetLockFilePath(graphPath);
 
@@ -41,13 +43,17 @@ namespace Dynamo.Tests
 
         [Test]
         [Category("UnitTests")]
-        public void WhenLiveLockExistsAndUserCancelsThenAcquireReturnsCancelled()
+        public void WhenUserClicksCancelOnLockedGraphPromptThenAcquireReturnsCancelled()
         {
             //Arrange
+            // Writes a live lock owned by another Dynamo instance so opening the graph
+            // must go through the user prompt instead of silently taking the lock.
             var graphPath = CreateGraphFile("locked.dyn");
             var lockPath = GraphLockFile.GetLockFilePath(graphPath);
             var existingLock = CreateForeignLockInfo(graphPath, DateTime.UtcNow);
             Assert.IsTrue(GraphLockFile.TryCreateNewLockFile(lockPath, existingLock));
+
+            // Simulates the user clicking Cancel in the graph-lock prompt.
             var prompt = new TestGraphLockUserPrompt(GraphLockUserResponse.Cancel());
 
             using (var manager = CreateManager(prompt))
@@ -64,24 +70,30 @@ namespace Dynamo.Tests
                 Assert.AreEqual(existingLock.SessionId, prompt.ExistingLock.SessionId);
 
                 //Act
+                // CompleteOpen is called by the file-open path after a cancelled open.
                 manager.CompleteOpen(graphPath, false);
             }
 
             //Assert
+            // The original lock still belongs to the other Dynamo instance.
             Assert.AreEqual(existingLock.SessionId, ReadLockInfo(lockPath).SessionId);
         }
 
         [Test]
         [Category("UnitTests")]
-        public void WhenLiveLockExistsAndUserSavesCopyThenAcquireReturnsCopyPath()
+        public void WhenUserClicksSaveAsOnLockedGraphPromptThenAcquireReturnsCopyPath()
         {
             //Arrange
+            // Writes a live lock for the source graph so the Save As branch of the
+            // conflict prompt is the only path that can open the graph.
             var graphPath = CreateGraphFile("locked-copy-source.dyn", "source graph");
             var copyPath = Path.Combine(TempFolder, "locked-copy-target.dyn");
             var sourceLockPath = GraphLockFile.GetLockFilePath(graphPath);
             var copyLockPath = GraphLockFile.GetLockFilePath(copyPath);
             var existingLock = CreateForeignLockInfo(graphPath, DateTime.UtcNow);
             Assert.IsTrue(GraphLockFile.TryCreateNewLockFile(sourceLockPath, existingLock));
+
+            // Simulates the user clicking Save As and choosing a copy path.
             var prompt = new TestGraphLockUserPrompt(GraphLockUserResponse.SaveAs(copyPath));
 
             using (var manager = CreateManager(prompt))
@@ -98,11 +110,13 @@ namespace Dynamo.Tests
                 Assert.AreEqual(File.ReadAllText(graphPath), File.ReadAllText(copyPath));
                 Assert.AreEqual(existingLock.SessionId, ReadLockInfo(sourceLockPath).SessionId);
 
+                // The copy gets its own lock owned by this Dynamo session.
                 var copyLock = ReadLockInfo(copyLockPath);
                 Assert.AreEqual(Path.GetFullPath(copyPath), copyLock.GraphPath);
                 Assert.AreNotEqual(existingLock.SessionId, copyLock.SessionId);
 
                 //Act
+                // The source lock is left untouched, but the lock for the opened copy is released.
                 manager.CompleteOpen(copyPath, true);
                 manager.Release(copyPath);
             }
@@ -117,6 +131,8 @@ namespace Dynamo.Tests
         public void WhenExistingLockIsStaleThenAcquireReplacesLockOwner()
         {
             //Arrange
+            // Creates an expired lock so the manager should take ownership without
+            // asking the user to cancel or save a copy.
             var graphPath = CreateGraphFile("stale-lock.dyn");
             var lockPath = GraphLockFile.GetLockFilePath(graphPath);
             var staleLock = CreateForeignLockInfo(graphPath, DateTime.UtcNow.AddSeconds(-10));
@@ -158,6 +174,7 @@ namespace Dynamo.Tests
             return graphPath;
         }
 
+        // Creates lock metadata that cannot be mistaken for a lock from this test process.
         private static GraphLockInfo CreateForeignLockInfo(string graphPath, DateTime lastHeartbeatUtc)
         {
             return new GraphLockInfo
