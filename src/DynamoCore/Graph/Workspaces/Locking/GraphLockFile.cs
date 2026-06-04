@@ -154,17 +154,9 @@ namespace Dynamo.Graph.Workspaces.Locking
             {
                 File.Delete(sidecarPath);
             }
-            catch (IOException)
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is SecurityException)
             {
-                return;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return;
-            }
-            catch (SecurityException)
-            {
-                return;
+                // TryDelete is best-effort cleanup; callers should not fail if cleanup cannot remove the file.
             }
         }
     }
