@@ -848,7 +848,6 @@ namespace Dynamo.ViewModels
             this.model.CommandStarting += OnModelCommandStarting;
             this.model.CommandCompleted += OnModelCommandCompleted;
             this.model.RequestsCrashPrompt += CrashReportTool.ShowCrashWindow;
-            this.model.GraphLockManager?.SetPrompt(new WpfGraphLockUserPrompt(() => Owner, () => BrandingResourceProvider.ProductName));
 
             this.HideReportOptions = startConfiguration.HideReportOptions || model.NoNetworkMode;
             UsageReportingManager.Instance.InitializeCore(this);
@@ -2420,8 +2419,15 @@ namespace Dynamo.ViewModels
 
         private bool CanOpen(object parameters)
         {
-
-            var filePath = parameters as string;
+            string filePath = parameters as string;
+            if (filePath == null && parameters is Tuple<string, bool> packedTwo)
+            {
+                filePath = packedTwo.Item1;
+            }
+            else if (filePath == null && parameters is Tuple<string, bool, bool> packedThree)
+            {
+                filePath = packedThree.Item1;
+            }
 
             if (!PathHelper.IsValidPath(filePath))
             {
