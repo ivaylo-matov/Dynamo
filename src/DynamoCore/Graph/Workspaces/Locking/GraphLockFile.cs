@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Security;
 using System.Text;
@@ -157,6 +158,7 @@ namespace Dynamo.Graph.Workspaces.Locking
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is SecurityException)
             {
                 // TryDelete is best-effort cleanup; callers should not fail if cleanup cannot remove the file.
+                Debug.WriteLine("GraphLock cleanup delete failed: " + ex.Message);
             }
         }
     }
