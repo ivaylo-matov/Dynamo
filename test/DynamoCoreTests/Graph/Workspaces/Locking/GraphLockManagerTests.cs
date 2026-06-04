@@ -72,7 +72,7 @@ namespace Dynamo.Tests.Graph.Workspaces.Locking
             var graphPath = CreateGraphFile("locked.dyn");
             var lockPath = GraphLockFile.GetLockFilePath(graphPath);
             var existingLock = CreateForeignLockInfo(graphPath, DateTime.UtcNow);
-            GraphLockFile.TryCreateNewLockFile(lockPath, existingLock);
+            Assert.IsTrue(GraphLockFile.TryCreateNewLockFile(lockPath, existingLock));
             var prompt = new TestGraphLockUserPrompt(GraphLockUserResponse.Cancel());
 
             using (var manager = CreateManager(prompt))
@@ -106,7 +106,7 @@ namespace Dynamo.Tests.Graph.Workspaces.Locking
             var sourceLockPath = GraphLockFile.GetLockFilePath(graphPath);
             var copyLockPath = GraphLockFile.GetLockFilePath(copyPath);
             var existingLock = CreateForeignLockInfo(graphPath, DateTime.UtcNow);
-            GraphLockFile.TryCreateNewLockFile(sourceLockPath, existingLock);
+            Assert.IsTrue(GraphLockFile.TryCreateNewLockFile(sourceLockPath, existingLock));
             var prompt = new TestGraphLockUserPrompt(GraphLockUserResponse.SaveAs(copyPath));
 
             using (var manager = CreateManager(prompt))
@@ -145,7 +145,7 @@ namespace Dynamo.Tests.Graph.Workspaces.Locking
             var graphPath = CreateGraphFile("stale-lock.dyn");
             var lockPath = GraphLockFile.GetLockFilePath(graphPath);
             var staleLock = CreateForeignLockInfo(graphPath, DateTime.UtcNow.AddSeconds(-10));
-            GraphLockFile.TryCreateNewLockFile(lockPath, staleLock);
+            Assert.IsTrue(GraphLockFile.TryCreateNewLockFile(lockPath, staleLock));
 
             using (var manager = CreateManager(heartbeatMilliseconds: 1000))
             {
@@ -171,7 +171,7 @@ namespace Dynamo.Tests.Graph.Workspaces.Locking
             Assert.IsFalse(File.Exists(lockPath));
         }
 
-        private GraphLockManager CreateManager(IGraphLockUserPrompt prompt = null, int heartbeatMilliseconds = 1000)
+        private GraphLockManager CreateManager(IGraphLockUserPrompt prompt = null, int heartbeatMilliseconds = GraphLockManager.DefaultHeartbeatMilliseconds)
         {
             return new GraphLockManager(CurrentDynamoModel, prompt, heartbeatMilliseconds, forceEnable: true);
         }
